@@ -31,7 +31,7 @@ const Logs = ({ habits, setHabits }) => {
     const checkConnection = async () => {
       if (user) {
         // First, try the localStorage cache for instant UI feedback
-        const cached = getCachedSheetInfo();
+        const cached = getCachedSheetInfo(user);
         if (cached?.connected) {
           setSheetsStatus({
             connected: true,

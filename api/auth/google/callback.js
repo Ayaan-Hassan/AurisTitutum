@@ -230,9 +230,12 @@ export default async function handler(req, res) {
       connectedAt: existingUser?.connectedAt ?? new Date().toISOString(),
     });
   } catch (err) {
-    // KV write failed — still redirect with success because the tokens
-    // were exchanged successfully; the user can try syncing again.
     console.error("[callback] Failed to persist user data:", err.message);
+    return res.redirect(
+      `${FRONTEND}/app/settings?sheets_error=${encodeURIComponent(
+        `Failed to persist Google Sheets connection: ${err.message}`,
+      )}`,
+    );
   }
 
   // ── 7. Redirect back to the frontend with success params ─────────────────

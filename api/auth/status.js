@@ -30,7 +30,7 @@ export default async function handler(req, res) {
     userData = await getUser(userId);
   } catch (err) {
     console.error("[auth/status] Store read error:", err.message);
-    return res.status(200).json({ connected: false });
+    return res.status(500).json({ error: `Store read error: ${err.message}` });
   }
 
   if (!userData) {

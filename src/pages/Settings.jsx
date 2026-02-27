@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+﻿import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import Icon from "../components/Icon";
 import { useAuth } from "../contexts/AuthContext";
@@ -34,23 +34,11 @@ const Settings = ({
   const [syncingSheets, setSyncingSheets] = useState(false);
   const [sheetsMessage, setSheetsMessage] = useState(null);
 
-  // Check sheets connection on mount and handle OAuth callback
+    // Check sheets connection on mount and verify OAuth callback with server
   useEffect(() => {
     const init = async () => {
-      // Handle OAuth callback params (user just returned from Google consent)
       const oauthResult = handleOAuthCallback();
-      if (oauthResult.connected) {
-        setSheetsMessage({
-          type: "success",
-          text: "✓ Google Sheets connected successfully!",
-        });
-        setSheetsStatus({
-          connected: true,
-          sheetUrl: oauthResult.sheetUrl,
-          loading: false,
-        });
-        return;
-      }
+
       if (oauthResult.error) {
         setSheetsMessage({
           type: "error",
@@ -60,9 +48,24 @@ const Settings = ({
         return;
       }
 
-      // Check existing connection with server; fall back to localStorage cache
       const status = await checkSheetsConnection(user);
       setSheetsStatus({ ...status, loading: false });
+
+      if (oauthResult.connected) {
+        if (status.connected) {
+          setSheetsMessage({
+            type: "success",
+            text: "Google Sheets connected successfully!",
+          });
+        } else {
+          setSheetsMessage({
+            type: "error",
+            text:
+              status?.error ||
+              "Google Sheets connection could not be verified. Please reconnect.",
+          });
+        }
+      }
     };
 
     init();
@@ -118,7 +121,7 @@ const Settings = ({
   };
 
   const handleConnectSheets = () => {
-    // Passes user email so the backend sets login_hint — Google will
+    // Passes user email so the backend sets login_hint â€” Google will
     // auto-select the account the user is already signed in with,
     // skipping the account-picker screen on repeat connections.
     connectGoogleSheets(user);
@@ -135,7 +138,17 @@ const Settings = ({
   };
 
   const handleSyncToSheets = async () => {
-    if (!sheetsStatus.connected) return;
+    const status = await checkSheetsConnection(user);
+    if (!status.connected) {
+      setSheetsStatus({ connected: false, loading: false });
+      setSheetsMessage({
+        type: "error",
+        text:
+          status?.error ||
+          "User not connected to Google Sheets. Please connect via Settings -> Google Sheets.",
+      });
+      return;
+    }
 
     setSyncingSheets(true);
     setSheetsMessage(null);
@@ -144,7 +157,7 @@ const Settings = ({
       const result = await syncAllLogs(user, habits);
       setSheetsMessage({
         type: "success",
-        text: `✓ ${result.count} logs synced to Google Sheets.`,
+        text: `${result.count} logs synced to Google Sheets.`,
       });
     } catch (err) {
       setSheetsMessage({ type: "error", text: err.message });
@@ -360,7 +373,7 @@ const Settings = ({
                   </p>
                   {sheetsStatus.loading ? (
                     <span className="text-[9px] uppercase tracking-wider text-text-secondary animate-pulse">
-                      Checking…
+                      Checkingâ€¦
                     </span>
                   ) : sheetsStatus.connected ? (
                     <span className="inline-flex items-center gap-1 text-[9px] uppercase tracking-wider text-emerald-400 bg-emerald-400/10 border border-emerald-400/20 px-2 py-0.5 rounded-full">
@@ -376,7 +389,7 @@ const Settings = ({
                 <p className="text-xs text-text-secondary mt-1">
                   {sheetsStatus.connected
                     ? "Your habit logs sync to your personal Google Spreadsheet. Changes in the sheet reflect here automatically."
-                    : "Connect your Google account once — uses the same account you signed in with. No re-authentication needed."}
+                    : "Connect your Google account once â€” uses the same account you signed in with. No re-authentication needed."}
                 </p>
               </div>
               <div className="flex flex-col sm:flex-row gap-2 shrink-0">
@@ -389,7 +402,7 @@ const Settings = ({
                       className="w-full sm:w-auto"
                       disabled={syncingSheets || !user}
                     >
-                      {syncingSheets ? "Syncing…" : "Sync Now"}
+                      {syncingSheets ? "Syncingâ€¦" : "Sync Now"}
                     </Button>
                     <Button
                       onClick={handleDisconnectSheets}
@@ -413,7 +426,7 @@ const Settings = ({
               </div>
             </div>
 
-            {/* Open Sheet button — shown once connected */}
+            {/* Open Sheet button â€” shown once connected */}
             {sheetsStatus.connected && sheetsStatus.sheetUrl && (
               <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 rounded-xl border border-border-color bg-bg-main px-4 py-3">
                 <div className="flex-1 min-w-0">
@@ -534,3 +547,4 @@ const Settings = ({
 };
 
 export default Settings;
+

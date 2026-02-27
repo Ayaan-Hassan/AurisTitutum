@@ -9,6 +9,11 @@ const _base = (import.meta.env.VITE_BACKEND_URL ?? "").replace(/\/$/, "");
 const API_BASE = _base ? `${_base}/api` : "/api";
 
 const SHEETS_CACHE_KEY = "auristitutum_sheets_cache";
+const getSheetsCacheKey = (userOrId) => {
+  const userId =
+    typeof userOrId === "string" ? userOrId : (userOrId?.uid ?? null);
+  return userId ? `${SHEETS_CACHE_KEY}_${userId}` : SHEETS_CACHE_KEY;
+};
 
 /**
  * Get Firebase UID for API calls.
@@ -21,26 +26,26 @@ const getUserId = (user) => {
 /**
  * Cache sheets connection info locally so it survives page refreshes.
  */
-export const cacheSheetInfo = (info) => {
+export const cacheSheetInfo = (info, userOrId = null) => {
   try {
-    localStorage.setItem(SHEETS_CACHE_KEY, JSON.stringify(info));
+    localStorage.setItem(getSheetsCacheKey(userOrId), JSON.stringify(info));
   } catch {
     // Non-fatal
   }
 };
 
-export const getCachedSheetInfo = () => {
+export const getCachedSheetInfo = (userOrId = null) => {
   try {
-    const raw = localStorage.getItem(SHEETS_CACHE_KEY);
+    const raw = localStorage.getItem(getSheetsCacheKey(userOrId));
     return raw ? JSON.parse(raw) : null;
   } catch {
     return null;
   }
 };
 
-export const clearSheetCache = () => {
+export const clearSheetCache = (userOrId = null) => {
   try {
-    localStorage.removeItem(SHEETS_CACHE_KEY);
+    localStorage.removeItem(getSheetsCacheKey(userOrId));
   } catch {
     // Non-fatal
   }
@@ -75,26 +80,34 @@ export const checkSheetsConnection = async (user) => {
     const res = await fetch(
       `${API_BASE}/auth/status?userId=${encodeURIComponent(userId)}`,
     );
-    if (!res.ok) throw new Error("Failed to check connection status");
-
-    const data = await res.json();
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      clearSheetCache(userId);
+      return {
+        connected: false,
+        error: data?.error || "Failed to check connection status",
+      };
+    }
 
     if (data.connected) {
       // Keep cache fresh
-      cacheSheetInfo({
-        connected: true,
-        sheetUrl: data.sheetUrl,
-        spreadsheetId: data.spreadsheetId,
-        connectedAt: data.connectedAt,
-      });
+      cacheSheetInfo(
+        {
+          connected: true,
+          sheetUrl: data.sheetUrl,
+          spreadsheetId: data.spreadsheetId,
+          connectedAt: data.connectedAt,
+        },
+        userId,
+      );
     } else {
-      clearSheetCache();
+      clearSheetCache(userId);
     }
 
     return data;
   } catch {
     // Backend unreachable - serve from cache so the UI doesn't break
-    const cached = getCachedSheetInfo();
+    const cached = getCachedSheetInfo(userId);
     if (cached) return cached;
     return { connected: false };
   }
@@ -112,7 +125,7 @@ export const disconnectGoogleSheets = async (user) => {
     body: JSON.stringify({ userId }),
   });
   if (!res.ok) throw new Error("Failed to disconnect");
-  clearSheetCache();
+  clearSheetCache(userId);
   return await res.json();
 };
 
@@ -236,15 +249,6 @@ export const handleOAuthCallback = () => {
       ? decodeURIComponent(params.get("sheet_url"))
       : null,
   };
-
-  // Cache on successful connection
-  if (result.connected && result.sheetUrl) {
-    cacheSheetInfo({
-      connected: true,
-      sheetUrl: result.sheetUrl,
-      connectedAt: new Date().toISOString(),
-    });
-  }
 
   // Clean up URL params so they don't persist on refresh
   if (result.connected || result.error) {
