@@ -100,6 +100,8 @@ const Login = () => {
                     if (result?.success === false) {
                       setError(result.error || "Failed to sign in with Google");
                       setLoading(false);
+                    } else if (result?.user) {
+                      navigate(redirectPath, { replace: true });
                     }
                   } catch (_err) {
                     setError("Failed to sign in with Google");
@@ -142,6 +144,8 @@ const Login = () => {
                         result.error || "Failed to sign in with Facebook",
                       );
                       setLoading(false);
+                    } else if (result?.user) {
+                      navigate(redirectPath, { replace: true });
                     }
                   } catch (_err) {
                     setError("Failed to sign in with Facebook");

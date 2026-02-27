@@ -22,25 +22,30 @@ export const isFirebaseConfigured =
 let app;
 let auth;
 let db;
+let authPersistenceReady = Promise.resolve();
 
 try {
   if (isFirebaseConfigured) {
     // Initialize Firebase
     app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0];
     auth = getAuth(app);
-    setPersistence(auth, browserLocalPersistence).catch((error) => {
-      console.error("Firebase auth persistence error:", error);
-    });
+    authPersistenceReady = setPersistence(auth, browserLocalPersistence).catch(
+      (error) => {
+        console.error("Firebase auth persistence error:", error);
+      },
+    );
     db = getFirestore(app);
   } else {
     console.warn("Firebase API Key is missing. Check your .env file.");
     auth = null;
     db = null;
+    authPersistenceReady = Promise.resolve();
   }
 } catch (error) {
   console.error("Firebase initialization error:", error);
   auth = null;
   db = null;
+  authPersistenceReady = Promise.resolve();
 }
 
-export { app, auth, db };
+export { app, auth, db, authPersistenceReady };
