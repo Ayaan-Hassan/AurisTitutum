@@ -18,7 +18,13 @@ import { useHabitNotifications } from "./hooks/useHabitNotifications";
 import { useReminderNotifications } from "./hooks/useReminderNotifications";
 import ToastContainer from "./components/Toast";
 import { db, isFirebaseConfigured } from "./firebase.config";
-import { doc, getDoc, getDocFromServer, setDoc } from "firebase/firestore";
+import {
+  doc,
+  getDoc,
+  getDocFromServer,
+  onSnapshot,
+  setDoc,
+} from "firebase/firestore";
 
 const DAILY_INSIGHTS = [
   {
@@ -210,6 +216,10 @@ const normalizeAppState = (raw = {}) => ({
   reminders: Array.isArray(raw.reminders) ? raw.reminders : [],
 });
 
+const areAppStatesEqual = (left, right) =>
+  JSON.stringify(normalizeAppState(left)) ===
+  JSON.stringify(normalizeAppState(right));
+
 const getUserKey = (user) => user?.uid || user?.id || null;
 const getStorageScope = (user) =>
   getUserKey(user) ? `user_${getUserKey(user)}` : "guest";
@@ -358,6 +368,7 @@ function AppContent() {
   const pendingScopeInitRef = useRef(null);
   const cloudStateReadyRef = useRef(false);
   const cloudSaveTimerRef = useRef(null);
+  const skipNextCloudSaveRef = useRef(false);
 
   // Global preloader — runs once on app load
   useEffect(() => {
@@ -468,10 +479,22 @@ function AppContent() {
     }
 
     let cancelled = false;
+    const cloudRef = doc(db, CLOUD_STATE_COLLECTION, userKey);
+
+    const applyRemoteState = (rawState) => {
+      const remoteState = normalizeAppState(rawState || {});
+      if (areAppStatesEqual(remoteState, latestStateRef.current)) return;
+      skipNextCloudSaveRef.current = true;
+      setHabits(remoteState.habits);
+      setUserConfig(mergeUserIdentityIntoConfig(remoteState.userConfig, user));
+      setNotes(remoteState.notes);
+      setReminders(remoteState.reminders);
+      writeScopedState(activeScope, remoteState);
+      latestStateRef.current = remoteState;
+    };
 
     const hydrateCloudState = async () => {
       try {
-        const cloudRef = doc(db, CLOUD_STATE_COLLECTION, userKey);
         let snapshot;
         try {
           snapshot = await getDocFromServer(cloudRef);
@@ -481,15 +504,7 @@ function AppContent() {
         if (cancelled) return;
 
         if (snapshot.exists()) {
-          const remoteState = normalizeAppState(snapshot.data() || {});
-          setHabits(remoteState.habits);
-          setUserConfig(
-            mergeUserIdentityIntoConfig(remoteState.userConfig, user),
-          );
-          setNotes(remoteState.notes);
-          setReminders(remoteState.reminders);
-          writeScopedState(activeScope, remoteState);
-          latestStateRef.current = remoteState;
+          applyRemoteState(snapshot.data() || {});
         } else {
           const seedState = normalizeAppState({});
           setHabits(seedState.habits);
@@ -517,9 +532,20 @@ function AppContent() {
     };
 
     hydrateCloudState();
+    const unsubscribe = onSnapshot(
+      cloudRef,
+      (snapshot) => {
+        if (cancelled || !snapshot.exists()) return;
+        applyRemoteState(snapshot.data() || {});
+      },
+      (error) => {
+        console.error("[cloud-sync] Realtime subscription failed:", error);
+      },
+    );
 
     return () => {
       cancelled = true;
+      unsubscribe();
     };
   }, [activeScope, user, userKey]);
 
@@ -530,6 +556,11 @@ function AppContent() {
       !db ||
       !cloudStateReadyRef.current
     ) {
+      return undefined;
+    }
+
+    if (skipNextCloudSaveRef.current) {
+      skipNextCloudSaveRef.current = false;
       return undefined;
     }
 
