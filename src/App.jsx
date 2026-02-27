@@ -191,6 +191,18 @@ const normalizeUserConfig = (raw = {}) => ({
   },
 });
 
+const mergeUserIdentityIntoConfig = (config = {}, user = null) => {
+  const normalized = normalizeUserConfig(config);
+  if (!user) return normalized;
+
+  const fallbackName = user?.email ? user.email.split("@")[0] : "";
+  return {
+    ...normalized,
+    email: user?.email || normalized.email || "",
+    name: normalized.name || user?.name || fallbackName,
+  };
+};
+
 const normalizeAppState = (raw = {}) => ({
   habits: Array.isArray(raw.habits) ? raw.habits : [],
   userConfig: normalizeUserConfig(raw.userConfig),
@@ -352,13 +364,9 @@ function AppContent() {
   }, []);
 
   useEffect(() => {
-    if (user?.email)
-      setUserConfig((prev) => ({
-        ...prev,
-        email: user.email,
-        name: user.name || prev.name,
-      }));
-  }, [user?.email, user?.name]);
+    if (!user) return;
+    setUserConfig((prev) => mergeUserIdentityIntoConfig(prev, user));
+  }, [activeScope, user?.id, user?.email, user?.name]);
 
   const { toasts, removeToast, notifications, markAllRead, addToast } =
     useHabitNotifications(habits, {
@@ -431,7 +439,7 @@ function AppContent() {
 
     loadedScopeRef.current = activeScope;
     setHabits(nextState.habits);
-    setUserConfig(nextState.userConfig);
+    setUserConfig(mergeUserIdentityIntoConfig(nextState.userConfig, user));
     setNotes(nextState.notes);
     setReminders(nextState.reminders);
   }, [activeScope]);
@@ -465,7 +473,9 @@ function AppContent() {
         if (snapshot.exists()) {
           const remoteState = normalizeAppState(snapshot.data() || {});
           setHabits(remoteState.habits);
-          setUserConfig(remoteState.userConfig);
+          setUserConfig(
+            mergeUserIdentityIntoConfig(remoteState.userConfig, user),
+          );
           setNotes(remoteState.notes);
           setReminders(remoteState.reminders);
           writeScopedState(activeScope, remoteState);
