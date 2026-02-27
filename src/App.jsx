@@ -420,20 +420,11 @@ function AppContent() {
   useEffect(() => {
     if (loadedScopeRef.current === activeScope) return;
 
-    const previousScope = loadedScopeRef.current;
     const existingScopedState = readScopedState(activeScope);
     const isUserScope = activeScope.startsWith("user_");
-    const shouldSeedFromGuest =
-      isUserScope &&
-      previousScope === "guest" &&
-      !!latestStateRef.current?.habits?.length;
-    const legacyFallback =
-      !isUserScope || shouldSeedFromGuest ? readLegacyState() : null;
+    const legacyFallback = !isUserScope ? readLegacyState() : null;
     const nextState = normalizeAppState(
-      existingScopedState ||
-        (shouldSeedFromGuest ? latestStateRef.current : null) ||
-        legacyFallback ||
-        {},
+      existingScopedState || legacyFallback || {},
     );
 
     if (!existingScopedState) {
@@ -489,7 +480,7 @@ function AppContent() {
           writeScopedState(activeScope, remoteState);
           latestStateRef.current = remoteState;
         } else {
-          const seedState = normalizeAppState(latestStateRef.current || {});
+          const seedState = normalizeAppState({});
           await setDoc(
             cloudRef,
             {
