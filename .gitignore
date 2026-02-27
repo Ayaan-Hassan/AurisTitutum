@@ -1,6 +1,5 @@
 # Dependencies
 node_modules/
-server/node_modules/
 
 # Build output
 dist/
@@ -12,10 +11,9 @@ build/
 .env.development.local
 .env.test.local
 .env.production.local
-server/.env
 
-# Server persistent user store — contains OAuth tokens, never commit
-server/.userstore.json
+# Vercel
+.vercel
 
 # Logs
 npm-debug.log*

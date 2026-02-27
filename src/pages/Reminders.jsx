@@ -113,8 +113,8 @@ const ReminderCard = ({ reminder, onDelete }) => {
             {repeat === "daily"
               ? `Every day at ${formatTimeOnly(reminder.time)}`
               : repeat === "weekly"
-              ? `Every week (${new Date(reminder.date + "T12:00:00").toLocaleDateString("en-US", { weekday: "long" })}) at ${formatTimeOnly(reminder.time)}`
-              : formatDateTime(reminder.date, reminder.time)}
+                ? `Every week (${new Date(reminder.date + "T12:00:00").toLocaleDateString("en-US", { weekday: "long" })}) at ${formatTimeOnly(reminder.time)}`
+                : formatDateTime(reminder.date, reminder.time)}
           </p>
         </div>
       </div>
@@ -147,21 +147,28 @@ const Reminders = ({ reminders, setReminders }) => {
     }
   }, []);
 
-  const requestPermission = async () => {
-    if (typeof Notification === "undefined") return;
+  const ensureNotificationPermissionForReminder = async () => {
+    if (typeof Notification === "undefined") return "unsupported";
+    if (Notification.permission !== "default") {
+      setNotifPermission(Notification.permission);
+      return Notification.permission;
+    }
     setPermissionRequesting(true);
     try {
       const result = await Notification.requestPermission();
       setNotifPermission(result);
+      return result;
     } catch {
       setNotifPermission("denied");
+      return "denied";
     } finally {
       setPermissionRequesting(false);
     }
   };
 
-  const handleAdd = () => {
+  const handleAdd = async () => {
     if (!title.trim()) return;
+    await ensureNotificationPermissionForReminder();
     const reminder = {
       id: Date.now().toString(),
       title: title.trim(),
@@ -209,7 +216,8 @@ const Reminders = ({ reminders, setReminders }) => {
             Set Reminders
           </h2>
           <p className="text-text-secondary text-sm mt-1">
-            Schedule time-based alerts and receive notifications when it matters.
+            Schedule time-based alerts and receive notifications when it
+            matters.
           </p>
         </div>
         <button
@@ -220,59 +228,6 @@ const Reminders = ({ reminders, setReminders }) => {
           {showAdd ? "Cancel" : "New Reminder"}
         </button>
       </div>
-
-      {/* ── Notification Permission Banner ── */}
-      {notifPermission !== "granted" && (
-        <Card className="border-l-4 border-l-accent overflow-hidden relative">
-          <div className="absolute -top-12 -right-12 w-32 h-32 bg-accent/5 rounded-full blur-[60px] pointer-events-none" />
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 relative z-10">
-            <div className="flex items-start gap-3">
-              <div className="w-10 h-10 rounded-xl bg-accent-dim border border-border-color flex items-center justify-center shrink-0">
-                <Icon name="bell-off" size={16} className="text-text-primary" />
-              </div>
-              <div>
-                <p className="text-sm font-bold text-text-primary mb-0.5">
-                  {notifPermission === "denied"
-                    ? "Notifications Blocked"
-                    : "Enable Browser Notifications"}
-                </p>
-                <p className="text-xs text-text-secondary max-w-lg">
-                  {notifPermission === "denied"
-                    ? "You have blocked notifications for this site. To receive reminder alerts, open your browser settings, find this site under Notifications, and set it to Allow."
-                    : "Grant permission so this site can send you browser alerts when a reminder is due — even if the tab is in the background. Reminders will still appear inside the app either way."}
-                </p>
-              </div>
-            </div>
-            {notifPermission !== "denied" && (
-              <button
-                onClick={requestPermission}
-                disabled={permissionRequesting}
-                className="shrink-0 px-5 py-2.5 rounded-xl bg-accent text-bg-main text-[10px] font-black uppercase tracking-[0.25em] hover:opacity-90 transition-all disabled:opacity-50 whitespace-nowrap"
-              >
-                {permissionRequesting ? "Requesting…" : "Allow Notifications"}
-              </button>
-            )}
-          </div>
-          {notifPermission === "granted" && (
-            <div className="flex items-center gap-2 mt-3 pt-3 border-t border-border-color">
-              <Icon name="check-circle" size={13} className="text-success" />
-              <p className="text-[10px] font-mono text-success uppercase tracking-wider">
-                Notifications enabled
-              </p>
-            </div>
-          )}
-        </Card>
-      )}
-
-      {/* ── Notification Granted Confirmation ── */}
-      {notifPermission === "granted" && reminders.length > 0 && (
-        <div className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-success/10 border border-success/30 w-fit">
-          <Icon name="bell" size={13} className="text-success" />
-          <span className="text-[10px] font-mono font-bold text-success uppercase tracking-wider">
-            Browser notifications active
-          </span>
-        </div>
-      )}
 
       {/* ── Add Reminder Form ── */}
       {showAdd && (
@@ -381,9 +336,11 @@ const Reminders = ({ reminders, setReminders }) => {
                     className="text-text-secondary mt-0.5 shrink-0"
                   />
                   <p className="text-[10px] text-text-secondary leading-relaxed">
-                    {notifPermission === "denied"
-                      ? "Browser notifications are blocked. Enable them in your browser settings to receive alerts outside the app."
-                      : "You haven't granted notification permission yet. The reminder will still appear inside the app when you're on this page."}
+                    {permissionRequesting
+                      ? "Requesting browser notification permission..."
+                      : notifPermission === "denied"
+                        ? "Browser notifications are blocked. Enable them in your browser settings to receive alerts outside the app."
+                        : "Notification permission will be requested when you press Set Reminder."}
                   </p>
                 </div>
               )}
@@ -391,10 +348,10 @@ const Reminders = ({ reminders, setReminders }) => {
               {/* Submit */}
               <button
                 onClick={handleAdd}
-                disabled={!canAdd}
+                disabled={!canAdd || permissionRequesting}
                 className="w-full py-4 bg-accent text-bg-main text-[11px] font-black uppercase tracking-[0.3em] rounded-xl hover:scale-[1.01] active:scale-[0.99] transition-all shadow-lg disabled:opacity-30 disabled:hover:scale-100"
               >
-                Set Reminder
+                {permissionRequesting ? "Requesting..." : "Set Reminder"}
               </button>
             </div>
           </div>
@@ -451,8 +408,8 @@ const Reminders = ({ reminders, setReminders }) => {
             No reminders set
           </p>
           <p className="text-xs text-text-secondary max-w-xs mb-6">
-            Create a reminder and get notified at exactly the right time — inside
-            the app and via your browser.
+            Create a reminder and get notified at exactly the right time —
+            inside the app and via your browser.
           </p>
           <button
             onClick={() => setShowAdd(true)}

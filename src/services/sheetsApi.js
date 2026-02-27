@@ -1,9 +1,21 @@
 /**
  * Google Sheets Backend API Service
- * All Google Sheets operations go through the secure backend server
+ *
+ * All requests go to /api/* — the Vercel serverless functions that live
+ * in the /api folder of this same project.
+ *
+ * Because the frontend and the API functions are deployed to the SAME
+ * Vercel project, no separate backend URL is needed. Everything is
+ * same-origin in production, which also means no CORS issues.
+ *
+ * For local development use `vercel dev` (runs both Vite + API functions
+ * on the same port). If you need to point at an external backend for any
+ * reason, set VITE_BACKEND_URL (without a trailing slash) and the /api
+ * prefix will be appended automatically.
  */
 
-const API_BASE = import.meta.env.VITE_BACKEND_URL || "http://localhost:3001";
+const _base = (import.meta.env.VITE_BACKEND_URL ?? "").replace(/\/$/, "");
+const API_BASE = _base ? `${_base}/api` : "/api";
 
 const SHEETS_CACHE_KEY = "auristitutum_sheets_cache";
 
@@ -111,18 +123,14 @@ export const checkSheetsConnection = async (user) => {
 export const disconnectGoogleSheets = async (user) => {
   const userId = getUserId(user);
 
-  try {
-    const res = await fetch(`${API_BASE}/auth/disconnect`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ userId }),
-    });
-    if (!res.ok) throw new Error("Failed to disconnect");
-    clearSheetCache();
-    return await res.json();
-  } catch (err) {
-    throw err;
-  }
+  const res = await fetch(`${API_BASE}/auth/disconnect`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ userId }),
+  });
+  if (!res.ok) throw new Error("Failed to disconnect");
+  clearSheetCache();
+  return await res.json();
 };
 
 /**
@@ -131,30 +139,26 @@ export const disconnectGoogleSheets = async (user) => {
 export const appendLog = async (user, logData) => {
   const userId = getUserId(user);
 
-  try {
-    const res = await fetch(`${API_BASE}/append-log`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        userId,
-        habit: logData.habit,
-        date: logData.date,
-        type: logData.type,
-        status: logData.status || "logged",
-        value: logData.value,
-        timestamp: logData.timestamp || new Date().toISOString(),
-      }),
-    });
+  const res = await fetch(`${API_BASE}/append-log`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      userId,
+      habit: logData.habit,
+      date: logData.date,
+      type: logData.type,
+      status: logData.status || "logged",
+      value: logData.value,
+      timestamp: logData.timestamp || new Date().toISOString(),
+    }),
+  });
 
-    if (!res.ok) {
-      const error = await res.json();
-      throw new Error(error.error || "Failed to append log");
-    }
-
-    return await res.json();
-  } catch (err) {
-    throw err;
+  if (!res.ok) {
+    const error = await res.json();
+    throw new Error(error.error || "Failed to append log");
   }
+
+  return await res.json();
 };
 
 /**
@@ -205,22 +209,18 @@ export const syncAllLogs = async (user, habits) => {
     throw new Error("No logs to sync");
   }
 
-  try {
-    const res = await fetch(`${API_BASE}/sync-logs`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ userId, logs }),
-    });
+  const res = await fetch(`${API_BASE}/sync-logs`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ userId, logs }),
+  });
 
-    if (!res.ok) {
-      const error = await res.json();
-      throw new Error(error.error || "Failed to sync logs");
-    }
-
-    return await res.json();
-  } catch (err) {
-    throw err;
+  if (!res.ok) {
+    const error = await res.json();
+    throw new Error(error.error || "Failed to sync logs");
   }
+
+  return await res.json();
 };
 
 /**
@@ -230,20 +230,16 @@ export const syncAllLogs = async (user, habits) => {
 export const getLogsFromSheets = async (user) => {
   const userId = getUserId(user);
 
-  try {
-    const res = await fetch(
-      `${API_BASE}/get-logs?userId=${encodeURIComponent(userId)}`,
-    );
+  const res = await fetch(
+    `${API_BASE}/get-logs?userId=${encodeURIComponent(userId)}`,
+  );
 
-    if (!res.ok) {
-      const error = await res.json();
-      throw new Error(error.error || "Failed to fetch logs from sheet");
-    }
-
-    return await res.json(); // { logs: [...] }
-  } catch (err) {
-    throw err;
+  if (!res.ok) {
+    const error = await res.json();
+    throw new Error(error.error || "Failed to fetch logs from sheet");
   }
+
+  return await res.json(); // { logs: [...] }
 };
 
 /**

@@ -87,10 +87,21 @@ const Layout = ({
             </h2>
             <div className="hidden sm:block h-4 w-[1px] bg-border-color"></div>
             <div className="flex items-center gap-2">
-              <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-success/10 border border-success/30">
+              <div
+                className={`flex items-center gap-2 py-1.5 rounded-lg bg-success/10 border border-success/30 ${!user ? "px-2 sm:px-3" : "px-3"}`}
+              >
                 <Icon name="flame" size={12} className="text-success" />
                 <span className="text-[10px] font-mono font-bold text-success uppercase tracking-wider">
-                  {streak} day{streak !== 1 ? "s" : ""} streak
+                  {!user ? (
+                    <>
+                      <span className="sm:hidden">{streak}d</span>
+                      <span className="hidden sm:inline">
+                        {streak} day{streak !== 1 ? "s" : ""} streak
+                      </span>
+                    </>
+                  ) : (
+                    `${streak} day${streak !== 1 ? "s" : ""} streak`
+                  )}
                 </span>
               </div>
             </div>

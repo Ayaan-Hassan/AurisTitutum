@@ -150,6 +150,107 @@ const getDailyInsight = () => {
   return DAILY_INSIGHTS[hash % DAILY_INSIGHTS.length];
 };
 
+const LEGACY_STORAGE_KEYS = {
+  habits: "habitflow_pro_data",
+  userConfig: "habitflow_pro_user",
+  notes: "habitflow_pro_notes",
+  reminders: "habitflow_pro_reminders",
+};
+
+const SCOPED_STATE_PREFIX = "habitflow_pro_state_";
+
+const DEFAULT_USER_CONFIG = {
+  name: "",
+  email: "",
+  avatar: null,
+  settings: {
+    persistence: true,
+    audit: true,
+    devConsole: false,
+    notificationsEnabled: true,
+  },
+};
+
+const safeJsonParse = (value, fallback) => {
+  try {
+    return value ? JSON.parse(value) : fallback;
+  } catch {
+    return fallback;
+  }
+};
+
+const normalizeUserConfig = (raw = {}) => ({
+  ...DEFAULT_USER_CONFIG,
+  ...(raw || {}),
+  settings: {
+    ...DEFAULT_USER_CONFIG.settings,
+    ...((raw && raw.settings) || {}),
+  },
+});
+
+const normalizeAppState = (raw = {}) => ({
+  habits: Array.isArray(raw.habits) ? raw.habits : [],
+  userConfig: normalizeUserConfig(raw.userConfig),
+  notes: Array.isArray(raw.notes) ? raw.notes : [],
+  reminders: Array.isArray(raw.reminders) ? raw.reminders : [],
+});
+
+const getStorageScope = (user) => (user?.id ? `user_${user.id}` : "guest");
+
+const getScopedStateKey = (scope) => `${SCOPED_STATE_PREFIX}${scope}`;
+
+const readScopedState = (scope) => {
+  if (typeof localStorage === "undefined") return null;
+  const parsed = safeJsonParse(
+    localStorage.getItem(getScopedStateKey(scope)),
+    null,
+  );
+  return parsed ? normalizeAppState(parsed) : null;
+};
+
+const readLegacyState = () => {
+  if (typeof localStorage === "undefined") return null;
+  const habits = safeJsonParse(
+    localStorage.getItem(LEGACY_STORAGE_KEYS.habits),
+    null,
+  );
+  const userConfig = safeJsonParse(
+    localStorage.getItem(LEGACY_STORAGE_KEYS.userConfig),
+    null,
+  );
+  const notes = safeJsonParse(
+    localStorage.getItem(LEGACY_STORAGE_KEYS.notes),
+    null,
+  );
+  const reminders = safeJsonParse(
+    localStorage.getItem(LEGACY_STORAGE_KEYS.reminders),
+    null,
+  );
+  const hasAnyLegacy =
+    habits !== null ||
+    userConfig !== null ||
+    notes !== null ||
+    reminders !== null;
+  if (!hasAnyLegacy) return null;
+  return normalizeAppState({
+    habits: habits || [],
+    userConfig: userConfig || DEFAULT_USER_CONFIG,
+    notes: notes || [],
+    reminders: reminders || [],
+  });
+};
+
+const writeScopedState = (scope, state) => {
+  if (typeof localStorage === "undefined") return;
+  localStorage.setItem(
+    getScopedStateKey(scope),
+    JSON.stringify({
+      ...normalizeAppState(state),
+      updatedAt: Date.now(),
+    }),
+  );
+};
+
 // Image compression utility
 const compressImage = (base64Str) => {
   return new Promise((resolve) => {
@@ -205,36 +306,15 @@ export const Preloader = memo(({ isLoading }) => {
 });
 
 function AppContent() {
-  const [showPreloader, setShowPreloader] = useState(true);
-  const [habits, setHabits] = useState(() => {
-    const saved = localStorage.getItem("habitflow_pro_data");
-    return saved ? JSON.parse(saved) : [];
-  });
+  const { user } = useAuth();
+  const activeScope = getStorageScope(user);
+  const initialState = normalizeAppState(
+    readScopedState("guest") || readLegacyState() || {},
+  );
 
-  const [userConfig, setUserConfig] = useState(() => {
-    const saved = localStorage.getItem("habitflow_pro_user");
-    const defaultUser = {
-      name: "",
-      email: "",
-      avatar: null,
-      settings: {
-        persistence: true,
-        audit: true,
-        devConsole: false,
-        notificationsEnabled: true,
-      },
-    };
-    const merged = saved
-      ? { ...defaultUser, ...JSON.parse(saved) }
-      : defaultUser;
-    if (
-      merged.name === "Ayaan Hassan" &&
-      merged.email === "ayaan.h@habitflow.io"
-    ) {
-      return { ...merged, name: "", email: "" };
-    }
-    return merged;
-  });
+  const [showPreloader, setShowPreloader] = useState(true);
+  const [habits, setHabits] = useState(initialState.habits);
+  const [userConfig, setUserConfig] = useState(initialState.userConfig);
 
   const [showAddModal, setShowAddModal] = useState(false);
   const [newHabit, setNewHabit] = useState({
@@ -245,17 +325,11 @@ function AppContent() {
     emoji: "",
   });
   const [selectedHabitId, setSelectedHabitId] = useState(null);
-  const [notes, setNotes] = useState(() => {
-    const saved = localStorage.getItem("habitflow_pro_notes");
-    return saved ? JSON.parse(saved) : [];
-  });
-  const [reminders, setReminders] = useState(() => {
-    const saved = localStorage.getItem("habitflow_pro_reminders");
-    return saved ? JSON.parse(saved) : [];
-  });
+  const [notes, setNotes] = useState(initialState.notes);
+  const [reminders, setReminders] = useState(initialState.reminders);
   const fileInputRef = useRef(null);
-
-  const { user } = useAuth();
+  const latestStateRef = useRef(initialState);
+  const loadedScopeRef = useRef("guest");
 
   // Global preloader — runs once on app load
   useEffect(() => {
@@ -312,17 +386,53 @@ function AppContent() {
   }, [handleAddHabitRequest]);
 
   useEffect(() => {
-    localStorage.setItem("habitflow_pro_data", JSON.stringify(habits));
-  }, [habits]);
+    latestStateRef.current = normalizeAppState({
+      habits,
+      userConfig,
+      notes,
+      reminders,
+    });
+  }, [habits, userConfig, notes, reminders]);
+
   useEffect(() => {
-    localStorage.setItem("habitflow_pro_user", JSON.stringify(userConfig));
-  }, [userConfig]);
+    if (loadedScopeRef.current === activeScope) return;
+
+    const previousScope = loadedScopeRef.current;
+    const existingScopedState = readScopedState(activeScope);
+    const isUserScope = activeScope.startsWith("user_");
+    const shouldSeedFromGuest =
+      isUserScope &&
+      previousScope === "guest" &&
+      !!latestStateRef.current?.habits?.length;
+    const legacyFallback =
+      !isUserScope || shouldSeedFromGuest ? readLegacyState() : null;
+    const nextState = normalizeAppState(
+      existingScopedState ||
+        (shouldSeedFromGuest ? latestStateRef.current : null) ||
+        legacyFallback ||
+        {},
+    );
+
+    if (!existingScopedState) {
+      writeScopedState(activeScope, nextState);
+    }
+
+    loadedScopeRef.current = activeScope;
+    setHabits(nextState.habits);
+    setUserConfig(nextState.userConfig);
+    setNotes(nextState.notes);
+    setReminders(nextState.reminders);
+  }, [activeScope]);
+
   useEffect(() => {
-    localStorage.setItem("habitflow_pro_notes", JSON.stringify(notes));
-  }, [notes]);
-  useEffect(() => {
-    localStorage.setItem("habitflow_pro_reminders", JSON.stringify(reminders));
-  }, [reminders]);
+    if (loadedScopeRef.current !== activeScope) return;
+    writeScopedState(activeScope, {
+      habits,
+      userConfig,
+      notes,
+      reminders,
+    });
+  }, [activeScope, habits, userConfig, notes, reminders]);
 
   const logActivity = (id, increment = true, amount = 1, unit = "") => {
     const amt = Math.max(1, Math.floor(Number(amount) || 1));
@@ -878,7 +988,7 @@ function AppContent() {
               <button
                 onClick={() => {
                   setFeatureLockOpen(false);
-                  window.location.href = '/login';
+                  window.location.href = "/login";
                 }}
                 className="flex-1 py-3 rounded-xl bg-accent text-bg-main text-[11px] font-black uppercase tracking-[0.3em]"
               >

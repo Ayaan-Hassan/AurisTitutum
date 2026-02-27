@@ -3,6 +3,7 @@ import Icon from "../components/Icon";
 import { Card } from "../components/ui/Card";
 import { Button } from "../components/ui/Button";
 import { ConfirmModal, RenameModal } from "../components/Modals";
+import HabitPerformanceModal from "../components/HabitPerformanceModal";
 
 // Detect plain Unicode symbols vs coloured emoji
 const isUnicodeSymbol = (ch) =>
@@ -14,6 +15,9 @@ const Habits = ({ habits, setHabits, logActivity }) => {
   const [countInputs, setCountInputs] = useState({});
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [renameTarget, setRenameTarget] = useState(null);
+  const [performanceTarget, setPerformanceTarget] = useState(null);
+  const performanceHabit =
+    habits.find((h) => h.id === performanceTarget) || null;
 
   return (
     <div className="page-fade space-y-10 pb-20">
@@ -42,6 +46,13 @@ const Habits = ({ habits, setHabits, logActivity }) => {
             >
               {/* Action buttons */}
               <div className="absolute top-0 right-0 p-6 flex gap-2">
+                <Button
+                  onClick={() => setPerformanceTarget(h.id)}
+                  variant="outline"
+                  size="sm"
+                  icon="bar-chart-2"
+                  className="w-8 h-8 p-0 rounded-lg flex items-center justify-center border border-border-color bg-bg-main"
+                />
                 <Button
                   onClick={() => setRenameTarget({ id: h.id, name: h.name })}
                   variant="outline"
@@ -405,6 +416,11 @@ const Habits = ({ habits, setHabits, logActivity }) => {
           }
         }}
         onCancel={() => setRenameTarget(null)}
+      />
+      <HabitPerformanceModal
+        open={!!performanceTarget}
+        habit={performanceHabit}
+        onClose={() => setPerformanceTarget(null)}
       />
     </div>
   );

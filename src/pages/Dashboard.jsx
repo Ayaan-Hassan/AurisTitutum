@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import Icon from "../components/Icon";
 import { Card } from "../components/ui/Card";
 import { Button } from "../components/ui/Button";
-import { ConfirmModal, RenameModal } from "../components/Modals";
+import HabitPerformanceModal from "../components/HabitPerformanceModal";
 
 // Detect plain Unicode symbols vs coloured emoji (same helper as Habits.jsx)
 const isUnicodeSymbol = (ch) =>
@@ -11,11 +11,12 @@ const isUnicodeSymbol = (ch) =>
     ch,
   );
 
-const Dashboard = ({ habits, setHabits, logActivity, insights }) => {
+const Dashboard = ({ habits, logActivity, insights }) => {
   const [countInputs, setCountInputs] = useState({});
   const [calendarMonth, setCalendarMonth] = useState(() => new Date());
-  const [deleteTarget, setDeleteTarget] = useState(null);
-  const [renameTarget, setRenameTarget] = useState(null);
+  const [performanceTarget, setPerformanceTarget] = useState(null);
+  const performanceHabit =
+    habits.find((h) => h.id === performanceTarget) || null;
   const flattenedLogs = useMemo(() => {
     const parseTs = (dateStr, timeStr) => {
       const iso = `${dateStr}T${timeStr || "00:00:00"}`;
@@ -55,10 +56,6 @@ const Dashboard = ({ habits, setHabits, logActivity, insights }) => {
       (a, b) => parseTs(b.date, b.time) - parseTs(a.date, a.time),
     );
   }, [habits]);
-
-  const removeHabit = (id) => setDeleteTarget(id);
-  const renameHabit = (id, currentName) =>
-    setRenameTarget({ id, name: currentName });
 
   const totalLogEvents = (list) =>
     (list || []).reduce(
@@ -201,20 +198,6 @@ const Dashboard = ({ habits, setHabits, logActivity, insights }) => {
                   className="flex items-center justify-between p-3 bg-accent-dim border border-border-color rounded-xl group transition-all hover:border-text-secondary"
                 >
                   <div className="flex items-center gap-3 min-w-0">
-                    <Button
-                      onClick={() => removeHabit(h.id)}
-                      size="sm"
-                      variant="danger"
-                      icon="trash"
-                      className="opacity-0 group-hover:opacity-100 transition-all p-0 w-6 h-6 border-none bg-transparent hover:bg-danger/10 shrink-0"
-                    />
-                    <Button
-                      onClick={() => renameHabit(h.id, h.name)}
-                      size="sm"
-                      variant="outline"
-                      icon="pencil"
-                      className="opacity-0 group-hover:opacity-100 transition-all p-0 w-6 h-6 border-none bg-transparent hover:bg-accent-dim shrink-0"
-                    />
                     {/* Emoji / icon badge */}
                     <div
                       className={`w-7 h-7 rounded-lg shrink-0 flex items-center justify-center border ${isGood ? "bg-accent/10 border-accent/30" : "bg-bg-main border-border-color"}`}
@@ -263,6 +246,14 @@ const Dashboard = ({ habits, setHabits, logActivity, insights }) => {
                     </div>
                   </div>
                   <div className="flex items-center gap-1.5 shrink-0 ml-2">
+                    <Button
+                      onClick={() => setPerformanceTarget(h.id)}
+                      size="sm"
+                      variant="outline"
+                      icon="bar-chart-2"
+                      className="bg-bg-main rounded-lg w-8 h-8 p-0"
+                      title="Habit performance"
+                    />
                     {h.mode === "count" ? (
                       <>
                         <input
@@ -517,34 +508,10 @@ const Dashboard = ({ habits, setHabits, logActivity, insights }) => {
         </div>
       </Card>
 
-      <ConfirmModal
-        open={!!deleteTarget}
-        title="Delete stream"
-        message="Are you sure you want to delete this stream? This cannot be undone."
-        confirmLabel="Delete"
-        variant="danger"
-        onConfirm={() => {
-          if (deleteTarget) {
-            setHabits((prev) => prev.filter((h) => h.id !== deleteTarget));
-            setDeleteTarget(null);
-          }
-        }}
-        onCancel={() => setDeleteTarget(null)}
-      />
-      <RenameModal
-        open={!!renameTarget}
-        currentName={renameTarget?.name}
-        onConfirm={(newName) => {
-          if (renameTarget?.id && newName) {
-            setHabits((prev) =>
-              prev.map((h) =>
-                h.id === renameTarget.id ? { ...h, name: newName } : h,
-              ),
-            );
-            setRenameTarget(null);
-          }
-        }}
-        onCancel={() => setRenameTarget(null)}
+      <HabitPerformanceModal
+        open={!!performanceTarget}
+        habit={performanceHabit}
+        onClose={() => setPerformanceTarget(null)}
       />
     </div>
   );
