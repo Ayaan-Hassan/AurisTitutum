@@ -1,13 +1,15 @@
 ﻿/**
- * Persistent user store - OAuth tokens + spreadsheet metadata.
+ * Persistent store for OAuth data + app state.
  *
- * Redis-only storage for all environments.
- *
- * Key schema: at_user:<userId>
+ * Key schema:
+ *   at_user:<userId>   -> Google OAuth / Sheets metadata
+ *   at_state:<userId>  -> Habit tracker app state snapshot
  */
 
-const KEY_PREFIX = "at_user:";
+const USER_KEY_PREFIX = "at_user:";
+const STATE_KEY_PREFIX = "at_state:";
 const IS_PRODUCTION = process.env.NODE_ENV === "production";
+const _memoryStore = new Map();
 
 // Lazy Upstash Redis loader
 let _redis = null;
@@ -17,10 +19,10 @@ async function getRedis() {
   const token = process.env.UPSTASH_REDIS_REST_TOKEN;
 
   if (!url || !token) {
-    if (IS_PRODUCTION) throw new Error("Redis is required in production");
-    throw new Error(
-      "Redis is required. Missing UPSTASH_REDIS_REST_URL or UPSTASH_REDIS_REST_TOKEN.",
-    );
+    if (IS_PRODUCTION) {
+      throw new Error("Redis is required in production");
+    }
+    return null;
   }
 
   if (_redis) return _redis;
@@ -45,9 +47,14 @@ async function getRedis() {
  */
 export async function getUser(userId) {
   const redis = await getRedis();
+  const key = `${USER_KEY_PREFIX}${userId}`;
+
+  if (!redis) {
+    return _memoryStore.get(key) ?? null;
+  }
 
   try {
-    return await redis.get(`${KEY_PREFIX}${userId}`);
+    return await redis.get(key);
   } catch (err) {
     throw new Error(`[store] Redis GET error: ${err.message}`);
   }
@@ -63,9 +70,15 @@ export async function getUser(userId) {
  */
 export async function setUser(userId, data) {
   const redis = await getRedis();
+  const key = `${USER_KEY_PREFIX}${userId}`;
+
+  if (!redis) {
+    _memoryStore.set(key, data);
+    return;
+  }
 
   try {
-    await redis.set(`${KEY_PREFIX}${userId}`, data);
+    await redis.set(key, data);
   } catch (err) {
     throw new Error(`[store] Redis SET error: ${err.message}`);
   }
@@ -79,9 +92,15 @@ export async function setUser(userId, data) {
  */
 export async function deleteUser(userId) {
   const redis = await getRedis();
+  const key = `${USER_KEY_PREFIX}${userId}`;
+
+  if (!redis) {
+    _memoryStore.delete(key);
+    return;
+  }
 
   try {
-    await redis.del(`${KEY_PREFIX}${userId}`);
+    await redis.del(key);
   } catch (err) {
     throw new Error(`[store] Redis DEL error: ${err.message}`);
   }
@@ -95,11 +114,60 @@ export async function deleteUser(userId) {
  */
 export async function hasUser(userId) {
   const redis = await getRedis();
+  const key = `${USER_KEY_PREFIX}${userId}`;
+
+  if (!redis) {
+    return _memoryStore.has(key);
+  }
 
   try {
-    const count = await redis.exists(`${KEY_PREFIX}${userId}`);
+    const count = await redis.exists(key);
     return count === 1;
   } catch (err) {
     throw new Error(`[store] Redis EXISTS error: ${err.message}`);
+  }
+}
+
+/**
+ * Retrieve app state snapshot for a user.
+ *
+ * @param   {string} userId
+ * @returns {Promise<object|null>}
+ */
+export async function getUserState(userId) {
+  const redis = await getRedis();
+  const key = `${STATE_KEY_PREFIX}${userId}`;
+
+  if (!redis) {
+    return _memoryStore.get(key) ?? null;
+  }
+
+  try {
+    return await redis.get(key);
+  } catch (err) {
+    throw new Error(`[store] Redis GET (state) error: ${err.message}`);
+  }
+}
+
+/**
+ * Persist app state snapshot for a user.
+ *
+ * @param   {string} userId
+ * @param   {object} data
+ * @returns {Promise<void>}
+ */
+export async function setUserState(userId, data) {
+  const redis = await getRedis();
+  const key = `${STATE_KEY_PREFIX}${userId}`;
+
+  if (!redis) {
+    _memoryStore.set(key, data);
+    return;
+  }
+
+  try {
+    await redis.set(key, data);
+  } catch (err) {
+    throw new Error(`[store] Redis SET (state) error: ${err.message}`);
   }
 }

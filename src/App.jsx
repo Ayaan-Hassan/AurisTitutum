@@ -17,14 +17,6 @@ import { AuthProvider, useAuth } from "./contexts/AuthContext";
 import { useHabitNotifications } from "./hooks/useHabitNotifications";
 import { useReminderNotifications } from "./hooks/useReminderNotifications";
 import ToastContainer from "./components/Toast";
-import { db, isFirebaseConfigured } from "./firebase.config";
-import {
-  doc,
-  getDoc,
-  getDocFromServer,
-  onSnapshot,
-  setDoc,
-} from "firebase/firestore";
 
 const DAILY_INSIGHTS = [
   {
@@ -166,7 +158,12 @@ const LEGACY_STORAGE_KEYS = {
 };
 
 const SCOPED_STATE_PREFIX = "habitflow_pro_state_";
-const CLOUD_STATE_COLLECTION = "habitflow_profiles";
+const _backendBase = (import.meta.env.VITE_BACKEND_URL ?? "").replace(
+  /\/$/,
+  "",
+);
+const CLOUD_SYNC_API_BASE = _backendBase ? `${_backendBase}/api` : "/api";
+const CLOUD_SYNC_POLL_MS = 4000;
 
 const DEFAULT_USER_CONFIG = {
   name: "",
@@ -369,6 +366,7 @@ function AppContent() {
   const cloudStateReadyRef = useRef(false);
   const cloudSaveTimerRef = useRef(null);
   const skipNextCloudSaveRef = useRef(false);
+  const remoteUpdatedAtRef = useRef(0);
 
   // Global preloader — runs once on app load
   useEffect(() => {
@@ -472,14 +470,15 @@ function AppContent() {
 
   useEffect(() => {
     cloudStateReadyRef.current = false;
+    remoteUpdatedAtRef.current = 0;
 
-    if (!userKey || !isFirebaseConfigured || !db) {
+    if (!userKey) {
       cloudStateReadyRef.current = true;
       return undefined;
     }
 
     let cancelled = false;
-    const cloudRef = doc(db, CLOUD_STATE_COLLECTION, userKey);
+    let pollTimer = null;
 
     const applyRemoteState = (rawState) => {
       const remoteState = normalizeAppState(rawState || {});
@@ -493,69 +492,101 @@ function AppContent() {
       latestStateRef.current = remoteState;
     };
 
+    const fetchRemoteState = async () => {
+      const res = await fetch(
+        `${CLOUD_SYNC_API_BASE}/state/get?userId=${encodeURIComponent(userKey)}`,
+        { cache: "no-store" },
+      );
+      if (!res.ok) {
+        throw new Error(`Remote state fetch failed: ${res.status}`);
+      }
+      const payload = await res.json();
+      const state = payload?.state ?? null;
+      if (!state) return false;
+
+      const remoteUpdatedAt = Number(state.updatedAt || 0);
+      if (
+        remoteUpdatedAt > 0 &&
+        remoteUpdatedAt < remoteUpdatedAtRef.current &&
+        areAppStatesEqual(state, latestStateRef.current)
+      ) {
+        return true;
+      }
+
+      applyRemoteState(state);
+      if (remoteUpdatedAt > 0) {
+        remoteUpdatedAtRef.current = Math.max(
+          remoteUpdatedAtRef.current,
+          remoteUpdatedAt,
+        );
+      }
+      return true;
+    };
+
+    const seedRemoteState = async () => {
+      const seedState = normalizeAppState(latestStateRef.current);
+      const updatedAt = Date.now();
+      const res = await fetch(`${CLOUD_SYNC_API_BASE}/state/set`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          userId: userKey,
+          state: {
+            ...seedState,
+            updatedAt,
+          },
+        }),
+      });
+      if (!res.ok) {
+        throw new Error(`Remote state seed failed: ${res.status}`);
+      }
+      remoteUpdatedAtRef.current = Math.max(
+        remoteUpdatedAtRef.current,
+        updatedAt,
+      );
+    };
+
+    const pollRemoteState = async () => {
+      try {
+        await fetchRemoteState();
+      } catch (error) {
+        console.error("[cloud-sync] Poll failed:", error);
+      } finally {
+        if (!cancelled) {
+          pollTimer = setTimeout(pollRemoteState, CLOUD_SYNC_POLL_MS);
+        }
+      }
+    };
+
     const hydrateCloudState = async () => {
       try {
-        let snapshot;
-        try {
-          snapshot = await getDocFromServer(cloudRef);
-        } catch {
-          snapshot = await getDoc(cloudRef);
-        }
-        if (cancelled) return;
-
-        if (snapshot.exists()) {
-          applyRemoteState(snapshot.data() || {});
-        } else {
-          const seedState = normalizeAppState({});
-          setHabits(seedState.habits);
-          setUserConfig(
-            mergeUserIdentityIntoConfig(seedState.userConfig, user),
-          );
-          setNotes(seedState.notes);
-          setReminders(seedState.reminders);
-          writeScopedState(activeScope, seedState);
-          latestStateRef.current = seedState;
-          await setDoc(
-            cloudRef,
-            {
-              ...seedState,
-              updatedAt: Date.now(),
-            },
-            { merge: true },
-          );
+        const hasRemote = await fetchRemoteState();
+        if (!cancelled && !hasRemote) {
+          await seedRemoteState();
         }
       } catch (error) {
         console.error("[cloud-sync] Failed to hydrate cloud state:", error);
       } finally {
-        if (!cancelled) cloudStateReadyRef.current = true;
+        if (!cancelled) {
+          cloudStateReadyRef.current = true;
+          pollTimer = setTimeout(pollRemoteState, CLOUD_SYNC_POLL_MS);
+        }
       }
     };
 
     hydrateCloudState();
-    const unsubscribe = onSnapshot(
-      cloudRef,
-      (snapshot) => {
-        if (cancelled || !snapshot.exists()) return;
-        applyRemoteState(snapshot.data() || {});
-      },
-      (error) => {
-        console.error("[cloud-sync] Realtime subscription failed:", error);
-      },
-    );
 
     return () => {
       cancelled = true;
-      unsubscribe();
+      if (pollTimer) {
+        clearTimeout(pollTimer);
+        pollTimer = null;
+      }
     };
   }, [activeScope, user, userKey]);
 
   useEffect(() => {
-    if (
-      !userKey ||
-      !isFirebaseConfigured ||
-      !db ||
-      !cloudStateReadyRef.current
-    ) {
+    if (!userKey || !cloudStateReadyRef.current) {
       return undefined;
     }
 
@@ -571,16 +602,27 @@ function AppContent() {
 
     cloudSaveTimerRef.current = setTimeout(async () => {
       try {
-        await setDoc(
-          doc(db, CLOUD_STATE_COLLECTION, userKey),
-          {
-            habits,
-            userConfig,
-            notes,
-            reminders,
-            updatedAt: Date.now(),
-          },
-          { merge: true },
+        const updatedAt = Date.now();
+        const response = await fetch(`${CLOUD_SYNC_API_BASE}/state/set`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            userId: userKey,
+            state: {
+              habits,
+              userConfig,
+              notes,
+              reminders,
+              updatedAt,
+            },
+          }),
+        });
+        if (!response.ok) {
+          throw new Error(`Remote state save failed: ${response.status}`);
+        }
+        remoteUpdatedAtRef.current = Math.max(
+          remoteUpdatedAtRef.current,
+          updatedAt,
         );
       } catch (error) {
         console.error("[cloud-sync] Failed to persist cloud state:", error);
