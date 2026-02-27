@@ -18,7 +18,7 @@ import { useHabitNotifications } from "./hooks/useHabitNotifications";
 import { useReminderNotifications } from "./hooks/useReminderNotifications";
 import ToastContainer from "./components/Toast";
 import { db, isFirebaseConfigured } from "./firebase.config";
-import { doc, getDoc, setDoc } from "firebase/firestore";
+import { doc, getDoc, getDocFromServer, setDoc } from "firebase/firestore";
 
 const DAILY_INSIGHTS = [
   {
@@ -210,7 +210,9 @@ const normalizeAppState = (raw = {}) => ({
   reminders: Array.isArray(raw.reminders) ? raw.reminders : [],
 });
 
-const getStorageScope = (user) => (user?.id ? `user_${user.id}` : "guest");
+const getUserKey = (user) => user?.uid || user?.id || null;
+const getStorageScope = (user) =>
+  getUserKey(user) ? `user_${getUserKey(user)}` : "guest";
 
 const getScopedStateKey = (scope) => `${SCOPED_STATE_PREFIX}${scope}`;
 
@@ -329,6 +331,7 @@ export const Preloader = memo(({ isLoading }) => {
 
 function AppContent() {
   const { user } = useAuth();
+  const userKey = getUserKey(user);
   const activeScope = getStorageScope(user);
   const initialState = normalizeAppState(
     readScopedState("guest") || readLegacyState() || {},
@@ -366,7 +369,7 @@ function AppContent() {
   useEffect(() => {
     if (!user) return;
     setUserConfig((prev) => mergeUserIdentityIntoConfig(prev, user));
-  }, [activeScope, user?.id, user?.email, user?.name]);
+  }, [activeScope, userKey, user?.email, user?.name]);
 
   const { toasts, removeToast, notifications, markAllRead, addToast } =
     useHabitNotifications(habits, {
@@ -442,7 +445,7 @@ function AppContent() {
     setUserConfig(mergeUserIdentityIntoConfig(nextState.userConfig, user));
     setNotes(nextState.notes);
     setReminders(nextState.reminders);
-  }, [activeScope]);
+  }, [activeScope, user]);
 
   useEffect(() => {
     if (loadedScopeRef.current !== activeScope) return;
@@ -457,7 +460,7 @@ function AppContent() {
   useEffect(() => {
     cloudStateReadyRef.current = false;
 
-    if (!user?.id || !isFirebaseConfigured || !db) {
+    if (!userKey || !isFirebaseConfigured || !db) {
       cloudStateReadyRef.current = true;
       return undefined;
     }
@@ -466,8 +469,13 @@ function AppContent() {
 
     const hydrateCloudState = async () => {
       try {
-        const cloudRef = doc(db, CLOUD_STATE_COLLECTION, user.id);
-        const snapshot = await getDoc(cloudRef);
+        const cloudRef = doc(db, CLOUD_STATE_COLLECTION, userKey);
+        let snapshot;
+        try {
+          snapshot = await getDocFromServer(cloudRef);
+        } catch {
+          snapshot = await getDoc(cloudRef);
+        }
         if (cancelled) return;
 
         if (snapshot.exists()) {
@@ -503,11 +511,11 @@ function AppContent() {
     return () => {
       cancelled = true;
     };
-  }, [activeScope, user?.id]);
+  }, [activeScope, user, userKey]);
 
   useEffect(() => {
     if (
-      !user?.id ||
+      !userKey ||
       !isFirebaseConfigured ||
       !db ||
       !cloudStateReadyRef.current
@@ -523,7 +531,7 @@ function AppContent() {
     cloudSaveTimerRef.current = setTimeout(async () => {
       try {
         await setDoc(
-          doc(db, CLOUD_STATE_COLLECTION, user.id),
+          doc(db, CLOUD_STATE_COLLECTION, userKey),
           {
             habits,
             userConfig,
@@ -544,7 +552,7 @@ function AppContent() {
         cloudSaveTimerRef.current = null;
       }
     };
-  }, [habits, notes, reminders, user?.id, userConfig]);
+  }, [habits, notes, reminders, userConfig, userKey]);
 
   const logActivity = (id, increment = true, amount = 1, unit = "") => {
     const amt = Math.max(1, Math.floor(Number(amount) || 1));
