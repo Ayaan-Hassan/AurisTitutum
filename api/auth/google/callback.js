@@ -60,6 +60,7 @@ async function createSpreadsheet(sheets) {
   });
 
   const spreadsheetId = data.spreadsheetId;
+  const SheetId = data.sheets[0].properties.sheetId;
   const sheetUrl = `https://docs.google.com/spreadsheets/d/${spreadsheetId}/edit`;
 
   // 2. Write header row
@@ -81,7 +82,7 @@ async function createSpreadsheet(sheets) {
           // Bold + background colour + centre-align the header row
           repeatCell: {
             range: {
-              sheetId: 0,
+              sheetId: SheetId,
               startRowIndex: 0,
               endRowIndex: 1,
               startColumnIndex: 0,
@@ -102,7 +103,7 @@ async function createSpreadsheet(sheets) {
           // Ensure row 1 stays frozen (belt-and-braces — also set on create above)
           updateSheetProperties: {
             properties: {
-              sheetId: 0,
+              sheetId: SheetId,
               gridProperties: { frozenRowCount: 1 },
             },
             fields: "gridProperties.frozenRowCount",
