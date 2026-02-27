@@ -82,7 +82,7 @@ const Layout = ({
                 <div className="w-4 h-0.5 bg-current rounded"></div>
               </div>
             </button>
-            <h2 className="text-[10px] font-mono text-text-secondary uppercase tracking-[0.25em] sm:tracking-[0.4em] truncate">
+            <h2 className="hidden sm:block text-[10px] font-mono text-text-secondary uppercase tracking-[0.25em] sm:tracking-[0.4em] truncate">
               {viewName}
             </h2>
             <div className="hidden sm:block h-4 w-[1px] bg-border-color"></div>
@@ -142,7 +142,7 @@ const Layout = ({
             </div>
             <button
               onClick={onAddHabit}
-              className="px-3 sm:px-5 py-2 sm:py-2.5 bg-accent text-bg-main text-[10px] font-black rounded-lg hover:opacity-90 transition-all uppercase tracking-widest hover:scale-105 active:scale-95 h-9 sm:h-10 inline-flex items-center"
+              className="hidden sm:inline-flex px-3 sm:px-5 py-2 sm:py-2.5 bg-accent text-bg-main text-[10px] font-black rounded-lg hover:opacity-90 transition-all uppercase tracking-widest hover:scale-105 active:scale-95 h-9 sm:h-10 items-center"
             >
               <span className="sm:hidden flex items-center gap-1.5">
                 <Icon name="plus" size={13} />
@@ -161,7 +161,18 @@ const Layout = ({
           </div>
         </header>
 
-        <div className="p-4 md:p-10 max-w-7xl mx-auto">{children}</div>
+        <div className="p-3 sm:p-4 md:p-10 max-w-7xl mx-auto pb-24 sm:pb-10">
+          {children}
+        </div>
+
+        <button
+          type="button"
+          onClick={onAddHabit}
+          className="sm:hidden fixed bottom-6 right-4 z-30 w-14 h-14 rounded-full bg-accent text-bg-main shadow-[0_12px_30px_rgba(0,0,0,0.45)] border border-white/20 flex items-center justify-center active:scale-95"
+          aria-label="Add habit"
+        >
+          <Icon name="plus" size={22} />
+        </button>
 
         {/* Mobile overlay navigation */}
         {mobileNavOpen && (
@@ -310,7 +321,7 @@ const Layout = ({
 
         {/* Notification dropdown */}
         {notificationsOpen && user && (
-          <div className="fixed top-20 right-4 md:right-10 z-30 w-72 sm:w-80">
+          <div className="fixed top-16 sm:top-20 right-3 sm:right-4 md:right-10 z-30 w-[calc(100vw-1.5rem)] sm:w-80 max-w-sm">
             <div className="glass-card p-4 rounded-2xl border border-border-color bg-bg-main/95 backdrop-blur-xl shadow-xl max-h-80 overflow-y-auto custom-scrollbar">
               <div className="flex items-center justify-between mb-3">
                 <p className="text-[10px] font-black uppercase tracking-[0.3em] text-text-secondary">

@@ -446,12 +446,12 @@ const Dashboard = ({ habits, logActivity, insights }) => {
         </Card>
       </div>
 
-      <Card className="p-6 hover:translate-y-0 hover:shadow-none hover:border-border-color">
-        <div className="flex items-center justify-between mb-4">
-          <h4 className="text-xs font-bold uppercase tracking-[0.2em] text-text-secondary">
+      <Card className="p-4 sm:p-6 overflow-hidden hover:translate-y-0 hover:shadow-none hover:border-border-color">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
+          <h4 className="text-[10px] sm:text-xs font-bold uppercase tracking-[0.2em] text-text-secondary">
             Activity calendar
           </h4>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 w-full sm:w-auto">
             <button
               type="button"
               onClick={() =>
@@ -459,11 +459,11 @@ const Dashboard = ({ habits, logActivity, insights }) => {
                   (prev) => new Date(prev.getFullYear(), prev.getMonth() - 1),
                 )
               }
-              className="w-8 h-8 rounded-lg border border-border-color flex items-center justify-center text-text-secondary hover:text-text-primary text-sm font-bold"
+              className="w-8 h-8 rounded-lg border border-border-color flex items-center justify-center text-text-secondary hover:text-text-primary text-sm font-bold shrink-0"
             >
-              ←
+              {"<"}
             </button>
-            <span className="text-sm font-bold text-text-primary min-w-[140px] text-center">
+            <span className="text-xs sm:text-sm font-bold text-text-primary text-center flex-1 min-w-0 whitespace-nowrap">
               {calendarMonth.toLocaleDateString("en-US", {
                 month: "long",
                 year: "numeric",
@@ -476,9 +476,9 @@ const Dashboard = ({ habits, logActivity, insights }) => {
                   (prev) => new Date(prev.getFullYear(), prev.getMonth() + 1),
                 )
               }
-              className="w-8 h-8 rounded-lg border border-border-color flex items-center justify-center text-text-secondary hover:text-text-primary text-sm font-bold"
+              className="w-8 h-8 rounded-lg border border-border-color flex items-center justify-center text-text-secondary hover:text-text-primary text-sm font-bold shrink-0"
             >
-              →
+              {">"}
             </button>
           </div>
         </div>
@@ -486,7 +486,7 @@ const Dashboard = ({ habits, logActivity, insights }) => {
           {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((d) => (
             <div
               key={d}
-              className="text-[9px] font-bold text-text-secondary uppercase text-center py-1"
+              className="text-[8px] sm:text-[9px] font-bold text-text-secondary uppercase text-center py-1"
             >
               {d}
             </div>
@@ -494,7 +494,7 @@ const Dashboard = ({ habits, logActivity, insights }) => {
           {calendarDays.map((dateStr, i) => (
             <div
               key={i}
-              className={`aspect-square rounded-lg flex items-center justify-center text-[11px] font-mono ${
+              className={`aspect-square rounded-lg flex items-center justify-center text-[10px] sm:text-[11px] font-mono ${
                 dateStr
                   ? loggedDates.has(dateStr)
                     ? "bg-black dark:bg-white text-white dark:text-bg-main border border-black dark:border-white shadow-sm"

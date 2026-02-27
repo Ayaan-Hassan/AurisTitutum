@@ -38,6 +38,13 @@ const parseLocalDateTime = (dateStr, timeStr) => {
   return Number.isNaN(dt.getTime()) ? null : dt;
 };
 
+const getLocalDateStr = (date = new Date()) => {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, "0");
+  const d = String(date.getDate()).padStart(2, "0");
+  return `${y}-${m}-${d}`;
+};
+
 /**
  * Checks reminders every 15 seconds (plus focus/visibility events) and fires:
  *  - browser notifications (if granted)
@@ -57,7 +64,7 @@ export const useReminderNotifications = (reminders) => {
       if (!current || current.length === 0) return;
 
       const now = new Date();
-      const todayStr = now.toISOString().split("T")[0];
+      const todayStr = getLocalDateStr(now);
       const firedIds = getFiredIds();
       const todayDOW = now.getDay();
 
@@ -106,6 +113,7 @@ export const useReminderNotifications = (reminders) => {
               body: bodyText,
               icon: "/favicon.ico",
               tag: fireKey,
+              requireInteraction: true,
             });
           } catch {
             // Some browsers block notifications; fail silently.

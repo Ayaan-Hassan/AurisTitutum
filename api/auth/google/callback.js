@@ -126,16 +126,18 @@ export default async function handler(req, res) {
   // Derive the frontend origin so we can redirect back to it.
   // FRONTEND_URL is optional when frontend + api live on the same Vercel
   // deployment (same host). We fall back to the request host in that case.
+  const protocol =
+    req.headers["x-forwarded-proto"] ||
+    (String(req.headers.host || "").includes("localhost") ? "http" : "https");
   const FRONTEND =
-    process.env.FRONTEND_URL ||
-    `https://${req.headers.host}`;
+    process.env.FRONTEND_URL || `${protocol}://${req.headers.host}`;
 
   const { code, state: userId, error } = req.query;
 
   // ── 1. Handle user-denied consent ─────────────────────────────────────────
   if (error) {
     return res.redirect(
-      `${FRONTEND}/app/settings?sheets_error=${encodeURIComponent(error)}`
+      `${FRONTEND}/app/settings?sheets_error=${encodeURIComponent(error)}`,
     );
   }
 
@@ -143,16 +145,16 @@ export default async function handler(req, res) {
   if (!code) {
     return res.redirect(
       `${FRONTEND}/app/settings?sheets_error=${encodeURIComponent(
-        "No authorisation code received from Google."
-      )}`
+        "No authorisation code received from Google.",
+      )}`,
     );
   }
 
   if (!userId) {
     return res.redirect(
       `${FRONTEND}/app/settings?sheets_error=${encodeURIComponent(
-        "Missing state parameter. Please try connecting again."
-      )}`
+        "Missing state parameter. Please try connecting again.",
+      )}`,
     );
   }
 
@@ -163,8 +165,8 @@ export default async function handler(req, res) {
   } catch (err) {
     return res.redirect(
       `${FRONTEND}/app/settings?sheets_error=${encodeURIComponent(
-        `Server misconfiguration: ${err.message}`
-      )}`
+        `Server misconfiguration: ${err.message}`,
+      )}`,
     );
   }
 
@@ -176,8 +178,8 @@ export default async function handler(req, res) {
   } catch (err) {
     return res.redirect(
       `${FRONTEND}/app/settings?sheets_error=${encodeURIComponent(
-        `Token exchange failed: ${err.message}`
-      )}`
+        `Token exchange failed: ${err.message}`,
+      )}`,
     );
   }
 
@@ -201,8 +203,8 @@ export default async function handler(req, res) {
     } catch (err) {
       return res.redirect(
         `${FRONTEND}/app/settings?sheets_error=${encodeURIComponent(
-          `Failed to create spreadsheet: ${err.message}`
-        )}`
+          `Failed to create spreadsheet: ${err.message}`,
+        )}`,
       );
     }
   }
@@ -214,9 +216,7 @@ export default async function handler(req, res) {
   const storedTokens = {
     access_token: tokens.access_token,
     refresh_token:
-      tokens.refresh_token ??
-      existingUser?.tokens?.refresh_token ??
-      null,
+      tokens.refresh_token ?? existingUser?.tokens?.refresh_token ?? null,
     expiry_date: tokens.expiry_date ?? null,
   };
 
@@ -238,6 +238,6 @@ export default async function handler(req, res) {
   return res.redirect(
     `${FRONTEND}/app/settings` +
       `?sheets_connected=true` +
-      `&sheet_url=${encodeURIComponent(sheetUrl)}`
+      `&sheet_url=${encodeURIComponent(sheetUrl)}`,
   );
 }

@@ -16,19 +16,33 @@ import { handleCors } from "../../_lib/cors.js";
 import { createOAuthClient, SCOPES } from "../../_lib/oauth.js";
 
 export default function handler(req, res) {
+  const protocol =
+    req.headers["x-forwarded-proto"] ||
+    (String(req.headers.host || "").includes("localhost") ? "http" : "https");
+  const FRONTEND =
+    process.env.FRONTEND_URL || `${protocol}://${req.headers.host}`;
+
   // ── CORS / preflight ───────────────────────────────────────────────────────
   if (handleCors(req, res)) return;
 
   // ── Method guard ───────────────────────────────────────────────────────────
   if (req.method !== "GET") {
-    return res.status(405).json({ error: "Method not allowed" });
+    return res.redirect(
+      `${FRONTEND}/app/settings?sheets_error=${encodeURIComponent(
+        "Invalid request method for Google Sheets connect.",
+      )}`,
+    );
   }
 
   // ── Validate required param ────────────────────────────────────────────────
   const { userId, userEmail } = req.query;
 
   if (!userId) {
-    return res.status(400).json({ error: "userId is required" });
+    return res.redirect(
+      `${FRONTEND}/app/settings?sheets_error=${encodeURIComponent(
+        "Missing user identity for Google Sheets connection.",
+      )}`,
+    );
   }
 
   // ── Build OAuth URL ────────────────────────────────────────────────────────
@@ -36,7 +50,11 @@ export default function handler(req, res) {
   try {
     client = createOAuthClient();
   } catch (err) {
-    return res.status(500).json({ error: err.message });
+    return res.redirect(
+      `${FRONTEND}/app/settings?sheets_error=${encodeURIComponent(
+        `Google OAuth is not configured: ${err.message}`,
+      )}`,
+    );
   }
 
   const authParams = {

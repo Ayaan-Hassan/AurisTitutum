@@ -24,6 +24,7 @@ const SHEETS_CACHE_KEY = "auristitutum_sheets_cache";
  * Uses Firebase UID if logged in, otherwise a local device ID
  */
 const getUserId = (user) => {
+  if (user?.id) return user.id;
   if (user?.uid) return user.uid;
 
   let deviceId = localStorage.getItem("auristitutum_device_id");

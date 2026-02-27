@@ -17,6 +17,8 @@ import { AuthProvider, useAuth } from "./contexts/AuthContext";
 import { useHabitNotifications } from "./hooks/useHabitNotifications";
 import { useReminderNotifications } from "./hooks/useReminderNotifications";
 import ToastContainer from "./components/Toast";
+import { db, isFirebaseConfigured } from "./firebase.config";
+import { doc, getDoc, setDoc } from "firebase/firestore";
 
 const DAILY_INSIGHTS = [
   {
@@ -158,6 +160,7 @@ const LEGACY_STORAGE_KEYS = {
 };
 
 const SCOPED_STATE_PREFIX = "habitflow_pro_state_";
+const CLOUD_STATE_COLLECTION = "habitflow_profiles";
 
 const DEFAULT_USER_CONFIG = {
   name: "",
@@ -251,6 +254,13 @@ const writeScopedState = (scope, state) => {
   );
 };
 
+const getLocalDateKey = (date = new Date()) => {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, "0");
+  const d = String(date.getDate()).padStart(2, "0");
+  return `${y}-${m}-${d}`;
+};
+
 // Image compression utility
 const compressImage = (base64Str) => {
   return new Promise((resolve) => {
@@ -330,6 +340,8 @@ function AppContent() {
   const fileInputRef = useRef(null);
   const latestStateRef = useRef(initialState);
   const loadedScopeRef = useRef("guest");
+  const cloudStateReadyRef = useRef(false);
+  const cloudSaveTimerRef = useRef(null);
 
   // Global preloader — runs once on app load
   useEffect(() => {
@@ -434,10 +446,100 @@ function AppContent() {
     });
   }, [activeScope, habits, userConfig, notes, reminders]);
 
+  useEffect(() => {
+    cloudStateReadyRef.current = false;
+
+    if (!user?.id || !isFirebaseConfigured || !db) {
+      cloudStateReadyRef.current = true;
+      return undefined;
+    }
+
+    let cancelled = false;
+
+    const hydrateCloudState = async () => {
+      try {
+        const cloudRef = doc(db, CLOUD_STATE_COLLECTION, user.id);
+        const snapshot = await getDoc(cloudRef);
+        if (cancelled) return;
+
+        if (snapshot.exists()) {
+          const remoteState = normalizeAppState(snapshot.data() || {});
+          setHabits(remoteState.habits);
+          setUserConfig(remoteState.userConfig);
+          setNotes(remoteState.notes);
+          setReminders(remoteState.reminders);
+          writeScopedState(activeScope, remoteState);
+          latestStateRef.current = remoteState;
+        } else {
+          const seedState = normalizeAppState(latestStateRef.current || {});
+          await setDoc(
+            cloudRef,
+            {
+              ...seedState,
+              updatedAt: Date.now(),
+            },
+            { merge: true },
+          );
+        }
+      } catch (error) {
+        console.error("[cloud-sync] Failed to hydrate cloud state:", error);
+      } finally {
+        if (!cancelled) cloudStateReadyRef.current = true;
+      }
+    };
+
+    hydrateCloudState();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [activeScope, user?.id]);
+
+  useEffect(() => {
+    if (
+      !user?.id ||
+      !isFirebaseConfigured ||
+      !db ||
+      !cloudStateReadyRef.current
+    ) {
+      return undefined;
+    }
+
+    if (cloudSaveTimerRef.current) {
+      clearTimeout(cloudSaveTimerRef.current);
+      cloudSaveTimerRef.current = null;
+    }
+
+    cloudSaveTimerRef.current = setTimeout(async () => {
+      try {
+        await setDoc(
+          doc(db, CLOUD_STATE_COLLECTION, user.id),
+          {
+            habits,
+            userConfig,
+            notes,
+            reminders,
+            updatedAt: Date.now(),
+          },
+          { merge: true },
+        );
+      } catch (error) {
+        console.error("[cloud-sync] Failed to persist cloud state:", error);
+      }
+    }, 900);
+
+    return () => {
+      if (cloudSaveTimerRef.current) {
+        clearTimeout(cloudSaveTimerRef.current);
+        cloudSaveTimerRef.current = null;
+      }
+    };
+  }, [habits, notes, reminders, user?.id, userConfig]);
+
   const logActivity = (id, increment = true, amount = 1, unit = "") => {
     const amt = Math.max(1, Math.floor(Number(amount) || 1));
     const now = new Date();
-    const todayKey = now.toISOString().split("T")[0];
+    const todayKey = getLocalDateKey(now);
     const timestamp = now.toLocaleTimeString([], { hour12: false });
 
     setHabits((prev) =>

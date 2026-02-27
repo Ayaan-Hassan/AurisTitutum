@@ -4,6 +4,13 @@ const REMINDER_STORAGE_KEY = "habitflow_unlogged_reminder_shown_date";
 const BROWSER_REMINDER_STORAGE_KEY =
   "habitflow_unlogged_browser_reminder_shown_date";
 
+const getLocalDateStr = (date = new Date()) => {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, "0");
+  const d = String(date.getDate()).padStart(2, "0");
+  return `${y}-${m}-${d}`;
+};
+
 /**
  * Hook to manage habit completion notifications.
  * Shows at most one in-app reminder per day to avoid overlapping toasts.
@@ -108,14 +115,18 @@ export const useHabitNotifications = (habits, config) => {
           typeof Notification !== "undefined" &&
           Notification.permission === "granted"
         ) {
-          new Notification("AurisTitutum PRO", { body, icon: "/favicon.ico" });
+          new Notification("AurisTitutum PRO", {
+            body,
+            icon: "/favicon.ico",
+            requireInteraction: true,
+          });
         }
       }
     } else {
       inactivityLevelRef.current = null;
     }
 
-    const today = new Date().toISOString().split("T")[0];
+    const today = getLocalDateStr();
     const unloggedGoodHabits = habits.filter(
       (h) => h.type === "Good" && !h.logs.some((l) => l.date === today),
     );
@@ -152,6 +163,7 @@ export const useHabitNotifications = (habits, config) => {
         new Notification("AurisTitutum PRO", {
           body: `Reminder: You haven't logged ${unloggedGoodHabits.map((h) => h.name).join(", ")} today. Keep the flow!`,
           icon: "/favicon.ico",
+          requireInteraction: true,
         });
         if (typeof localStorage !== "undefined") {
           localStorage.setItem(BROWSER_REMINDER_STORAGE_KEY, today);
