@@ -355,6 +355,7 @@ function AppContent() {
   const fileInputRef = useRef(null);
   const latestStateRef = useRef(initialState);
   const loadedScopeRef = useRef("guest");
+  const pendingScopeInitRef = useRef(null);
   const cloudStateReadyRef = useRef(false);
   const cloudSaveTimerRef = useRef(null);
 
@@ -420,18 +421,24 @@ function AppContent() {
   useEffect(() => {
     if (loadedScopeRef.current === activeScope) return;
 
+    const previousScope = loadedScopeRef.current;
     const existingScopedState = readScopedState(activeScope);
     const isUserScope = activeScope.startsWith("user_");
+    const switchingBetweenUsers =
+      previousScope.startsWith("user_") &&
+      isUserScope &&
+      previousScope !== activeScope;
     const legacyFallback = !isUserScope ? readLegacyState() : null;
     const nextState = normalizeAppState(
-      existingScopedState || legacyFallback || {},
+      switchingBetweenUsers ? {} : existingScopedState || legacyFallback || {},
     );
 
-    if (!existingScopedState) {
+    if (!existingScopedState || switchingBetweenUsers) {
       writeScopedState(activeScope, nextState);
     }
 
     loadedScopeRef.current = activeScope;
+    pendingScopeInitRef.current = activeScope;
     setHabits(nextState.habits);
     setUserConfig(mergeUserIdentityIntoConfig(nextState.userConfig, user));
     setNotes(nextState.notes);
@@ -440,6 +447,10 @@ function AppContent() {
 
   useEffect(() => {
     if (loadedScopeRef.current !== activeScope) return;
+    if (pendingScopeInitRef.current === activeScope) {
+      pendingScopeInitRef.current = null;
+      return;
+    }
     writeScopedState(activeScope, {
       habits,
       userConfig,
@@ -481,6 +492,14 @@ function AppContent() {
           latestStateRef.current = remoteState;
         } else {
           const seedState = normalizeAppState({});
+          setHabits(seedState.habits);
+          setUserConfig(
+            mergeUserIdentityIntoConfig(seedState.userConfig, user),
+          );
+          setNotes(seedState.notes);
+          setReminders(seedState.reminders);
+          writeScopedState(activeScope, seedState);
+          latestStateRef.current = seedState;
           await setDoc(
             cloudRef,
             {
