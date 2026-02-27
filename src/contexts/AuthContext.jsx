@@ -1,8 +1,9 @@
-import { createContext, useContext, useState, useEffect } from 'react';
+﻿import { createContext, useContext, useState, useEffect } from 'react';
 import {
     signInWithEmailAndPassword,
     createUserWithEmailAndPassword,
-    signInWithPopup,
+    signInWithRedirect,
+    getRedirectResult,
     GoogleAuthProvider,
     FacebookAuthProvider,
     signOut,
@@ -30,6 +31,11 @@ export const AuthProvider = ({ children }) => {
     const [error, setError] = useState(null);
 
     useEffect(() => {
+        if (!isFirebaseConfigured || !auth) return;
+        getRedirectResult(auth).catch(() => {});
+    }, []);
+
+    useEffect(() => {
         if (!isFirebaseConfigured || !auth) {
             setLoading(false);
             return;
@@ -39,6 +45,7 @@ export const AuthProvider = ({ children }) => {
         const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
             if (firebaseUser) {
                 setUser({
+                    uid: firebaseUser.uid,
                     id: firebaseUser.uid,
                     email: firebaseUser.email,
                     name: firebaseUser.displayName || firebaseUser.email?.split('@')[0],
@@ -94,8 +101,8 @@ export const AuthProvider = ({ children }) => {
         }
         setError(null);
         try {
-            const result = await signInWithPopup(auth, googleProvider);
-            return { success: true, user: result.user };
+            await signInWithRedirect(auth, googleProvider);
+            return { success: true };
         } catch (err) {
             const errorMessage = getErrorMessage(err.code);
             setError(errorMessage);
@@ -109,8 +116,8 @@ export const AuthProvider = ({ children }) => {
         }
         setError(null);
         try {
-            const result = await signInWithPopup(auth, facebookProvider);
-            return { success: true, user: result.user };
+            await signInWithRedirect(auth, facebookProvider);
+            return { success: true };
         } catch (err) {
             const errorMessage = getErrorMessage(err.code);
             setError(errorMessage);

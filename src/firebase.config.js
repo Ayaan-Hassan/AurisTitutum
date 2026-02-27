@@ -1,5 +1,9 @@
-import { initializeApp, getApps } from "firebase/app";
-import { getAuth } from "firebase/auth";
+﻿import { initializeApp, getApps } from "firebase/app";
+import {
+  getAuth,
+  setPersistence,
+  browserLocalPersistence,
+} from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
 
 const firebaseConfig = {
@@ -24,6 +28,9 @@ try {
     // Initialize Firebase
     app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0];
     auth = getAuth(app);
+    setPersistence(auth, browserLocalPersistence).catch((error) => {
+      console.error("Firebase auth persistence error:", error);
+    });
     db = getFirestore(app);
   } else {
     console.warn("Firebase API Key is missing. Check your .env file.");

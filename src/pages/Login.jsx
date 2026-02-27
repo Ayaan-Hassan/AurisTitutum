@@ -1,4 +1,4 @@
-import { useState } from 'react';
+﻿import { useState } from 'react';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { Card } from '../components/ui/Card';
@@ -65,8 +65,6 @@ const Login = () => {
                             <p className="text-[10px] text-text-secondary uppercase tracking-widest mt-1">Authorized Personnel Only</p>
                         </div>
 
-
-
                         {/* Social Login Buttons */}
                         <div className="space-y-3">
                             <button
@@ -75,15 +73,9 @@ const Login = () => {
                                     setError('');
                                     setLoading(true);
                                     try {
-                                        const result = await loginWithGoogle();
-                                        if (result.success) {
-                                            navigate(from, { replace: true });
-                                        } else {
-                                            setError(result.error);
-                                        }
+                                        await loginWithGoogle();
                                     } catch (_err) {
                                         setError('Failed to sign in with Google');
-                                    } finally {
                                         setLoading(false);
                                     }
                                 }}
@@ -105,15 +97,9 @@ const Login = () => {
                                     setError('');
                                     setLoading(true);
                                     try {
-                                        const result = await loginWithFacebook();
-                                        if (result.success) {
-                                            navigate(from, { replace: true });
-                                        } else {
-                                            setError(result.error);
-                                        }
+                                        await loginWithFacebook();
                                     } catch (_err) {
                                         setError('Failed to sign in with Facebook');
-                                    } finally {
                                         setLoading(false);
                                     }
                                 }}

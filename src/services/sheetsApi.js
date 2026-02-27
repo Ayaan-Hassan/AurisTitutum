@@ -1,17 +1,8 @@
-/**
+﻿/**
  * Google Sheets Backend API Service
  *
- * All requests go to /api/* — the Vercel serverless functions that live
+ * All requests go to /api/* - the Vercel serverless functions that live
  * in the /api folder of this same project.
- *
- * Because the frontend and the API functions are deployed to the SAME
- * Vercel project, no separate backend URL is needed. Everything is
- * same-origin in production, which also means no CORS issues.
- *
- * For local development use `vercel dev` (runs both Vite + API functions
- * on the same port). If you need to point at an external backend for any
- * reason, set VITE_BACKEND_URL (without a trailing slash) and the /api
- * prefix will be appended automatically.
  */
 
 const _base = (import.meta.env.VITE_BACKEND_URL ?? "").replace(/\/$/, "");
@@ -20,24 +11,15 @@ const API_BASE = _base ? `${_base}/api` : "/api";
 const SHEETS_CACHE_KEY = "auristitutum_sheets_cache";
 
 /**
- * Get the current user's ID for API calls
- * Uses Firebase UID if logged in, otherwise a local device ID
+ * Get Firebase UID for API calls.
  */
 const getUserId = (user) => {
-  if (user?.id) return user.id;
   if (user?.uid) return user.uid;
-
-  let deviceId = localStorage.getItem("auristitutum_device_id");
-  if (!deviceId) {
-    deviceId = "device_" + Math.random().toString(36).substring(2, 15);
-    localStorage.setItem("auristitutum_device_id", deviceId);
-  }
-  return deviceId;
+  throw new Error("Firebase UID is required");
 };
 
 /**
- * Cache sheets connection info locally so it survives page refreshes
- * and server restarts without losing the URL/state.
+ * Cache sheets connection info locally so it survives page refreshes.
  */
 export const cacheSheetInfo = (info) => {
   try {
@@ -66,8 +48,6 @@ export const clearSheetCache = () => {
 
 /**
  * Start Google OAuth flow.
- * Passes the user's email as a login_hint so Google pre-selects
- * the correct account — no re-authentication prompt if already signed in.
  */
 export const connectGoogleSheets = (user) => {
   const userId = getUserId(user);
@@ -83,10 +63,12 @@ export const connectGoogleSheets = (user) => {
 
 /**
  * Check if user has connected Google Sheets.
- * Falls back to localStorage cache if the backend is unreachable,
- * so the UI stays consistent across page refreshes / server restarts.
  */
 export const checkSheetsConnection = async (user) => {
+  if (!user?.uid) {
+    return { connected: false };
+  }
+
   const userId = getUserId(user);
 
   try {
@@ -111,7 +93,7 @@ export const checkSheetsConnection = async (user) => {
 
     return data;
   } catch {
-    // Backend unreachable — serve from cache so the UI doesn't break
+    // Backend unreachable - serve from cache so the UI doesn't break
     const cached = getCachedSheetInfo();
     if (cached) return cached;
     return { connected: false };
@@ -164,7 +146,6 @@ export const appendLog = async (user, logData) => {
 
 /**
  * Sync all logs to the user's spreadsheet (bulk operation).
- * Clears existing rows (except header) and rewrites everything.
  */
 export const syncAllLogs = async (user, habits) => {
   const userId = getUserId(user);
@@ -226,7 +207,6 @@ export const syncAllLogs = async (user, habits) => {
 
 /**
  * Fetch all log rows from the user's spreadsheet.
- * Used for live two-way sync: Google Sheet → web app.
  */
 export const getLogsFromSheets = async (user) => {
   const userId = getUserId(user);
@@ -240,13 +220,11 @@ export const getLogsFromSheets = async (user) => {
     throw new Error(error.error || "Failed to fetch logs from sheet");
   }
 
-  return await res.json(); // { logs: [...] }
+  return await res.json();
 };
 
 /**
  * Parse URL params after OAuth callback.
- * Call this on Settings page load to detect and handle the OAuth result.
- * Also caches the sheet URL if connection was successful.
  */
 export const handleOAuthCallback = () => {
   const params = new URLSearchParams(window.location.search);
