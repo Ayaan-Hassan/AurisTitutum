@@ -48,8 +48,8 @@ export function createOAuthClient() {
   if (!clientId || !clientSecret || !redirectUri) {
     throw new Error(
       "Missing Google OAuth env vars. " +
-        "Ensure GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, and " +
-        "GOOGLE_REDIRECT_URI are set in your Vercel project settings."
+      "Ensure GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, and " +
+      "GOOGLE_REDIRECT_URI are set in your Vercel project settings."
     );
   }
 
@@ -75,62 +75,22 @@ export function createOAuthClient() {
  * @param {string} userId  Firebase UID or device ID stored on the frontend.
  * @returns {Promise<{ client: import('googleapis').Auth.OAuth2Client, spreadsheetId: string }>}
  */
-export async function getAuthenticatedClient(userId) {
-  // ── 1. Load stored user data ──────────────────────────────────────────────
-  const userData = await getUser(userId);
-
-  if (!userData) {
+export async function getAuthenticatedClient(userId, inputTokens, inputSpreadsheetId) {
+  if (!inputTokens) {
     throw new Error(
-      "User not connected to Google Sheets. " +
-        "Please connect via Settings → Google Sheets."
+      "Stored token data is corrupted or missing. Please reconnect Google Sheets in Settings."
     );
   }
 
-  const { tokens, spreadsheetId } = userData;
-
-  if (!tokens) {
-    throw new Error(
-      "Stored token data is corrupted. Please reconnect Google Sheets in Settings."
-    );
-  }
-
-  // ── 2. Build client and attach stored credentials ─────────────────────────
+  // ── 2. Build client and attach passed credentials ─────────────────────────
   const client = createOAuthClient();
-  client.setCredentials(tokens);
+  client.setCredentials(inputTokens);
 
-  // ── 3. Auto-refresh if expired or expiring within 60 seconds ─────────────
-  const expiresAt = tokens.expiry_date ?? 0;
-  const needsRefresh = expiresAt > 0 && Date.now() >= expiresAt - 60_000;
+  // Note: We don't need to manually refresh here anymore!
+  // Google API SDK automatically refreshes the token in-memory if it's expired
+  // provided the refresh_token is present in setCredentials.
+  // Because we removed Redis to make the backend 100% stateless, we can't save the refreshed
+  // token reliably from here anyway, and we don't need to since refresh_token stays valid.
 
-  if (needsRefresh) {
-    try {
-      const { credentials } = await client.refreshAccessToken();
-
-      const refreshedTokens = {
-        // Google only issues a new refresh_token on the very first consent;
-        // preserve the original if the refreshed credentials omit it.
-        access_token: credentials.access_token,
-        refresh_token: credentials.refresh_token ?? tokens.refresh_token ?? null,
-        expiry_date: credentials.expiry_date ?? null,
-      };
-
-      // Persist refreshed tokens so subsequent calls don't re-refresh
-      await setUser(userId, {
-        ...userData,
-        tokens: refreshedTokens,
-      });
-
-      client.setCredentials(refreshedTokens);
-    } catch (err) {
-      // Refresh failed — most likely the refresh_token was revoked.
-      // The user needs to go through the consent screen again.
-      throw new Error(
-        "Google token refresh failed — please reconnect Google Sheets in Settings. " +
-          `(${err.message})`
-      );
-    }
-  }
-
-  // ── 4. Return ready client + spreadsheet reference ────────────────────────
-  return { client, spreadsheetId };
+  return { client, spreadsheetId: inputSpreadsheetId };
 }

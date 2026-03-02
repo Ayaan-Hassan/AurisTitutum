@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect } from 'react';
-import { LineChart, Line, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend, CartesianGrid } from 'recharts';
+import { LineChart, Line, BarChart, Bar, AreaChart, Area, PieChart, Pie, Cell, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend, CartesianGrid } from 'recharts';
 import Icon from '../components/Icon';
 import { useTheme } from '../components/ThemeProvider';
 import { Card } from '../components/ui/Card';
@@ -114,6 +114,15 @@ const Analytics = ({ habits, selectedHabitId, setSelectedHabitId }) => {
         return chartData.some(d => selectedHabits.some(habitId => (d[habitId] || 0) > 0));
     }, [chartData, selectedHabits]);
 
+    const pieData = useMemo(() => {
+        if (chartType !== 'pie' || selectedHabits.length === 0) return [];
+        return selectedHabits.map((habitId, index) => {
+            const habit = habits.find(h => h.id === habitId);
+            const total = chartData.reduce((sum, dataPoint) => sum + (dataPoint[habitId] || 0), 0);
+            return { name: habit?.name || habitId, value: total, fill: habitColors[index] };
+        }).filter(d => d.value > 0);
+    }, [chartData, selectedHabits, habits, chartType, habitColors]);
+
     const chartColors = useMemo(() => ({
         grid: theme === 'dark' ? '#27272a' : '#e4e4e7',
         text: theme === 'dark' ? '#71717a' : '#a1a1aa',
@@ -178,8 +187,12 @@ const Analytics = ({ habits, selectedHabitId, setSelectedHabitId }) => {
                         ))}
                     </div>
                     <div className="flex bg-accent-dim border border-border-color p-1 rounded-xl">
-                        <button onClick={() => setChartType('line')} className={`px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase ${chartType === 'line' ? 'bg-accent text-bg-main' : 'text-text-secondary hover:text-text-primary'}`}>Line</button>
-                        <button onClick={() => setChartType('bar')} className={`px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase ${chartType === 'bar' ? 'bg-accent text-bg-main' : 'text-text-secondary hover:text-text-primary'}`}>Bar</button>
+                        <button onClick={() => setChartType('line')} className={`px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase transition-all ${chartType === 'line' ? 'bg-accent text-bg-main shadow-sm' : 'text-text-secondary hover:text-text-primary'}`}>Line</button>
+                        <button onClick={() => setChartType('bar')} className={`px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase transition-all ${chartType === 'bar' ? 'bg-accent text-bg-main shadow-sm' : 'text-text-secondary hover:text-text-primary'}`}>Bar</button>
+                        <button onClick={() => setChartType('area')} className={`px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase transition-all ${chartType === 'area' ? 'bg-accent text-bg-main shadow-sm' : 'text-text-secondary hover:text-text-primary'}`}>Area</button>
+                        {compareMode && (
+                            <button onClick={() => setChartType('pie')} className={`px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase transition-all ${chartType === 'pie' ? 'bg-accent text-bg-main shadow-sm' : 'text-text-secondary hover:text-text-primary'}`}>Pie</button>
+                        )}
                     </div>
                 </div>
             </div>
@@ -235,7 +248,51 @@ const Analytics = ({ habits, selectedHabitId, setSelectedHabitId }) => {
                                         </div>
                                     )}
                                     <ResponsiveContainer width="100%" height="100%" minHeight={400}>
-                                        {chartType === 'bar' ? (
+                                        {chartType === 'pie' ? (
+                                            <PieChart margin={{ top: 10, right: 10, left: 10, bottom: 10 }}>
+                                                <Tooltip contentStyle={{ backgroundColor: chartColors.tooltipBg, border: `1px solid ${chartColors.tooltipBorder}`, borderRadius: '12px', fontSize: '11px', color: chartColors.tooltipText }} />
+                                                <Legend />
+                                                <Pie
+                                                    data={pieData}
+                                                    dataKey="value"
+                                                    nameKey="name"
+                                                    cx="50%"
+                                                    cy="50%"
+                                                    outerRadius={130}
+                                                    innerRadius={70}
+                                                    paddingAngle={4}
+                                                    stroke="none"
+                                                >
+                                                    {pieData.map((entry, index) => (
+                                                        <Cell key={`cell-${index}`} fill={entry.fill} />
+                                                    ))}
+                                                </Pie>
+                                            </PieChart>
+                                        ) : chartType === 'area' ? (
+                                            <AreaChart data={chartData} margin={{ top: 5, right: 5, left: -10, bottom: 5 }}>
+                                                <CartesianGrid strokeDasharray="3 3" stroke={chartColors.grid} />
+                                                <XAxis dataKey="name" tick={{ fill: chartColors.text, fontSize: 10 }} />
+                                                <YAxis tick={{ fill: chartColors.text, fontSize: 10 }} />
+                                                <Tooltip contentStyle={{ backgroundColor: chartColors.tooltipBg, border: `1px solid ${chartColors.tooltipBorder}`, borderRadius: '12px', fontSize: '11px', color: chartColors.tooltipText }} />
+                                                <Legend />
+                                                {selectedHabits.map((habitId, index) => {
+                                                    const habit = habits.find(h => h.id === habitId);
+                                                    return (
+                                                        <Area
+                                                            key={habitId}
+                                                            type="monotone"
+                                                            dataKey={habitId}
+                                                            name={habit?.name}
+                                                            fill={habitColors[index]}
+                                                            stroke={habitColors[index]}
+                                                            strokeWidth={2}
+                                                            fillOpacity={0.3}
+                                                            activeDot={{ r: 5, fill: habitColors[index] }}
+                                                        />
+                                                    );
+                                                })}
+                                            </AreaChart>
+                                        ) : chartType === 'bar' ? (
                                             <BarChart data={chartData} margin={{ top: 5, right: 5, left: -10, bottom: 5 }}>
                                                 <CartesianGrid strokeDasharray="3 3" stroke={chartColors.grid} />
                                                 <XAxis dataKey="name" tick={{ fill: chartColors.text, fontSize: 10 }} />

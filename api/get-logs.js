@@ -27,12 +27,12 @@ export default async function handler(req, res) {
   if (handleCors(req, res)) return;
 
   // ── Method guard ───────────────────────────────────────────────────────────
-  if (req.method !== "GET") {
+  if (req.method !== "POST") {
     return res.status(405).json({ error: "Method not allowed" });
   }
 
   // ── Validate required param ────────────────────────────────────────────────
-  const { userId } = req.query;
+  const { userId, tokens, spreadsheetId: inputSpreadsheetId } = req.body ?? {};
 
   if (!userId || typeof userId !== "string" || !userId.trim()) {
     return res.status(400).json({ error: "userId is required" });
@@ -43,7 +43,7 @@ export default async function handler(req, res) {
   let spreadsheetId;
 
   try {
-    ({ client, spreadsheetId } = await getAuthenticatedClient(userId));
+    ({ client, spreadsheetId } = await getAuthenticatedClient(userId, tokens, inputSpreadsheetId));
   } catch (err) {
     // getAuthenticatedClient throws when:
     //  - User has no stored data (never connected)
@@ -73,11 +73,11 @@ export default async function handler(req, res) {
     // Map raw 2-D array to named objects; guard against short / empty rows
     const logs = rows
       .map((row) => ({
-        date:      row[0] ?? "",
-        habit:     row[1] ?? "",
-        type:      row[2] ?? "",
-        status:    row[3] ?? "",
-        value:     row[4] ?? "",
+        date: row[0] ?? "",
+        habit: row[1] ?? "",
+        type: row[2] ?? "",
+        status: row[3] ?? "",
+        value: row[4] ?? "",
         timestamp: row[5] ?? "",
       }))
       // Drop rows that are missing the two required fields

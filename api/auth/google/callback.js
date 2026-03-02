@@ -221,27 +221,20 @@ export default async function handler(req, res) {
     expiry_date: tokens.expiry_date ?? null,
   };
 
-  try {
-    await setUser(userId, {
-      tokens: storedTokens,
-      spreadsheetId,
-      sheetUrl,
-      // Preserve the original connection timestamp if reconnecting
-      connectedAt: existingUser?.connectedAt ?? new Date().toISOString(),
-    });
-  } catch (err) {
-    console.error("[callback] Failed to persist user data:", err.message);
-    return res.redirect(
-      `${FRONTEND}/app/settings?sheets_error=${encodeURIComponent(
-        `Failed to persist Google Sheets connection: ${err.message}`,
-      )}`,
-    );
-  }
+  // We immediately return the tokens to the frontend so that the backend 
+  // doesn't have to keep state when Redis isn't configured!
+  const connectionPayload = JSON.stringify({
+    tokens: storedTokens,
+    spreadsheetId,
+    sheetUrl,
+    connectedAt: new Date().toISOString(),
+  });
 
   // ── 7. Redirect back to the frontend with success params ─────────────────
   return res.redirect(
     `${FRONTEND}/app/settings` +
-      `?sheets_connected=true` +
-      `&sheet_url=${encodeURIComponent(sheetUrl)}`,
+    `?sheets_connected=true` +
+    `&sheet_url=${encodeURIComponent(sheetUrl)}` +
+    `&sheets_payload=${encodeURIComponent(connectionPayload)}`,
   );
 }

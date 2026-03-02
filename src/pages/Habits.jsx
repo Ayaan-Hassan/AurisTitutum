@@ -74,28 +74,27 @@ const Habits = ({ habits, setHabits, logActivity }) => {
                 {/* Icon / Emoji Box */}
                 {h.emoji ? (
                   <div
-                    className={`w-10 h-10 rounded-xl mb-4 flex items-center justify-center border ${
-                      h.type === "Good"
-                        ? "bg-accent text-bg-main border-accent"
-                        : "bg-bg-sidebar text-text-secondary border-border-color"
-                    }`}
+                    className={`w-10 h-10 rounded-xl mb-4 flex items-center justify-center border ${h.type === "Good"
+                      ? "bg-accent text-bg-main border-accent"
+                      : "bg-bg-sidebar text-text-secondary border-border-color"
+                      }`}
                   >
                     <span
                       className="text-lg leading-none"
                       style={
                         isUnicodeSymbol(h.emoji)
                           ? {
-                              color:
-                                h.type === "Good"
-                                  ? "var(--bg-main)"
-                                  : "var(--text-secondary)",
-                              fontSize: "1.05rem",
-                            }
+                            color:
+                              h.type === "Good"
+                                ? "var(--bg-main)"
+                                : "var(--text-secondary)",
+                            fontSize: "1.05rem",
+                          }
                           : {
-                              filter:
-                                "grayscale(1) saturate(0) brightness(1.2)",
-                              fontSize: "1.1rem",
-                            }
+                            filter:
+                              "grayscale(1) saturate(0) brightness(1.2)",
+                            fontSize: "1.1rem",
+                          }
                       }
                     >
                       {h.emoji}
@@ -103,11 +102,10 @@ const Habits = ({ habits, setHabits, logActivity }) => {
                   </div>
                 ) : (
                   <div
-                    className={`w-10 h-10 rounded-xl mb-4 flex items-center justify-center border ${
-                      h.type === "Good"
-                        ? "bg-accent text-bg-main border-accent"
-                        : "bg-bg-sidebar text-text-secondary border-border-color"
-                    }`}
+                    className={`w-10 h-10 rounded-xl mb-4 flex items-center justify-center border ${h.type === "Good"
+                      ? "bg-accent text-bg-main border-accent"
+                      : "bg-bg-sidebar text-text-secondary border-border-color"
+                      }`}
                   >
                     <Icon
                       name={h.type === "Good" ? "check-circle" : "alert-circle"}
@@ -121,32 +119,31 @@ const Habits = ({ habits, setHabits, logActivity }) => {
                 </h4>
                 <div className="flex items-center gap-2 flex-wrap">
                   <span
-                    className={`text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded ${
-                      h.type === "Good"
-                        ? "bg-accent-dim text-text-primary"
-                        : "bg-bg-sidebar text-text-secondary"
-                    }`}
+                    className={`text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded ${h.type === "Good"
+                      ? "bg-accent-dim text-text-primary"
+                      : "bg-bg-sidebar text-text-secondary"
+                      }`}
                   >
                     {h.type} NODE
                   </span>
                   <div className="h-1 w-1 rounded-full bg-border-color"></div>
                   <span className="text-[9px] text-text-secondary uppercase font-mono tracking-tighter">
-                    {h.mode === "count"
-                      ? `${(h.logs || []).reduce((s, d) => s + (d.entries || []).length, 0)} log(s) · ${h.totalLogs} ${h.unit || ""}`
-                      : h.mode === "check"
-                        ? `${h.totalLogs} day(s) checked`
-                        : h.totalLogs}
+                    {h.mode === "check"
+                      ? `${h.totalLogs} day(s) checked`
+                      : h.mode === "quick"
+                        ? `${h.totalLogs} log(s)`
+                        : `${(h.logs || []).reduce((s, d) => s + (d.entries || []).length, 0)} log(s) · ${h.totalLogs} ${h.unit || ""}`
+                    }
                   </span>
                   {/* Check mode badge */}
                   {isCheckMode && (
                     <>
                       <div className="h-1 w-1 rounded-full bg-border-color"></div>
                       <span
-                        className={`text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded ${
-                          isGood
-                            ? "bg-emerald-500/10 text-emerald-400"
-                            : "bg-red-500/10 text-red-400"
-                        }`}
+                        className={`text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded ${isGood
+                          ? "bg-emerald-500/10 text-emerald-400"
+                          : "bg-red-500/10 text-red-400"
+                          }`}
                       >
                         {isGood ? "✓ Check" : "✕ Check"}
                       </span>
@@ -253,7 +250,7 @@ const Habits = ({ habits, setHabits, logActivity }) => {
 
               {/* Log Action Controls */}
               <div className="pt-6 border-t border-border-color flex items-center justify-between gap-2 flex-wrap">
-                {h.mode === "count" ? (
+                {h.mode === "count" || h.mode === "timer" ? (
                   <div className="flex items-center gap-1.5">
                     <input
                       type="number"
@@ -293,15 +290,14 @@ const Habits = ({ habits, setHabits, logActivity }) => {
                   /* ── Check Mode: Green tick for Good, Red X for Bad ── */
                   <button
                     onClick={() => logActivity(h.id, !checkedToday)}
-                    className={`flex items-center gap-2.5 px-4 py-2.5 rounded-xl border-2 text-xs font-bold uppercase tracking-widest transition-all ${
-                      checkedToday
-                        ? isGood
-                          ? /* Good + checked → solid green tick */
-                            "bg-emerald-500/20 border-emerald-500/70 text-emerald-400 shadow-[0_0_16px_rgba(52,211,153,0.2)]"
-                          : /* Bad + checked → solid red cross */
-                            "bg-red-500/20 border-red-500/70 text-red-400 shadow-[0_0_16px_rgba(239,68,68,0.2)]"
-                        : "border-border-color text-text-secondary hover:border-text-secondary hover:bg-accent-dim"
-                    }`}
+                    className={`flex items-center gap-2.5 px-4 py-2.5 rounded-xl border-2 text-xs font-bold uppercase tracking-widest transition-all ${checkedToday
+                      ? isGood
+                        ? /* Good + checked → solid green tick */
+                        "bg-emerald-500/20 border-emerald-500/70 text-emerald-400 shadow-[0_0_16px_rgba(52,211,153,0.2)]"
+                        : /* Bad + checked → solid red cross */
+                        "bg-red-500/20 border-red-500/70 text-red-400 shadow-[0_0_16px_rgba(239,68,68,0.2)]"
+                      : "border-border-color text-text-secondary hover:border-text-secondary hover:bg-accent-dim"
+                      }`}
                   >
                     {checkedToday ? (
                       isGood ? (
@@ -351,6 +347,19 @@ const Habits = ({ habits, setHabits, logActivity }) => {
                       </>
                     )}
                   </button>
+                ) : h.mode === "rating" ? (
+                  <div className="flex gap-1.5 w-full justify-between">
+                    {[1, 2, 3, 4, 5].map((val) => (
+                      <button
+                        key={val}
+                        onClick={() => logActivity(h.id, true, val, "stars")}
+                        className={`flex-1 py-2.5 rounded-xl border-2 text-xs font-bold transition-all border-border-color bg-bg-main hover:border-accent hover:text-accent`}
+                      >
+                        {val}
+                        <Icon name="star" size={12} className="inline ml-1" />
+                      </button>
+                    ))}
+                  </div>
                 ) : (
                   <div className="flex gap-2">
                     <Button
@@ -422,7 +431,7 @@ const Habits = ({ habits, setHabits, logActivity }) => {
         habit={performanceHabit}
         onClose={() => setPerformanceTarget(null)}
       />
-    </div>
+    </div >
   );
 };
 

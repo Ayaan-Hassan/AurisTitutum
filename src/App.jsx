@@ -337,7 +337,9 @@ export const Preloader = memo(({ isLoading }) => {
 });
 
 function AppContent() {
-  const { user } = useAuth();
+  const authContext = useAuth();
+  const { user, replaceHabitsState, replaceNotesState, replaceRemindersState, updateUserConfig } = authContext;
+
   const userKey = getUserKey(user);
   const activeScope = getStorageScope(user);
   const initialState = normalizeAppState(
@@ -470,123 +472,41 @@ function AppContent() {
 
   useEffect(() => {
     cloudStateReadyRef.current = false;
-    remoteUpdatedAtRef.current = 0;
 
     if (!userKey) {
       cloudStateReadyRef.current = true;
       return undefined;
     }
 
-    let cancelled = false;
-    let pollTimer = null;
+    const remoteState = normalizeAppState({
+      habits: authContext.habits,
+      userConfig: authContext.userConfig,
+      notes: authContext.notes,
+      reminders: authContext.reminders,
+    });
 
-    const applyRemoteState = (rawState) => {
-      const remoteState = normalizeAppState(rawState || {});
-      if (areAppStatesEqual(remoteState, latestStateRef.current)) return;
-      skipNextCloudSaveRef.current = true;
-      setHabits(remoteState.habits);
-      setUserConfig(mergeUserIdentityIntoConfig(remoteState.userConfig, user));
-      setNotes(remoteState.notes);
-      setReminders(remoteState.reminders);
-      writeScopedState(activeScope, remoteState);
-      latestStateRef.current = remoteState;
-    };
-
-    const fetchRemoteState = async () => {
-      const res = await fetch(
-        `${CLOUD_SYNC_API_BASE}/state/get?userId=${encodeURIComponent(userKey)}`,
-        { cache: "no-store" },
-      );
-      if (!res.ok) {
-        throw new Error(`Remote state fetch failed: ${res.status}`);
+    if (!areAppStatesEqual(remoteState, latestStateRef.current)) {
+      // Meaningful update from remote
+      const hasContent = remoteState.habits.length > 0 || remoteState.notes.length > 0 || remoteState.reminders.length > 0;
+      // Also prevent overwriting local state with completely empty state immediately after login
+      // authContext.habits might take a few ms to load. AuthContext sets dataLoading.
+      if (hasContent || !authContext.dataLoading) {
+        skipNextCloudSaveRef.current = true;
+        setHabits(remoteState.habits);
+        setUserConfig(mergeUserIdentityIntoConfig(remoteState.userConfig, user));
+        setNotes(remoteState.notes);
+        setReminders(remoteState.reminders);
+        writeScopedState(activeScope, remoteState);
+        latestStateRef.current = remoteState;
       }
-      const payload = await res.json();
-      const state = payload?.state ?? null;
-      if (!state) return false;
+    }
 
-      const remoteUpdatedAt = Number(state.updatedAt || 0);
-      if (
-        remoteUpdatedAt > 0 &&
-        remoteUpdatedAt < remoteUpdatedAtRef.current &&
-        areAppStatesEqual(state, latestStateRef.current)
-      ) {
-        return true;
-      }
+    cloudStateReadyRef.current = true;
+  }, [activeScope, user, userKey, authContext.habits, authContext.notes, authContext.reminders, authContext.userConfig, authContext.dataLoading]);
 
-      applyRemoteState(state);
-      if (remoteUpdatedAt > 0) {
-        remoteUpdatedAtRef.current = Math.max(
-          remoteUpdatedAtRef.current,
-          remoteUpdatedAt,
-        );
-      }
-      return true;
-    };
-
-    const seedRemoteState = async () => {
-      const seedState = normalizeAppState(latestStateRef.current);
-      const updatedAt = Date.now();
-      const res = await fetch(`${CLOUD_SYNC_API_BASE}/state/set`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          userId: userKey,
-          state: {
-            ...seedState,
-            updatedAt,
-          },
-        }),
-      });
-      if (!res.ok) {
-        throw new Error(`Remote state seed failed: ${res.status}`);
-      }
-      remoteUpdatedAtRef.current = Math.max(
-        remoteUpdatedAtRef.current,
-        updatedAt,
-      );
-    };
-
-    const pollRemoteState = async () => {
-      try {
-        await fetchRemoteState();
-      } catch (error) {
-        console.error("[cloud-sync] Poll failed:", error);
-      } finally {
-        if (!cancelled) {
-          pollTimer = setTimeout(pollRemoteState, CLOUD_SYNC_POLL_MS);
-        }
-      }
-    };
-
-    const hydrateCloudState = async () => {
-      try {
-        const hasRemote = await fetchRemoteState();
-        if (!cancelled && !hasRemote) {
-          await seedRemoteState();
-        }
-      } catch (error) {
-        console.error("[cloud-sync] Failed to hydrate cloud state:", error);
-      } finally {
-        if (!cancelled) {
-          cloudStateReadyRef.current = true;
-          pollTimer = setTimeout(pollRemoteState, CLOUD_SYNC_POLL_MS);
-        }
-      }
-    };
-
-    hydrateCloudState();
-
-    return () => {
-      cancelled = true;
-      if (pollTimer) {
-        clearTimeout(pollTimer);
-        pollTimer = null;
-      }
-    };
-  }, [activeScope, user, userKey]);
-
+  // Push local state to remote
   useEffect(() => {
-    if (!userKey || !cloudStateReadyRef.current) {
+    if (!userKey || !cloudStateReadyRef.current || authContext.dataLoading) {
       return undefined;
     }
 
@@ -602,30 +522,12 @@ function AppContent() {
 
     cloudSaveTimerRef.current = setTimeout(async () => {
       try {
-        const updatedAt = Date.now();
-        const response = await fetch(`${CLOUD_SYNC_API_BASE}/state/set`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            userId: userKey,
-            state: {
-              habits,
-              userConfig,
-              notes,
-              reminders,
-              updatedAt,
-            },
-          }),
-        });
-        if (!response.ok) {
-          throw new Error(`Remote state save failed: ${response.status}`);
-        }
-        remoteUpdatedAtRef.current = Math.max(
-          remoteUpdatedAtRef.current,
-          updatedAt,
-        );
+        await replaceHabitsState(habits);
+        await replaceNotesState(notes);
+        await replaceRemindersState(reminders);
+        await updateUserConfig(userConfig);
       } catch (error) {
-        console.error("[cloud-sync] Failed to persist cloud state:", error);
+        console.error("[firebase-sync] Failed to persist cloud state:", error);
       }
     }, 900);
 
@@ -635,7 +537,7 @@ function AppContent() {
         cloudSaveTimerRef.current = null;
       }
     };
-  }, [habits, notes, reminders, userConfig, userKey]);
+  }, [habits, notes, reminders, userConfig, userKey, authContext.dataLoading]);
 
   const logActivity = (id, increment = true, amount = 1, unit = "") => {
     const amt = Math.max(1, Math.floor(Number(amount) || 1));
@@ -647,7 +549,7 @@ function AppContent() {
       prev.map((h) => {
         if (h.id !== id) return h;
 
-        const isCountMode = h.mode === "count";
+        const isValueMode = h.mode === "count" || h.mode === "timer" || h.mode === "rating";
         const isCheckMode = h.mode === "check";
         let updatedLogs = (h.logs || []).map((l) => ({
           ...l,
@@ -668,7 +570,7 @@ function AppContent() {
               count: 1,
               entries: [timestamp],
             });
-          } else if (isCountMode) {
+          } else if (isValueMode) {
             const value = amt;
             const entryStr = `${timestamp}|${value}|${unit || h.unit || ""}`;
             updatedTotal += value;
@@ -714,7 +616,7 @@ function AppContent() {
               updatedLogs.splice(dateIdx, 1);
             }
           } else if (
-            isCountMode &&
+            isValueMode &&
             dateIdx > -1 &&
             updatedLogs[dateIdx].entries.length > 0
           ) {
@@ -992,11 +894,10 @@ function AppContent() {
                               emoji: em === newHabit.emoji ? "" : em,
                             })
                           }
-                          className={`w-full aspect-square rounded-lg flex items-center justify-center text-base transition-all hover:scale-110 active:scale-95 ${
-                            newHabit.emoji === em
-                              ? "bg-accent/20 border-2 border-accent/60 scale-105"
-                              : "hover:bg-white/10 border-2 border-transparent"
-                          }`}
+                          className={`w-full aspect-square rounded-lg flex items-center justify-center text-base transition-all hover:scale-110 active:scale-95 ${newHabit.emoji === em
+                            ? "bg-accent/20 border-2 border-accent/60 scale-105"
+                            : "hover:bg-white/10 border-2 border-transparent"
+                            }`}
                           title={em}
                         >
                           <span
@@ -1020,8 +921,8 @@ function AppContent() {
                           isUnicodeSymbol(newHabit.emoji)
                             ? { color: "var(--text-secondary)" }
                             : {
-                                filter: "grayscale(1) saturate(0)",
-                              }
+                              filter: "grayscale(1) saturate(0)",
+                            }
                         }
                       >
                         {newHabit.emoji}
@@ -1038,11 +939,10 @@ function AppContent() {
                   <div className="grid grid-cols-2 gap-4">
                     <button
                       onClick={() => setNewHabit({ ...newHabit, type: "Good" })}
-                      className={`group py-5 rounded-2xl text-[10px] font-bold uppercase tracking-[0.2em] border transition-all flex flex-col items-center gap-2 ${
-                        newHabit.type === "Good"
-                          ? "bg-accent text-bg-main border-accent shadow-[0_0_20px_rgba(228,228,231,0.2)]"
-                          : "bg-white/5 border-white/10 text-text-secondary hover:border-white/20 hover:bg-white/10"
-                      }`}
+                      className={`group py-5 rounded-2xl text-[10px] font-bold uppercase tracking-[0.2em] border transition-all flex flex-col items-center gap-2 ${newHabit.type === "Good"
+                        ? "bg-accent text-bg-main border-accent shadow-[0_0_20px_rgba(228,228,231,0.2)]"
+                        : "bg-white/5 border-white/10 text-text-secondary hover:border-white/20 hover:bg-white/10"
+                        }`}
                     >
                       <Icon
                         name="check-circle"
@@ -1057,11 +957,10 @@ function AppContent() {
                     </button>
                     <button
                       onClick={() => setNewHabit({ ...newHabit, type: "Bad" })}
-                      className={`group py-5 rounded-2xl text-[10px] font-bold uppercase tracking-[0.2em] border transition-all flex flex-col items-center gap-2 ${
-                        newHabit.type === "Bad"
-                          ? "bg-accent text-bg-main border-accent shadow-[0_0_20px_rgba(228,228,231,0.2)]"
-                          : "bg-white/5 border-white/10 text-text-secondary hover:border-white/20 hover:bg-white/10"
-                      }`}
+                      className={`group py-5 rounded-2xl text-[10px] font-bold uppercase tracking-[0.2em] border transition-all flex flex-col items-center gap-2 ${newHabit.type === "Bad"
+                        ? "bg-accent text-bg-main border-accent shadow-[0_0_20px_rgba(228,228,231,0.2)]"
+                        : "bg-white/5 border-white/10 text-text-secondary hover:border-white/20 hover:bg-white/10"
+                        }`}
                     >
                       <Icon
                         name="alert-circle"
@@ -1081,7 +980,7 @@ function AppContent() {
                   <label className="text-[10px] font-black text-text-secondary uppercase tracking-[0.3em] ml-1">
                     Mode
                   </label>
-                  <div className="grid grid-cols-3 gap-3">
+                  <div className="grid grid-cols-2 gap-3">
                     <button
                       onClick={() =>
                         setNewHabit({ ...newHabit, mode: "quick" })
@@ -1106,11 +1005,27 @@ function AppContent() {
                     >
                       Check
                     </button>
+                    <button
+                      onClick={() =>
+                        setNewHabit({ ...newHabit, mode: "timer", unit: "min" })
+                      }
+                      className={`py-4 rounded-2xl text-[10px] font-bold uppercase tracking-[0.2em] border transition-all ${newHabit.mode === "timer" ? "bg-accent text-bg-main border-accent" : "bg-white/5 border-white/10 text-text-secondary hover:border-white/20"}`}
+                    >
+                      Timer
+                    </button>
+                    <button
+                      onClick={() =>
+                        setNewHabit({ ...newHabit, mode: "rating" })
+                      }
+                      className={`py-4 rounded-2xl text-[10px] font-bold uppercase tracking-[0.2em] border transition-all ${newHabit.mode === "rating" ? "bg-accent text-bg-main border-accent" : "bg-white/5 border-white/10 text-text-secondary hover:border-white/20"}`}
+                    >
+                      Rating
+                    </button>
                   </div>
-                  {newHabit.mode === "count" && (
+                  {(newHabit.mode === "count" || newHabit.mode === "timer") && (
                     <input
                       type="text"
-                      placeholder="Unit (e.g. reps, min)"
+                      placeholder="Unit (e.g. reps, min, hrs)"
                       className="w-full bg-bg-main/50 border border-white/10 p-3 rounded-xl text-sm text-text-primary placeholder:text-text-secondary/50 outline-none focus:border-accent"
                       value={newHabit.unit}
                       onChange={(e) =>
@@ -1131,7 +1046,7 @@ function AppContent() {
                         type: newHabit.type,
                         mode: newHabit.mode || "quick",
                         unit:
-                          newHabit.mode === "count" ? newHabit.unit || "" : "",
+                          (newHabit.mode === "count" || newHabit.mode === "timer") ? newHabit.unit || "" : "",
                         emoji: newHabit.emoji || "",
                         totalLogs: 0,
                         logs: [],

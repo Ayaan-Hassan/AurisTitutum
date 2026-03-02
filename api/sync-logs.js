@@ -24,7 +24,7 @@ export default async function handler(req, res) {
   }
 
   // Vercel automatically parses JSON bodies
-  const { userId, logs } = req.body ?? {};
+  const { userId, logs, tokens, spreadsheetId: inputSpreadsheetId } = req.body ?? {};
 
   if (!userId || typeof userId !== "string" || !userId.trim()) {
     return res.status(400).json({ error: "userId is required" });
@@ -44,7 +44,7 @@ export default async function handler(req, res) {
 
   let client, spreadsheetId;
   try {
-    ({ client, spreadsheetId } = await getAuthenticatedClient(userId));
+    ({ client, spreadsheetId } = await getAuthenticatedClient(userId, tokens, inputSpreadsheetId));
   } catch (err) {
     return res.status(500).json({ error: err.message });
   }

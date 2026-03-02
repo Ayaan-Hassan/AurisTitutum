@@ -22,7 +22,7 @@ const Settings = ({
   fileInputRef,
   habits,
 }) => {
-  const { logout, user } = useAuth();
+  const { logout, user, upsertSheetsConnectionState } = useAuth();
   const navigate = useNavigate();
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
 
@@ -34,7 +34,7 @@ const Settings = ({
   const [syncingSheets, setSyncingSheets] = useState(false);
   const [sheetsMessage, setSheetsMessage] = useState(null);
 
-    // Check sheets connection on mount and verify OAuth callback with server
+  // Check sheets connection on mount and verify OAuth callback with server
   useEffect(() => {
     const init = async () => {
       const oauthResult = handleOAuthCallback();
@@ -46,6 +46,13 @@ const Settings = ({
         });
         setSheetsStatus({ connected: false, loading: false });
         return;
+      }
+
+      if (oauthResult.payload) {
+        await upsertSheetsConnectionState({
+          connected: true,
+          ...oauthResult.payload
+        });
       }
 
       const status = await checkSheetsConnection(user);
@@ -452,11 +459,10 @@ const Settings = ({
             {/* Status / feedback message */}
             {sheetsMessage && (
               <div
-                className={`flex flex-col sm:flex-row sm:items-center gap-3 text-xs p-3 rounded-xl ${
-                  sheetsMessage.type === "success"
+                className={`flex flex-col sm:flex-row sm:items-center gap-3 text-xs p-3 rounded-xl ${sheetsMessage.type === "success"
                     ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20"
                     : "bg-danger/10 text-danger border border-danger/20"
-                }`}
+                  }`}
               >
                 <span className="flex-1">{sheetsMessage.text}</span>
                 {sheetsMessage.type === "success" && sheetsStatus.sheetUrl && (

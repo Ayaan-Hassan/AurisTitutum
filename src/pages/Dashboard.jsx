@@ -208,16 +208,16 @@ const Dashboard = ({ habits, logActivity, insights }) => {
                           style={
                             isUnicodeSymbol(h.emoji)
                               ? {
-                                  color: isGood
-                                    ? "var(--accent)"
-                                    : "var(--text-secondary)",
-                                  fontSize: "0.75rem",
-                                }
+                                color: isGood
+                                  ? "var(--accent)"
+                                  : "var(--text-secondary)",
+                                fontSize: "0.75rem",
+                              }
                               : {
-                                  filter:
-                                    "grayscale(1) saturate(0) brightness(1.2)",
-                                  fontSize: "0.8rem",
-                                }
+                                filter:
+                                  "grayscale(1) saturate(0) brightness(1.2)",
+                                fontSize: "0.8rem",
+                              }
                           }
                         >
                           {h.emoji}
@@ -237,11 +237,11 @@ const Dashboard = ({ habits, logActivity, insights }) => {
                         {h.name}
                       </div>
                       <div className="text-[10px] text-text-secondary uppercase font-mono truncate">
-                        {h.mode === "count"
-                          ? `${(h.logs || []).reduce((s, d) => s + (d.entries || []).length, 0)} log(s) · ${h.totalLogs} ${h.unit || "total"}`
-                          : h.mode === "check"
-                            ? `${h.totalLogs} day(s) checked`
-                            : `${h.totalLogs} logs`}
+                        {h.mode === "check"
+                          ? `${h.totalLogs} day(s) checked`
+                          : h.mode === "quick"
+                            ? `${h.totalLogs} log(s)`
+                            : `${(h.logs || []).reduce((s, d) => s + (d.entries || []).length, 0)} log(s) · ${h.totalLogs} ${h.unit || ""}`}
                       </div>
                     </div>
                   </div>
@@ -254,7 +254,7 @@ const Dashboard = ({ habits, logActivity, insights }) => {
                       className="bg-bg-main rounded-lg w-8 h-8 p-0"
                       title="Habit performance"
                     />
-                    {h.mode === "count" ? (
+                    {h.mode === "count" || h.mode === "timer" ? (
                       <>
                         <input
                           type="number"
@@ -297,13 +297,12 @@ const Dashboard = ({ habits, logActivity, insights }) => {
                       /* Green tick for Good, Red cross for Bad — consistent with Habit Registry */
                       <button
                         onClick={() => logActivity(h.id, !checkedToday)}
-                        className={`w-8 h-8 rounded-lg border-2 flex items-center justify-center transition-all ${
-                          checkedToday
+                        className={`w-8 h-8 rounded-lg border-2 flex items-center justify-center transition-all ${checkedToday
                             ? isGood
                               ? "bg-emerald-500/20 border-emerald-500/70 shadow-[0_0_10px_rgba(52,211,153,0.2)]"
                               : "bg-red-500/20 border-red-500/70 shadow-[0_0_10px_rgba(239,68,68,0.2)]"
                             : "border-border-color text-text-secondary hover:border-text-secondary"
-                        }`}
+                          }`}
                         title={
                           checkedToday ? "Uncheck today" : "Check for today"
                         }
@@ -343,6 +342,18 @@ const Dashboard = ({ habits, logActivity, insights }) => {
                           <div className="w-2.5 h-2.5 rounded border border-border-color" />
                         )}
                       </button>
+                    ) : h.mode === "rating" ? (
+                      <div className="flex gap-1 items-center">
+                        {[1, 2, 3, 4, 5].map((val) => (
+                          <button
+                            key={val}
+                            onClick={() => logActivity(h.id, true, val, "stars")}
+                            className="w-6 h-6 rounded bg-bg-sidebar border border-border-color text-[10px] font-bold hover:border-accent hover:text-accent flex items-center justify-center transition-colors shadow-sm"
+                          >
+                            {val}
+                          </button>
+                        ))}
+                      </div>
                     ) : (
                       <>
                         <Button
@@ -392,11 +403,10 @@ const Dashboard = ({ habits, logActivity, insights }) => {
             {flattenedLogs.slice(0, 50).map((log, i) => (
               <div
                 key={i}
-                className={`flex gap-3 items-start border-l-2 pl-3 py-1.5 transition-colors ${
-                  log.type === "Good"
+                className={`flex gap-3 items-start border-l-2 pl-3 py-1.5 transition-colors ${log.type === "Good"
                     ? "border-success/60 hover:border-success"
                     : "border-danger/60 hover:border-danger"
-                }`}
+                  }`}
               >
                 <div
                   className={`mt-0.5 w-7 h-7 rounded-lg border flex items-center justify-center shrink-0 ${log.type === "Good" ? "border-success/30 bg-success/10 text-success" : "border-danger/30 bg-danger/10 text-danger"}`}
@@ -413,14 +423,14 @@ const Dashboard = ({ habits, logActivity, insights }) => {
                         style={
                           isUnicodeSymbol(log.emoji)
                             ? {
-                                color: "var(--text-secondary)",
-                                fontSize: "0.7rem",
-                              }
+                              color: "var(--text-secondary)",
+                              fontSize: "0.7rem",
+                            }
                             : {
-                                filter:
-                                  "grayscale(1) saturate(0) brightness(1.2)",
-                                fontSize: "0.75rem",
-                              }
+                              filter:
+                                "grayscale(1) saturate(0) brightness(1.2)",
+                              fontSize: "0.75rem",
+                            }
                         }
                       >
                         {log.emoji}
@@ -494,13 +504,12 @@ const Dashboard = ({ habits, logActivity, insights }) => {
           {calendarDays.map((dateStr, i) => (
             <div
               key={i}
-              className={`aspect-square rounded-lg flex items-center justify-center text-[10px] sm:text-[11px] font-mono ${
-                dateStr
+              className={`aspect-square rounded-lg flex items-center justify-center text-[10px] sm:text-[11px] font-mono ${dateStr
                   ? loggedDates.has(dateStr)
                     ? "bg-black dark:bg-white text-white dark:text-bg-main border border-black dark:border-white shadow-sm"
                     : "bg-bg-main/50 border border-border-color text-text-secondary"
                   : "invisible"
-              }`}
+                }`}
             >
               {dateStr ? new Date(dateStr + "T12:00:00").getDate() : ""}
             </div>

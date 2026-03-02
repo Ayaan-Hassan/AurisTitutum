@@ -47,7 +47,7 @@ export default async function handler(req, res) {
 
   // ── Parse + validate body ──────────────────────────────────────────────────
   const body = req.body ?? {};
-  const { userId, habit, date, type, status, value, timestamp } = body;
+  const { userId, habit, date, type, status, value, timestamp, tokens, spreadsheetId: inputSpreadsheetId } = body;
 
   if (!userId || typeof userId !== "string" || !userId.trim()) {
     return res.status(400).json({ error: "userId is required" });
@@ -68,7 +68,7 @@ export default async function handler(req, res) {
   let spreadsheetId;
 
   try {
-    ({ client, spreadsheetId } = await getAuthenticatedClient(userId));
+    ({ client, spreadsheetId } = await getAuthenticatedClient(userId, tokens, inputSpreadsheetId));
   } catch (err) {
     // getAuthenticatedClient throws with a user-friendly message when the
     // user is not connected or the token refresh failed

@@ -1,19 +1,25 @@
-﻿/**
+/**
  * Google Sheets Backend API Service
  *
  * All requests go to /api/* - the Vercel serverless functions that live
  * in the /api folder of this same project.
  */
 
+import { getUserSetting, upsertUserSetting } from "./firestoreService";
+
 const _base = (import.meta.env.VITE_BACKEND_URL ?? "").replace(/\/$/, "");
 const API_BASE = _base ? `${_base}/api` : "/api";
 
-const SHEETS_CACHE_KEY = "auristitutum_sheets_cache";
-const getSheetsCacheKey = (userOrId) => {
-  const userId =
-    typeof userOrId === "string" ? userOrId : (userOrId?.uid ?? null);
-  return userId ? `${SHEETS_CACHE_KEY}_${userId}` : SHEETS_CACHE_KEY;
-};
+const inMemorySheetsState = new Map();
+
+const normalizeSheetsState = (raw = {}) => ({
+  connected: !!raw?.connected,
+  sheetUrl: raw?.sheetUrl || null,
+  spreadsheetId: raw?.spreadsheetId || null,
+  connectedAt: raw?.connectedAt || null,
+  error: raw?.error || null,
+  loading: !!raw?.loading,
+});
 
 /**
  * Get Firebase UID for API calls.
@@ -23,32 +29,27 @@ const getUserId = (user) => {
   throw new Error("Firebase UID is required");
 };
 
-/**
- * Cache sheets connection info locally so it survives page refreshes.
- */
-export const cacheSheetInfo = (info, userOrId = null) => {
-  try {
-    localStorage.setItem(getSheetsCacheKey(userOrId), JSON.stringify(info));
-  } catch {
-    // Non-fatal
-  }
+const persistSheetsState = async (userOrId, payload) => {
+  const userId = typeof userOrId === "string" ? userOrId : userOrId?.uid;
+  if (!userId) return;
+
+  const normalized = normalizeSheetsState(payload);
+  inMemorySheetsState.set(userId, normalized);
+  await upsertUserSetting(userId, "sheets", normalized, true);
 };
 
 export const getCachedSheetInfo = (userOrId = null) => {
-  try {
-    const raw = localStorage.getItem(getSheetsCacheKey(userOrId));
-    return raw ? JSON.parse(raw) : null;
-  } catch {
-    return null;
-  }
+  const userId = typeof userOrId === "string" ? userOrId : userOrId?.uid;
+  if (!userId) return null;
+  return inMemorySheetsState.get(userId) || null;
 };
 
-export const clearSheetCache = (userOrId = null) => {
-  try {
-    localStorage.removeItem(getSheetsCacheKey(userOrId));
-  } catch {
-    // Non-fatal
-  }
+export const clearSheetCache = async (userOrId = null) => {
+  const userId = typeof userOrId === "string" ? userOrId : userOrId?.uid;
+  if (!userId) return;
+  const disconnected = normalizeSheetsState({ connected: false, error: null });
+  inMemorySheetsState.set(userId, disconnected);
+  await upsertUserSetting(userId, "sheets", disconnected, true);
 };
 
 /**
@@ -58,7 +59,6 @@ export const connectGoogleSheets = (user) => {
   const userId = getUserId(user);
   const params = new URLSearchParams({ userId });
 
-  // Pass email so the backend can set login_hint on the OAuth URL
   if (user?.email) {
     params.set("userEmail", user.email);
   }
@@ -76,41 +76,17 @@ export const checkSheetsConnection = async (user) => {
 
   const userId = getUserId(user);
 
-  try {
-    const res = await fetch(
-      `${API_BASE}/auth/status?userId=${encodeURIComponent(userId)}`,
-    );
-    const data = await res.json().catch(() => ({}));
-    if (!res.ok) {
-      clearSheetCache(userId);
-      return {
-        connected: false,
-        error: data?.error || "Failed to check connection status",
-      };
-    }
+  const stored =
+    getCachedSheetInfo(userId) ||
+    normalizeSheetsState((await getUserSetting(userId, "sheets")) || {});
 
-    if (data.connected) {
-      // Keep cache fresh
-      cacheSheetInfo(
-        {
-          connected: true,
-          sheetUrl: data.sheetUrl,
-          spreadsheetId: data.spreadsheetId,
-          connectedAt: data.connectedAt,
-        },
-        userId,
-      );
-    } else {
-      clearSheetCache(userId);
-    }
-
-    return data;
-  } catch {
-    // Backend unreachable - serve from cache so the UI doesn't break
-    const cached = getCachedSheetInfo(userId);
-    if (cached) return cached;
-    return { connected: false };
+  if (stored.connected || stored.sheetUrl) {
+    inMemorySheetsState.set(userId, stored);
   }
+
+  // Without a persistent backend Redis store, the backend doesn't know the status.
+  // We completely rely on Firebase Firestore state that we load!
+  return stored.connected || stored.sheetUrl ? stored : { connected: false };
 };
 
 /**
@@ -125,8 +101,10 @@ export const disconnectGoogleSheets = async (user) => {
     body: JSON.stringify({ userId }),
   });
   if (!res.ok) throw new Error("Failed to disconnect");
-  clearSheetCache(userId);
-  return await res.json();
+
+  const result = await res.json();
+  await persistSheetsState(userId, { connected: false, error: null });
+  return result;
 };
 
 /**
@@ -135,6 +113,7 @@ export const disconnectGoogleSheets = async (user) => {
 export const appendLog = async (user, logData) => {
   const userId = getUserId(user);
 
+  const sheetInfo = getCachedSheetInfo(userId);
   const res = await fetch(`${API_BASE}/append-log`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -146,6 +125,8 @@ export const appendLog = async (user, logData) => {
       status: logData.status || "logged",
       value: logData.value,
       timestamp: logData.timestamp || new Date().toISOString(),
+      tokens: sheetInfo?.tokens,
+      spreadsheetId: sheetInfo?.spreadsheetId,
     }),
   });
 
@@ -204,10 +185,16 @@ export const syncAllLogs = async (user, habits) => {
     throw new Error("No logs to sync");
   }
 
+  const sheetInfo = getCachedSheetInfo(userId);
   const res = await fetch(`${API_BASE}/sync-logs`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ userId, logs }),
+    body: JSON.stringify({
+      userId,
+      logs,
+      tokens: sheetInfo?.tokens,
+      spreadsheetId: sheetInfo?.spreadsheetId
+    }),
   });
 
   if (!res.ok) {
@@ -224,8 +211,18 @@ export const syncAllLogs = async (user, habits) => {
 export const getLogsFromSheets = async (user) => {
   const userId = getUserId(user);
 
+  const sheetInfo = getCachedSheetInfo(userId);
+
   const res = await fetch(
-    `${API_BASE}/get-logs?userId=${encodeURIComponent(userId)}`,
+    `${API_BASE}/get-logs`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      userId,
+      tokens: sheetInfo?.tokens,
+      spreadsheetId: sheetInfo?.spreadsheetId
+    }),
+  }
   );
 
   if (!res.ok) {
@@ -248,14 +245,17 @@ export const handleOAuthCallback = () => {
     sheetUrl: params.get("sheet_url")
       ? decodeURIComponent(params.get("sheet_url"))
       : null,
+    payload: params.get("sheets_payload")
+      ? JSON.parse(decodeURIComponent(params.get("sheets_payload")))
+      : null,
   };
 
-  // Clean up URL params so they don't persist on refresh
   if (result.connected || result.error) {
     const url = new URL(window.location.href);
     url.searchParams.delete("sheets_connected");
     url.searchParams.delete("sheets_error");
     url.searchParams.delete("sheet_url");
+    url.searchParams.delete("sheets_payload");
     window.history.replaceState({}, "", url.pathname);
   }
 
