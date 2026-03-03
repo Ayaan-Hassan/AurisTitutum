@@ -17,7 +17,7 @@
  */
 
 import webpush from "web-push";
-import { getAdminApp } from "../_lib/firebaseAdmin.js";
+import { getAdminApp } from "./_lib/firebaseAdmin.js";
 
 webpush.setVapidDetails(
     process.env.VAPID_SUBJECT,
