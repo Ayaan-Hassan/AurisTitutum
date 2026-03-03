@@ -137,7 +137,7 @@ const Layout = ({
                 </span>
               )}
             </button>
-            <div className="hidden sm:block">
+            <div className={user ? "block" : "hidden sm:block"}>
               <RealTimeClock />
             </div>
             <button
@@ -238,15 +238,14 @@ const Layout = ({
                     key={item.href}
                     to={item.href}
                     onClick={() => setMobileNavOpen(false)}
-                    className={`sidebar-item w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-all ${
-                      (
+                    className={`sidebar-item w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-all ${(
                         item.href === "/app"
                           ? pathname === "/app" || pathname === "/app/"
                           : pathname.startsWith(item.href)
                       )
                         ? "active text-text-primary"
                         : "text-text-secondary hover:text-text-primary hover:bg-accent-dim"
-                    }`}
+                      }`}
                   >
                     <Icon name={item.icon} size={16} />
                     {item.label}

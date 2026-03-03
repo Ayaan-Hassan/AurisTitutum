@@ -101,8 +101,11 @@ const Login = () => {
                       setError(result.error || "Failed to sign in with Google");
                       setLoading(false);
                     } else if (result?.user) {
+                      // Popup succeeded on desktop
                       navigate(redirectPath, { replace: true });
                     }
+                    // If success:true but no user, a redirect was initiated (mobile).
+                    // Leave loading:true — the page will redirect away automatically.
                   } catch (_err) {
                     setError("Failed to sign in with Google");
                     setLoading(false);
@@ -185,9 +188,9 @@ const Login = () => {
                 autoComplete="email"
                 error={
                   error &&
-                  (error.includes("email") ||
-                    error.includes("account") ||
-                    error.includes("found"))
+                    (error.includes("email") ||
+                      error.includes("account") ||
+                      error.includes("found"))
                     ? error
                     : ""
                 }
@@ -205,7 +208,7 @@ const Login = () => {
                 autoComplete="current-password"
                 error={
                   error &&
-                  (error.includes("password") || error.includes("credentials"))
+                    (error.includes("password") || error.includes("credentials"))
                     ? error
                     : ""
                 }

@@ -355,59 +355,80 @@ export const AuthProvider = ({ children }) => {
       return;
     }
 
-    getRedirectResult(auth)
-      .then((result) => {
-        if (result?.user) {
-          setUser(mapFirebaseUser(result.user));
-        }
-      })
-      .catch((err) => {
-        setError(getErrorMessage(err?.code));
-      });
+    let unsubscribe = () => { };
 
-    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
-      const cycleId = authCycleRef.current + 1;
-      authCycleRef.current = cycleId;
-
-      stopAllListeners();
-      clearAllSyncedState();
-
-      if (!firebaseUser) {
-        setUser(null);
-        setDataLoading(false);
-        setAuthLoading(false);
-        return;
-      }
-
-      const mappedUser = mapFirebaseUser(firebaseUser);
-      setUser(mappedUser);
-      setAuthLoading(false);
-
+    const initAuth = async () => {
+      // First, resolve any pending redirect result (mobile OAuth flow).
+      // This MUST complete before we start listening to auth state changes
+      // so that when onAuthStateChanged fires with the signed-in user we
+      // don't accidentally treat it as a fresh sign-in that came from nowhere.
+      let redirectUser = null;
       try {
-        await ensureUserDocument({
-          uid: firebaseUser.uid,
-          email: firebaseUser.email,
-          displayName: firebaseUser.displayName,
-        });
-
-        await upsertUserSetting(
-          firebaseUser.uid,
-          "profile",
-          mergeUserIdentityIntoConfig({}, mappedUser),
-          true,
-        );
-
-        await migrateLegacyDataIfNeeded(firebaseUser);
-
-        if (authCycleRef.current !== cycleId) return;
-        startRealtimeListeners(firebaseUser.uid, cycleId);
+        const redirectResult = await getRedirectResult(auth);
+        if (redirectResult?.user) {
+          redirectUser = redirectResult.user;
+        }
       } catch (err) {
-        if (authCycleRef.current !== cycleId) return;
-        console.error("Failed to initialize user sync:", err);
-        setError(err?.message || "Failed to initialize synced data");
-        setDataLoading(false);
+        // Non-fatal: log but continue. Errors here are usually popup_closed_by_user etc.
+        console.warn("getRedirectResult error (non-fatal):", err?.code);
+        if (err?.code && err.code !== 'auth/popup-closed-by-user') {
+          setError(getErrorMessage(err?.code));
+        }
       }
-    });
+
+      // Now set up the ongoing auth listener
+      unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+        const cycleId = authCycleRef.current + 1;
+        authCycleRef.current = cycleId;
+
+        stopAllListeners();
+        clearAllSyncedState();
+
+        // Use redirect user if onAuthStateChanged fires null immediately after redirect
+        const resolvedUser = firebaseUser || redirectUser;
+
+        if (!resolvedUser) {
+          setUser(null);
+          setDataLoading(false);
+          setAuthLoading(false);
+          return;
+        }
+
+        // Clear redirectUser so subsequent real sign-outs work correctly
+        redirectUser = null;
+
+        const mappedUser = mapFirebaseUser(resolvedUser);
+        setUser(mappedUser);
+        setAuthLoading(false);
+
+        try {
+          await ensureUserDocument({
+            uid: resolvedUser.uid,
+            email: resolvedUser.email,
+            displayName: resolvedUser.displayName,
+          });
+
+          await upsertUserSetting(
+            resolvedUser.uid,
+            "profile",
+            mergeUserIdentityIntoConfig({}, mappedUser),
+            true,
+          );
+
+          await migrateLegacyDataIfNeeded(resolvedUser);
+
+          if (authCycleRef.current !== cycleId) return;
+          startRealtimeListeners(resolvedUser.uid, cycleId);
+        } catch (err) {
+          if (authCycleRef.current !== cycleId) return;
+          console.error("Failed to initialize user sync:", err);
+          setError(err?.message || "Failed to initialize synced data");
+          setDataLoading(false);
+        }
+      });
+    };
+
+    initAuth();
 
     return () => {
       stopAllListeners();

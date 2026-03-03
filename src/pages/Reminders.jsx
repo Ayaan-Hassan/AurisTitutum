@@ -3,6 +3,15 @@ import Icon from "../components/Icon";
 import { Card } from "../components/ui/Card";
 import { Button } from "../components/ui/Button";
 import { ConfirmModal } from "../components/Modals";
+import { useAuth } from "../contexts/AuthContext";
+import {
+  requestNotificationPermission,
+  subscribeUserToPush,
+  scheduleAllReminders,
+  scheduleInBrowserReminders,
+  registerScheduledReminder,
+  unregisterScheduledReminder,
+} from "../services/pushNotifications";
 
 const getTodayStr = () => {
   const now = new Date();
@@ -70,19 +79,17 @@ const ReminderCard = ({ reminder, onDelete }) => {
 
   return (
     <div
-      className={`flex items-start justify-between gap-4 p-4 rounded-2xl border transition-all group ${
-        past
-          ? "bg-bg-main/40 border-border-color opacity-60"
-          : "bg-card-bg border-border-color hover:border-text-secondary"
-      }`}
+      className={`flex items-start justify-between gap-4 p-4 rounded-2xl border transition-all group ${past
+        ? "bg-bg-main/40 border-border-color opacity-60"
+        : "bg-card-bg border-border-color hover:border-text-secondary"
+        }`}
     >
       <div className="flex items-start gap-3 min-w-0 flex-1">
         <div
-          className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 mt-0.5 border ${
-            past
-              ? "bg-bg-main border-border-color"
-              : "bg-accent-dim border-border-color"
-          }`}
+          className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 mt-0.5 border ${past
+            ? "bg-bg-main border-border-color"
+            : "bg-accent-dim border-border-color"
+            }`}
         >
           <Icon
             name={past ? "check-circle" : "bell"}
@@ -93,9 +100,8 @@ const ReminderCard = ({ reminder, onDelete }) => {
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2 flex-wrap mb-1">
             <p
-              className={`text-sm font-bold truncate ${
-                past ? "text-text-secondary line-through" : "text-text-primary"
-              }`}
+              className={`text-sm font-bold truncate ${past ? "text-text-secondary line-through" : "text-text-primary"
+                }`}
             >
               {reminder.title}
             </p>
@@ -136,6 +142,7 @@ const ReminderCard = ({ reminder, onDelete }) => {
 };
 
 const Reminders = ({ reminders, setReminders }) => {
+  const { user } = useAuth();
   const [showAdd, setShowAdd] = useState(false);
   const [title, setTitle] = useState("");
   const [notes, setNotes] = useState("");
@@ -157,12 +164,18 @@ const Reminders = ({ reminders, setReminders }) => {
     if (typeof Notification === "undefined") return "unsupported";
     if (Notification.permission !== "default") {
       setNotifPermission(Notification.permission);
+      if (Notification.permission === "granted" && user) {
+        await subscribeUserToPush(user);
+      }
       return Notification.permission;
     }
     setPermissionRequesting(true);
     try {
-      const result = await Notification.requestPermission();
+      const result = await requestNotificationPermission();
       setNotifPermission(result);
+      if (result === "granted" && user) {
+        await subscribeUserToPush(user);
+      }
       return result;
     } catch {
       setNotifPermission("denied");
@@ -171,6 +184,19 @@ const Reminders = ({ reminders, setReminders }) => {
       setPermissionRequesting(false);
     }
   };
+
+  // Sync all reminders to Firestore for server-side delivery via cron
+  useEffect(() => {
+    if (notifPermission !== "granted" || !user) return;
+    scheduleAllReminders(reminders, user);
+  }, [reminders, notifPermission, user]);
+
+  // Schedule in-browser fallbacks (setTimeout) while the tab is open
+  useEffect(() => {
+    if (notifPermission !== "granted") return;
+    const cleanup = scheduleInBrowserReminders(reminders);
+    return cleanup;
+  }, [reminders, notifPermission]);
 
   const handleAdd = async () => {
     if (!title.trim()) return;
@@ -184,6 +210,16 @@ const Reminders = ({ reminders, setReminders }) => {
       repeat,
       createdAt: new Date().toISOString(),
     };
+
+    // Register with Firestore for cron delivery if user is signed in
+    if (user) {
+      try {
+        await registerScheduledReminder(user.uid, reminder);
+      } catch (err) {
+        console.error("Failed to register scheduled reminder:", err);
+      }
+    }
+
     setReminders((prev) => [...prev, reminder]);
     setTitle("");
     setNotes("");
@@ -194,8 +230,15 @@ const Reminders = ({ reminders, setReminders }) => {
   };
 
   const handleDelete = (id) => setDeleteTarget(id);
-  const confirmDelete = () => {
+  const confirmDelete = async () => {
     if (deleteTarget) {
+      if (user) {
+        try {
+          await unregisterScheduledReminder(user.uid, deleteTarget);
+        } catch (err) {
+          console.error("Failed to unregister scheduled reminder:", err);
+        }
+      }
       setReminders((prev) => prev.filter((r) => r.id !== deleteTarget));
       setDeleteTarget(null);
     }
@@ -321,11 +364,10 @@ const Reminders = ({ reminders, setReminders }) => {
                       key={val}
                       type="button"
                       onClick={() => setRepeat(val)}
-                      className={`py-3 rounded-xl text-[10px] font-bold uppercase tracking-[0.2em] border transition-all ${
-                        repeat === val
-                          ? "bg-accent text-bg-main border-accent"
-                          : "bg-bg-main border-border-color text-text-secondary hover:border-text-secondary hover:bg-accent-dim"
-                      }`}
+                      className={`py-3 rounded-xl text-[10px] font-bold uppercase tracking-[0.2em] border transition-all ${repeat === val
+                        ? "bg-accent text-bg-main border-accent"
+                        : "bg-bg-main border-border-color text-text-secondary hover:border-text-secondary hover:bg-accent-dim"
+                        }`}
                     >
                       {label}
                     </button>

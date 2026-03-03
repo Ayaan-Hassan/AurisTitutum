@@ -1,5 +1,6 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useRef } from "react";
 import Icon from "./Icon";
+import { BarChart, Bar, LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from "recharts";
 
 const getDateKey = (date) => date.toISOString().split("T")[0];
 
@@ -57,6 +58,7 @@ const getCalendarDays = (monthDate) => {
 
 const HabitPerformanceModal = ({ open, habit, onClose }) => {
   const [calendarMonth, setCalendarMonth] = useState(() => new Date());
+  const [chartType, setChartType] = useState("bar");
 
   useEffect(() => {
     if (!open) return undefined;
@@ -101,11 +103,28 @@ const HabitPerformanceModal = ({ open, habit, onClose }) => {
     };
   }, [habit]);
 
+  // Chart data: last 30 days
+  const chartData = useMemo(() => {
+    if (!habit) return [];
+    return Array.from({ length: 30 }).map((_, i) => {
+      const d = new Date();
+      d.setDate(d.getDate() - (29 - i));
+      const dateStr = getDateKey(d);
+      const log = (habit.logs || []).find((l) => l.date === dateStr);
+      return {
+        name: d.getDate().toString(),
+        value: log ? log.count : 0,
+      };
+    });
+  }, [habit]);
+
   if (!open || !habit || !metrics) return null;
 
   const isBad = habit.type === "Bad";
   const calendarDays = getCalendarDays(calendarMonth);
   const todayKey = getDateKey(new Date());
+  const chartColor = isBad ? "#f87171" : "#4ade80";
+  const hasAnyData = chartData.some((d) => d.value > 0);
 
   return (
     <>
@@ -116,7 +135,7 @@ const HabitPerformanceModal = ({ open, habit, onClose }) => {
       />
       <div className="fixed inset-0 z-[121] p-4 flex items-center justify-center">
         <div
-          className="w-full max-w-4xl max-h-[90vh] overflow-y-auto custom-scrollbar rounded-3xl border border-border-color bg-bg-main shadow-2xl p-6 sm:p-8"
+          className="w-full max-w-5xl max-h-[92vh] overflow-y-auto custom-scrollbar rounded-3xl border border-border-color bg-bg-main shadow-2xl p-6 sm:p-8"
           onClick={(e) => e.stopPropagation()}
         >
           <div className="flex items-start justify-between gap-4 mb-6">
@@ -135,12 +154,13 @@ const HabitPerformanceModal = ({ open, habit, onClose }) => {
             </div>
             <button
               onClick={onClose}
-              className="w-9 h-9 rounded-xl border border-border-color flex items-center justify-center text-text-secondary hover:text-text-primary"
+              className="w-9 h-9 rounded-xl border border-border-color flex items-center justify-center text-text-secondary hover:text-text-primary shrink-0"
             >
               <Icon name="x" size={16} />
             </button>
           </div>
 
+          {/* Stat Cards */}
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
             <div className="rounded-xl border border-border-color bg-accent-dim p-3">
               <p className="text-[10px] font-black uppercase tracking-widest text-text-secondary">
@@ -176,6 +196,78 @@ const HabitPerformanceModal = ({ open, habit, onClose }) => {
             </div>
           </div>
 
+          {/* Analytics Chart */}
+          <div className="rounded-2xl border border-border-color p-4 mb-6">
+            <div className="flex items-center justify-between mb-4">
+              <p className="text-[10px] font-black uppercase tracking-[0.25em] text-text-secondary">
+                30-Day Activity
+              </p>
+              <div className="flex bg-accent-dim border border-border-color p-0.5 rounded-lg">
+                <button
+                  onClick={() => setChartType("bar")}
+                  className={`px-2.5 py-1 rounded-md text-[9px] font-bold uppercase transition-all ${chartType === "bar" ? "bg-accent text-bg-main" : "text-text-secondary hover:text-text-primary"}`}
+                >
+                  Bar
+                </button>
+                <button
+                  onClick={() => setChartType("line")}
+                  className={`px-2.5 py-1 rounded-md text-[9px] font-bold uppercase transition-all ${chartType === "line" ? "bg-accent text-bg-main" : "text-text-secondary hover:text-text-primary"}`}
+                >
+                  Line
+                </button>
+              </div>
+            </div>
+            {hasAnyData ? (
+              <ResponsiveContainer width="100%" height={180}>
+                {chartType === "bar" ? (
+                  <BarChart data={chartData} margin={{ top: 4, right: 4, left: -20, bottom: 0 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="var(--border-color)" />
+                    <XAxis dataKey="name" tick={{ fill: "var(--text-secondary)", fontSize: 9 }} interval={4} />
+                    <YAxis tick={{ fill: "var(--text-secondary)", fontSize: 9 }} />
+                    <Tooltip
+                      contentStyle={{
+                        backgroundColor: "var(--bg-main)",
+                        border: "1px solid var(--border-color)",
+                        borderRadius: "10px",
+                        fontSize: "11px",
+                        color: "var(--text-primary)",
+                      }}
+                    />
+                    <Bar dataKey="value" fill={chartColor} radius={[3, 3, 0, 0]} fillOpacity={0.9} />
+                  </BarChart>
+                ) : (
+                  <LineChart data={chartData} margin={{ top: 4, right: 4, left: -20, bottom: 0 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="var(--border-color)" />
+                    <XAxis dataKey="name" tick={{ fill: "var(--text-secondary)", fontSize: 9 }} interval={4} />
+                    <YAxis tick={{ fill: "var(--text-secondary)", fontSize: 9 }} />
+                    <Tooltip
+                      contentStyle={{
+                        backgroundColor: "var(--bg-main)",
+                        border: "1px solid var(--border-color)",
+                        borderRadius: "10px",
+                        fontSize: "11px",
+                        color: "var(--text-primary)",
+                      }}
+                    />
+                    <Line
+                      type="monotone"
+                      dataKey="value"
+                      stroke={chartColor}
+                      strokeWidth={2.5}
+                      dot={{ fill: chartColor, r: 3 }}
+                      activeDot={{ r: 5, fill: chartColor }}
+                    />
+                  </LineChart>
+                )}
+              </ResponsiveContainer>
+            ) : (
+              <div className="h-[180px] flex items-center justify-center">
+                <p className="text-xs text-text-secondary uppercase tracking-widest">No activity in the last 30 days</p>
+              </div>
+            )}
+          </div>
+
+          {/* Calendar + Snapshot */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             <div className="lg:col-span-2 rounded-2xl border border-border-color p-4">
               <div className="flex items-center justify-between mb-4">
@@ -235,9 +327,8 @@ const HabitPerformanceModal = ({ open, habit, onClose }) => {
                   return (
                     <div
                       key={`${dateStr || "pad"}-${idx}`}
-                      className={`aspect-square rounded-lg border text-[11px] font-mono flex items-center justify-center ${
-                        dateStr ? activityClass : "invisible"
-                      } ${isToday ? "ring-1 ring-accent/70" : ""}`}
+                      className={`aspect-square rounded-lg border text-[11px] font-mono flex items-center justify-center ${dateStr ? activityClass : "invisible"
+                        } ${isToday ? "ring-1 ring-accent/70" : ""}`}
                     >
                       {dateStr ? new Date(`${dateStr}T12:00:00`).getDate() : ""}
                     </div>
@@ -254,7 +345,7 @@ const HabitPerformanceModal = ({ open, habit, onClose }) => {
                 <div className="flex items-center justify-between gap-3">
                   <span className="text-text-secondary">Total logged value</span>
                   <span className="font-bold text-text-primary">
-                    {habit.totalLogs || 0}
+                    {habit.totalLogs || 0} {habit.unit || ""}
                   </span>
                 </div>
                 <div className="flex items-center justify-between gap-3">
@@ -274,13 +365,13 @@ const HabitPerformanceModal = ({ open, habit, onClose }) => {
                   <span className="font-bold text-text-primary">
                     {metrics.lastDate
                       ? new Date(`${metrics.lastDate}T12:00:00`).toLocaleDateString(
-                          "en-US",
-                          {
-                            month: "short",
-                            day: "numeric",
-                            year: "numeric",
-                          },
-                        )
+                        "en-US",
+                        {
+                          month: "short",
+                          day: "numeric",
+                          year: "numeric",
+                        },
+                      )
                       : "Never"}
                   </span>
                 </div>

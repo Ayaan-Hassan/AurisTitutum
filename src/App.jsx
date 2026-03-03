@@ -539,7 +539,7 @@ function AppContent() {
     };
   }, [habits, notes, reminders, userConfig, userKey, authContext.dataLoading]);
 
-  const logActivity = (id, increment = true, amount = 1, unit = "") => {
+  const logActivity = (id, increment = true, amount = 1, unit = "", photoData = null) => {
     const amt = Math.max(1, Math.floor(Number(amount) || 1));
     const now = new Date();
     const todayKey = getLocalDateKey(now);
@@ -584,6 +584,23 @@ function AppContent() {
               updatedLogs.push({
                 date: todayKey,
                 count: value,
+                entries: [entryStr],
+              });
+            }
+          } else if (h.mode === "upload") {
+            // Store the photo data URL as the entry string
+            const entryStr = photoData || timestamp;
+            updatedTotal += 1;
+            if (existingDateIdx > -1) {
+              updatedLogs[existingDateIdx] = {
+                ...updatedLogs[existingDateIdx],
+                count: updatedLogs[existingDateIdx].count + 1,
+                entries: [...updatedLogs[existingDateIdx].entries, entryStr],
+              };
+            } else {
+              updatedLogs.push({
+                date: todayKey,
+                count: 1,
                 entries: [entryStr],
               });
             }
@@ -1020,6 +1037,14 @@ function AppContent() {
                       className={`py-4 rounded-2xl text-[10px] font-bold uppercase tracking-[0.2em] border transition-all ${newHabit.mode === "rating" ? "bg-accent text-bg-main border-accent" : "bg-white/5 border-white/10 text-text-secondary hover:border-white/20"}`}
                     >
                       Rating
+                    </button>
+                    <button
+                      onClick={() =>
+                        setNewHabit({ ...newHabit, mode: "upload" })
+                      }
+                      className={`py-4 rounded-2xl text-[10px] font-bold uppercase tracking-[0.2em] border transition-all ${newHabit.mode === "upload" ? "bg-accent text-bg-main border-accent" : "bg-white/5 border-white/10 text-text-secondary hover:border-white/20"}`}
+                    >
+                      Upload
                     </button>
                   </div>
                   {(newHabit.mode === "count" || newHabit.mode === "timer") && (

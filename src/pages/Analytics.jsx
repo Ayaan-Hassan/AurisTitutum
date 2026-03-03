@@ -175,22 +175,51 @@ const Analytics = ({ habits, selectedHabitId, setSelectedHabitId }) => {
                 </div>
                 <div className="flex flex-wrap items-center gap-2">
                     <button
-                        onClick={() => { if (compareMode) setCompareMode(false); else { setCompareMode(true); enterCompareMode(); } }}
+                        onClick={() => { if (compareMode) { setCompareMode(false); if (chartType === 'pie') setChartType('line'); } else { setCompareMode(true); enterCompareMode(); } }}
                         className={`px-4 py-2 rounded-xl text-[10px] font-bold uppercase tracking-widest border transition-all flex items-center gap-2 ${compareMode ? 'bg-accent text-bg-main border-accent' : 'bg-accent-dim border-border-color text-text-secondary hover:text-text-primary'}`}
                     >
                         <Icon name="bar-chart-2" size={12} />
                         {compareMode ? 'Single' : 'Compare'}
                     </button>
-                    <div className="flex bg-accent-dim border border-border-color p-1 rounded-xl">
+
+                    {/* Mobile: dropdown select for time range */}
+                    <div className="md:hidden">
+                        <select
+                            value={timeRange}
+                            onChange={e => setTimeRange(e.target.value)}
+                            className="bg-accent-dim border border-border-color text-text-primary text-[10px] font-bold uppercase rounded-xl px-3 py-2 outline-none cursor-pointer"
+                        >
+                            {['daily', 'weekly', 'monthly', 'yearly'].map(r => (
+                                <option key={r} value={r}>{r}</option>
+                            ))}
+                        </select>
+                    </div>
+                    {/* Desktop: button group for time range */}
+                    <div className="hidden md:flex bg-accent-dim border border-border-color p-1 rounded-xl">
                         {['daily', 'weekly', 'monthly', 'yearly'].map(r => (
                             <button key={r} onClick={() => setTimeRange(r)} className={`px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase whitespace-nowrap ${timeRange === r ? 'bg-accent text-bg-main' : 'text-text-secondary hover:text-text-primary'}`}>{r}</button>
                         ))}
                     </div>
-                    <div className="flex bg-accent-dim border border-border-color p-1 rounded-xl">
+
+                    {/* Mobile: dropdown for chart type */}
+                    <div className="md:hidden">
+                        <select
+                            value={chartType}
+                            onChange={e => setChartType(e.target.value)}
+                            className="bg-accent-dim border border-border-color text-text-primary text-[10px] font-bold uppercase rounded-xl px-3 py-2 outline-none cursor-pointer"
+                        >
+                            <option value="line">Line</option>
+                            <option value="bar">Bar</option>
+                            <option value="area">Area</option>
+                            {compareMode && selectedHabits.length > 1 && <option value="pie">Pie</option>}
+                        </select>
+                    </div>
+                    {/* Desktop: button group for chart type */}
+                    <div className="hidden md:flex bg-accent-dim border border-border-color p-1 rounded-xl">
                         <button onClick={() => setChartType('line')} className={`px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase transition-all ${chartType === 'line' ? 'bg-accent text-bg-main shadow-sm' : 'text-text-secondary hover:text-text-primary'}`}>Line</button>
                         <button onClick={() => setChartType('bar')} className={`px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase transition-all ${chartType === 'bar' ? 'bg-accent text-bg-main shadow-sm' : 'text-text-secondary hover:text-text-primary'}`}>Bar</button>
                         <button onClick={() => setChartType('area')} className={`px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase transition-all ${chartType === 'area' ? 'bg-accent text-bg-main shadow-sm' : 'text-text-secondary hover:text-text-primary'}`}>Area</button>
-                        {compareMode && (
+                        {compareMode && selectedHabits.length > 1 && (
                             <button onClick={() => setChartType('pie')} className={`px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase transition-all ${chartType === 'pie' ? 'bg-accent text-bg-main shadow-sm' : 'text-text-secondary hover:text-text-primary'}`}>Pie</button>
                         )}
                     </div>

@@ -9,7 +9,6 @@ import Switch from "../components/ui/Switch";
 import { ConfirmModal } from "../components/Modals";
 import {
   connectGoogleSheets,
-  checkSheetsConnection,
   disconnectGoogleSheets,
   syncAllLogs,
   handleOAuthCallback,
@@ -22,7 +21,7 @@ const Settings = ({
   fileInputRef,
   habits,
 }) => {
-  const { logout, user, upsertSheetsConnectionState } = useAuth();
+  const { logout, user, upsertSheetsConnectionState, sheetsConnection } = useAuth();
   const navigate = useNavigate();
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
 
@@ -34,7 +33,17 @@ const Settings = ({
   const [syncingSheets, setSyncingSheets] = useState(false);
   const [sheetsMessage, setSheetsMessage] = useState(null);
 
-  // Check sheets connection on mount and verify OAuth callback with server
+  // Sync sheetsStatus from AuthContext cloud state (real-time)
+  useEffect(() => {
+    if (!user) {
+      setSheetsStatus({ connected: false, loading: false });
+      return;
+    }
+    // sheetsConnection comes from Firestore via AuthContext in real-time
+    setSheetsStatus({ ...sheetsConnection, loading: false });
+  }, [user, sheetsConnection]);
+
+  // Handle OAuth callback (from Google redirect after connect)
   useEffect(() => {
     const init = async () => {
       const oauthResult = handleOAuthCallback();
@@ -44,34 +53,18 @@ const Settings = ({
           type: "error",
           text: `Connection failed: ${oauthResult.error}`,
         });
-        setSheetsStatus({ connected: false, loading: false });
         return;
       }
 
-      if (oauthResult.payload) {
+      if (oauthResult.payload && user) {
         await upsertSheetsConnectionState({
           connected: true,
           ...oauthResult.payload
         });
-      }
-
-      const status = await checkSheetsConnection(user);
-      setSheetsStatus({ ...status, loading: false });
-
-      if (oauthResult.connected) {
-        if (status.connected) {
-          setSheetsMessage({
-            type: "success",
-            text: "Google Sheets connected successfully!",
-          });
-        } else {
-          setSheetsMessage({
-            type: "error",
-            text:
-              status?.error ||
-              "Google Sheets connection could not be verified. Please reconnect.",
-          });
-        }
+        setSheetsMessage({
+          type: "success",
+          text: "Google Sheets connected successfully!",
+        });
       }
     };
 
@@ -145,14 +138,10 @@ const Settings = ({
   };
 
   const handleSyncToSheets = async () => {
-    const status = await checkSheetsConnection(user);
-    if (!status.connected) {
-      setSheetsStatus({ connected: false, loading: false });
+    if (!sheetsStatus.connected) {
       setSheetsMessage({
         type: "error",
-        text:
-          status?.error ||
-          "User not connected to Google Sheets. Please connect via Settings -> Google Sheets.",
+        text: "Not connected to Google Sheets. Please connect first.",
       });
       return;
     }
@@ -460,8 +449,8 @@ const Settings = ({
             {sheetsMessage && (
               <div
                 className={`flex flex-col sm:flex-row sm:items-center gap-3 text-xs p-3 rounded-xl ${sheetsMessage.type === "success"
-                    ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20"
-                    : "bg-danger/10 text-danger border border-danger/20"
+                  ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20"
+                  : "bg-danger/10 text-danger border border-danger/20"
                   }`}
               >
                 <span className="flex-1">{sheetsMessage.text}</span>
