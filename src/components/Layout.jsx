@@ -230,28 +230,12 @@ const Layout = ({
                 </button>
               </div>
               <nav className="space-y-1 flex-1 overflow-y-auto custom-scrollbar">
-                {mobileNavLinks.map((item) => {
+                {mobileNavLinks.filter(item => !item.special).map((item) => {
                   const active =
                     item.href === "/app"
                       ? pathname === "/app" || pathname === "/app/"
                       : pathname.startsWith(item.href);
-                  if (item.special) {
-                    return (
-                      <div key={item.href} className="pt-2 mt-2 border-t border-border-color">
-                        <Link
-                          to={item.href}
-                          onClick={() => setMobileNavOpen(false)}
-                          className={`sidebar-item w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-all border ${active
-                            ? "active text-text-primary border-border-color bg-accent-dim"
-                            : "text-text-secondary hover:text-text-primary hover:bg-accent-dim border-border-color"
-                            }`}
-                        >
-                          <Icon name={item.icon} size={16} />
-                          {item.label}
-                        </Link>
-                      </div>
-                    );
-                  }
+                  // Contact Us is rendered below
                   return (
                     <Link
                       key={item.href}
@@ -279,6 +263,22 @@ const Layout = ({
                   Auris AI
                 </button>
               </nav>
+
+              {/* Contact Us at the bottom of navigation */}
+              <div className="pt-2 border-t border-border-color">
+                <Link
+                  to="/app/contact"
+                  onClick={() => setMobileNavOpen(false)}
+                  className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-all border ${pathname.startsWith("/app/contact")
+                    ? "active text-text-primary border-border-color bg-accent-dim"
+                    : "text-text-secondary hover:text-text-primary hover:bg-accent-dim border-border-color"
+                    }`}
+                >
+                  <Icon name="mail" size={16} />
+                  Contact Us
+                </Link>
+              </div>
+
               {/* Theme Switcher */}
               <div className="flex bg-bg-main p-1 rounded-xl border border-border-color">
                 <button

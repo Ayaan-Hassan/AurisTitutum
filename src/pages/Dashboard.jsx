@@ -159,7 +159,11 @@ const DashboardRatingControl = ({ habit, logActivity }) => {
   const [hovered, setHovered] = useState(0);
   const todayKey = new Date().toISOString().split("T")[0];
   const todayLog = (habit.logs || []).find(l => l.date === todayKey);
-  const rated = todayLog?.count ? Math.round(todayLog.count) : 0;
+  const todayEntries = todayLog?.entries || [];
+  const lastEntry = todayEntries[todayEntries.length - 1];
+  const rated = lastEntry && typeof lastEntry === "string" && lastEntry.includes("|")
+    ? Math.round(Number(lastEntry.split("|")[1]) || 0)
+    : (todayLog?.count ? Math.min(5, Math.round(todayLog.count)) : 0);
 
   if (rated > 0) {
     return (
@@ -461,10 +465,13 @@ const Dashboard = ({ habits, logActivity, insights }) => {
                         ) : <div className="w-2.5 h-2.5 rounded border border-border-color" />}
                       </button>
                     ) : h.mode === "count" ? (
-                      <>
-                        <Button onClick={() => logActivity(h.id, false)} size="sm" variant="outline" icon="minus" className="bg-bg-main rounded-lg w-8 h-8 p-0" />
-                        <Button onClick={() => logActivity(h.id, true)} size="sm" variant="primary" icon="plus" className="rounded-lg w-8 h-8 p-0" />
-                      </>
+                      <div className="flex items-center gap-1.5 ml-1 mr-1">
+                        <Button onClick={() => logActivity(h.id, false)} size="sm" variant="outline" icon="minus" className="bg-bg-main rounded-[6px] w-7 h-7 p-0" />
+                        <span className="text-[10px] font-bold font-mono min-w-[16px] text-center">
+                          {(h.logs || []).find((l) => l.date === todayKey)?.count || 0}
+                        </span>
+                        <Button onClick={() => logActivity(h.id, true)} size="sm" variant="primary" icon="plus" className="rounded-[6px] w-7 h-7 p-0" />
+                      </div>
                     ) : (
                       <>
                         <Button onClick={() => logActivity(h.id, false)} size="sm" variant="outline" icon="minus" className="bg-bg-main rounded-lg w-8 h-8 p-0" />

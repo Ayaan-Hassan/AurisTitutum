@@ -69,7 +69,7 @@ const Sidebar = ({ userConfig, onOpenAuris }) => {
             <div className="pt-3 mt-3 border-t border-border-color">
               <Link
                 to="/app/contact"
-                className={`sidebar-item w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-all border ${isContactActive
+                className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-all border ${isContactActive
                   ? "active text-text-primary border-border-color bg-accent-dim"
                   : "text-text-secondary hover:text-text-primary hover:bg-accent-dim border-border-color"
                   }`}

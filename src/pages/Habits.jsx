@@ -258,12 +258,19 @@ const UploadControl = ({ habit, logActivity, onViewGallery }) => {
 
 // ─── Gallery Modal ────────────────────────────────────────────────────────────
 const GalleryModal = ({ open, habit, onClose, setHabits }) => {
+  const [zoomedImg, setZoomedImg] = useState(null);
+
   useEffect(() => {
     if (!open) return;
-    const onEsc = (e) => { if (e.key === "Escape") onClose?.(); };
+    const onEsc = (e) => {
+      if (e.key === "Escape") {
+        if (zoomedImg) setZoomedImg(null);
+        else onClose?.();
+      }
+    };
     document.addEventListener("keydown", onEsc);
     return () => document.removeEventListener("keydown", onEsc);
-  }, [open, onClose]);
+  }, [open, onClose, zoomedImg]);
 
   if (!open || !habit) return null;
 
@@ -307,12 +314,15 @@ const GalleryModal = ({ open, habit, onClose, setHabits }) => {
           ) : (
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
               {photoLogs.map((entry, idx) => (
-                <div key={idx} className="group relative rounded-2xl overflow-hidden border border-border-color aspect-square bg-bg-sidebar">
+                <div key={idx} className="group relative rounded-2xl overflow-hidden border border-border-color aspect-square bg-bg-sidebar cursor-pointer" onClick={() => setZoomedImg(entry.img)}>
                   <img src={entry.img} alt={`Log ${idx + 1}`} className="w-full h-full object-cover transition-transform group-hover:scale-105" />
                   <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-2 flex items-center justify-between">
                     <p className="text-[9px] text-white/80 font-mono">{entry.date}</p>
                     <button
-                      onClick={() => handleDelete(entry.img)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDelete(entry.img);
+                      }}
                       className="w-6 h-6 rounded-lg bg-red-500/80 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-500"
                       title="Delete photo"
                     >
@@ -325,6 +335,24 @@ const GalleryModal = ({ open, habit, onClose, setHabits }) => {
           )}
         </div>
       </div>
+
+      {/* Fullscreen Image Zoom Overlay */}
+      {zoomedImg && (
+        <div className="fixed inset-0 z-[150] bg-black/90 backdrop-blur-xl flex flex-col items-center justify-center p-4 animate-in fade-in duration-200" onClick={() => setZoomedImg(null)}>
+          <button
+            onClick={() => setZoomedImg(null)}
+            className="absolute top-6 right-6 w-12 h-12 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center backdrop-blur-md transition-all z-[160]"
+          >
+            <Icon name="x" size={24} />
+          </button>
+          <img
+            src={zoomedImg}
+            alt="Zoomed log"
+            className="max-w-full max-h-[85vh] rounded-xl object-contain shadow-2xl transition-transform"
+            onClick={(e) => e.stopPropagation()}
+          />
+        </div>
+      )}
     </>
   );
 };

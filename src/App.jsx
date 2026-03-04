@@ -1057,7 +1057,7 @@ function AppContent() {
                       Upload
                     </button>
                   </div>
-                  {(newHabit.mode === "count" || newHabit.mode === "timer") && (
+                  {newHabit.mode === "count" && (
                     <input
                       type="text"
                       placeholder="Unit (e.g. reps, min, hrs)"
@@ -1080,8 +1080,7 @@ function AppContent() {
                         name: newHabit.name,
                         type: newHabit.type,
                         mode: newHabit.mode || "quick",
-                        unit:
-                          (newHabit.mode === "count" || newHabit.mode === "timer") ? newHabit.unit || "" : "",
+                        unit: newHabit.mode === "count" ? newHabit.unit || "" : newHabit.mode === "timer" ? "sec" : "",
                         emoji: newHabit.emoji || "",
                         totalLogs: 0,
                         logs: [],
