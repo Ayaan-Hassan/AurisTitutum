@@ -3,6 +3,7 @@ import { LineChart, Line, BarChart, Bar, AreaChart, Area, PieChart, Pie, Cell, X
 import Icon from '../components/Icon';
 import { useTheme } from '../components/ThemeProvider';
 import { Card } from '../components/ui/Card';
+import { getLocalDateKey } from "../utils/date";
 import { useAuth } from '../contexts/AuthContext';
 import { Button } from '../components/ui/Button';
 
@@ -67,7 +68,7 @@ const Analytics = ({ habits, selectedHabitId, setSelectedHabitId }) => {
         const selectedHabitObjects = habits.filter(h => selectedHabits.includes(h.id));
         if (selectedHabitObjects.length === 0) return [];
 
-        const todayKey = new Date().toISOString().split('T')[0];
+        const todayKey = getLocalDateKey();
 
         if (timeRange === 'daily') {
             return Array.from({ length: 24 }).map((_, i) => {
@@ -82,7 +83,10 @@ const Analytics = ({ habits, selectedHabitId, setSelectedHabitId }) => {
                         if (isCount) {
                             const [timePart, valueStr] = entry.split('|');
                             const hr = parseInt(timePart.split(':')[0], 10);
-                            if (hr === i) total += parseInt(valueStr, 10) || 0;
+                            if (hr === i) total += parseFloat(valueStr) || 0;
+                        } else if (typeof entry === 'string' && entry.startsWith('data:image')) {
+                            // Photo mode doesn't have a specific hour embedded directly in the same way, but let's count it safely
+                            total += 1;
                         } else {
                             const hr = parseInt(String(entry).split(':')[0], 10);
                             if (hr === i) total += 1;
@@ -97,19 +101,41 @@ const Analytics = ({ habits, selectedHabitId, setSelectedHabitId }) => {
         const length = timeRange === 'weekly' ? 7 : timeRange === 'monthly' ? 30 : 12;
         return Array.from({ length }).map((_, i) => {
             const d = new Date();
-            if (timeRange === 'yearly') d.setMonth(d.getMonth() - (length - 1 - i));
-            else d.setDate(d.getDate() - (length - 1 - i));
-            const dateStr = d.toISOString().split('T')[0];
             let name;
-            if (timeRange === 'weekly') name = d.toLocaleDateString('en-US', { weekday: 'short' });
-            else if (timeRange === 'monthly') name = d.getDate().toString();
-            else name = d.toLocaleDateString('en-US', { month: 'short' });
-            const dataPoint = { name };
-            selectedHabitObjects.forEach(habit => {
-                const log = (habit.logs || []).find(l => l.date === dateStr);
-                dataPoint[habit.id] = log ? log.count : 0;
-            });
-            return dataPoint;
+
+            if (timeRange === 'yearly') {
+                d.setDate(1);
+                d.setMonth(d.getMonth() - (length - 1 - i));
+
+                const yearStr = d.getFullYear().toString();
+                const monthStr = (d.getMonth() + 1).toString().padStart(2, '0');
+                const prefix = `${yearStr}-${monthStr}-`;
+
+                name = d.toLocaleDateString('en-US', { month: 'short' });
+                const dataPoint = { name };
+
+                selectedHabitObjects.forEach(habit => {
+                    const logsInMonth = (habit.logs || []).filter(l => l.date.startsWith(prefix));
+                    dataPoint[habit.id] = logsInMonth.reduce((sum, log) => sum + (parseFloat(log.count) || 0), 0);
+                });
+                return dataPoint;
+            } else {
+                d.setDate(d.getDate() - (length - 1 - i));
+                const dateStr = getLocalDateKey(d);
+
+                if (timeRange === 'weekly') {
+                    name = d.toLocaleDateString('en-US', { weekday: 'short' });
+                } else {
+                    name = d.getDate().toString();
+                }
+
+                const dataPoint = { name };
+                selectedHabitObjects.forEach(habit => {
+                    const log = (habit.logs || []).find(l => l.date === dateStr);
+                    dataPoint[habit.id] = log ? (parseFloat(log.count) || 0) : 0;
+                });
+                return dataPoint;
+            }
         });
     }, [selectedHabits, timeRange, habits]);
 
