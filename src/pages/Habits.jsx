@@ -632,18 +632,39 @@ const Habits = ({ habits, setHabits, logActivity }) => {
                   <TimerControl habitId={h.id} logActivity={logActivity} />
                 ) : h.mode === "count" ? (
                   <div className="flex items-center gap-1.5 p-1 bg-bg-main border border-border-color rounded-xl h-11">
+                    <input
+                      type="number"
+                      min="1"
+                      placeholder="0"
+                      className="w-16 h-full rounded-lg bg-bg-main border-none text-center text-sm font-mono text-text-primary outline-none px-2"
+                      value={countInputs[h.id] ?? ""}
+                      onChange={(e) =>
+                        setCountInputs((prev) => ({
+                          ...prev,
+                          [h.id]: e.target.value,
+                        }))
+                      }
+                    />
+                    {h.unit && (
+                      <span className="text-xs font-bold text-text-secondary mr-2">{h.unit}</span>
+                    )}
                     <Button
-                      onClick={() => logActivity(h.id, false)}
+                      onClick={() => {
+                        const n = countInputs[h.id];
+                        logActivity(h.id, false, n ? Number(n) : 1, h.unit || "");
+                        setCountInputs((prev) => ({ ...prev, [h.id]: "" }));
+                      }}
                       variant="ghost"
                       size="iconLg"
                       icon="minus"
                       className="rounded-lg w-10 h-full text-text-secondary hover:bg-bg-sidebar hover:text-text-primary border border-transparent shadow-none"
                     />
-                    <span className="w-14 text-center text-[15px] font-mono font-bold text-text-primary select-none">
-                      {(h.logs || []).find((l) => l.date === todayKey)?.count || 0}
-                    </span>
                     <Button
-                      onClick={() => logActivity(h.id, true)}
+                      onClick={() => {
+                        const n = countInputs[h.id];
+                        logActivity(h.id, true, n ? Number(n) : 1, h.unit || "");
+                        setCountInputs((prev) => ({ ...prev, [h.id]: "" }));
+                      }}
                       variant="primary"
                       size="iconLg"
                       icon="plus"

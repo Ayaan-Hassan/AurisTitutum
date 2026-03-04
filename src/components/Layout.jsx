@@ -6,6 +6,7 @@ import Icon from "./Icon";
 import { useAuth } from "../contexts/AuthContext";
 import { useTheme } from "./ThemeProvider";
 import AurisChat from "./AurisChat";
+import { getLocalDateKey } from "../utils/date";
 
 const Layout = ({
   children,
@@ -80,12 +81,31 @@ const Layout = ({
       goodHabits.flatMap((h) => (h.logs || []).map((l) => l.date)),
     );
     let count = 0;
-    for (let i = 0; i < dateSet.size; i++) {
-      const expectedDate = new Date();
-      expectedDate.setDate(expectedDate.getDate() - i);
-      const expectedStr = expectedDate.toISOString().split("T")[0];
-      if (dateSet.has(expectedStr)) count++;
-      else break;
+
+    const todayStr = getLocalDateKey(new Date());
+    const yesterdayDate = new Date();
+    yesterdayDate.setDate(yesterdayDate.getDate() - 1);
+    const yesterdayStr = getLocalDateKey(yesterdayDate);
+
+    // If no logs today AND no logs yesterday, streak is 0
+    if (!dateSet.has(todayStr) && !dateSet.has(yesterdayStr)) {
+      return 0;
+    }
+
+    // Start counting from today backwards, or yesterday backwards if today is empty
+    let currentDate = new Date();
+    if (!dateSet.has(todayStr)) {
+      currentDate.setDate(currentDate.getDate() - 1);
+    }
+
+    while (true) {
+      const checkStr = getLocalDateKey(currentDate);
+      if (dateSet.has(checkStr)) {
+        count++;
+        currentDate.setDate(currentDate.getDate() - 1);
+      } else {
+        break;
+      }
     }
     return count;
   })();

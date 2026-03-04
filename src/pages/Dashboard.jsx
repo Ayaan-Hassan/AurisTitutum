@@ -291,6 +291,7 @@ const Dashboard = ({ habits, logActivity, insights }) => {
   const [calendarMonth, setCalendarMonth] = useState(() => new Date());
   const [performanceTarget, setPerformanceTarget] = useState(null);
   const [selectedDay, setSelectedDay] = useState(null);
+  const [countInputs, setCountInputs] = useState({});
 
   const performanceHabit = habits.find((h) => h.id === performanceTarget) || null;
 
@@ -467,11 +468,38 @@ const Dashboard = ({ habits, logActivity, insights }) => {
                       </button>
                     ) : h.mode === "count" ? (
                       <div className="flex items-center gap-1.5 ml-1 mr-1">
-                        <Button onClick={() => logActivity(h.id, false)} size="sm" variant="outline" icon="minus" className="bg-bg-main rounded-[6px] w-7 h-7 p-0" />
-                        <span className="text-[10px] font-bold font-mono min-w-[16px] text-center">
-                          {(h.logs || []).find((l) => l.date === todayKey)?.count || 0}
-                        </span>
-                        <Button onClick={() => logActivity(h.id, true)} size="sm" variant="primary" icon="plus" className="rounded-[6px] w-7 h-7 p-0" />
+                        <input
+                          type="number"
+                          min="1"
+                          placeholder="0"
+                          className="w-12 h-8 rounded-lg bg-bg-main border border-border-color text-center text-[11px] font-mono text-text-primary px-1"
+                          value={countInputs[h.id] ?? ""}
+                          onChange={(e) =>
+                            setCountInputs((prev) => ({
+                              ...prev,
+                              [h.id]: e.target.value,
+                            }))
+                          }
+                        />
+                        {h.unit && (
+                          <span className="text-[10px] text-text-secondary mr-1">{h.unit}</span>
+                        )}
+                        <Button
+                          onClick={() => {
+                            const n = countInputs[h.id];
+                            logActivity(h.id, false, n ? Number(n) : 1, h.unit || "");
+                            setCountInputs((prev) => ({ ...prev, [h.id]: "" }));
+                          }}
+                          size="sm" variant="outline" icon="minus" className="bg-bg-main rounded-[6px] w-7 h-7 p-0"
+                        />
+                        <Button
+                          onClick={() => {
+                            const n = countInputs[h.id];
+                            logActivity(h.id, true, n ? Number(n) : 1, h.unit || "");
+                            setCountInputs((prev) => ({ ...prev, [h.id]: "" }));
+                          }}
+                          size="sm" variant="primary" icon="plus" className="rounded-[6px] w-7 h-7 p-0"
+                        />
                       </div>
                     ) : (
                       <>
