@@ -269,12 +269,12 @@ const HabitPerformanceModal = ({ open, habit, onClose }) => {
 
           {/* Calendar + Snapshot */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <div className="lg:col-span-2 rounded-2xl border border-border-color p-4">
-              <div className="flex items-center justify-between mb-4">
-                <p className="text-[10px] font-black uppercase tracking-[0.25em] text-text-secondary">
+            <div className="lg:col-span-2 rounded-2xl border border-border-color p-3 sm:p-4">
+              <div className="flex flex-col sm:flex-row items-center justify-between gap-3 sm:gap-4 mb-4">
+                <p className="text-[10px] font-black uppercase tracking-[0.25em] text-text-secondary text-center sm:text-left self-start sm:self-auto w-full sm:w-auto">
                   Calendar streak
                 </p>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-1 sm:gap-2 w-full justify-between sm:w-auto sm:justify-end">
                   <button
                     type="button"
                     onClick={() =>
@@ -286,7 +286,7 @@ const HabitPerformanceModal = ({ open, habit, onClose }) => {
                   >
                     {"<"}
                   </button>
-                  <p className="text-sm font-bold text-text-primary min-w-[140px] text-center">
+                  <p className="text-xs sm:text-sm font-bold text-text-primary min-w-[120px] sm:min-w-[140px] text-center shrink-0">
                     {calendarMonth.toLocaleDateString("en-US", {
                       month: "long",
                       year: "numeric",
@@ -306,7 +306,7 @@ const HabitPerformanceModal = ({ open, habit, onClose }) => {
                 </div>
               </div>
 
-              <div className="grid grid-cols-7 gap-1">
+              <div className="grid grid-cols-7 gap-0.5 sm:gap-1">
                 {["S", "M", "T", "W", "T", "F", "S"].map((day, idx) => (
                   <div
                     key={`${day}-${idx}`}

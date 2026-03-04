@@ -41,7 +41,7 @@ const Layout = ({
     if (notificationsOpen) {
       notifAutoCloseRef.current = setTimeout(() => {
         setNotificationsOpen(false);
-      }, 6000);
+      }, 3000);
     } else {
       clearTimeout(notifAutoCloseRef.current);
     }
@@ -336,8 +336,8 @@ const Layout = ({
 
         {/* Notification dropdown */}
         {notificationsOpen && user && (
-          <div className="fixed top-16 sm:top-20 right-0 sm:right-4 md:right-10 z-30 w-[calc(100vw-0rem)] sm:w-80 max-w-sm">
-            <div className="glass-card p-4 rounded-2xl border border-border-color bg-bg-main/95 backdrop-blur-xl shadow-xl max-h-80 overflow-y-auto custom-scrollbar sm:rounded-2xl rounded-t-none">
+          <div className="fixed top-16 sm:top-20 right-0 sm:right-4 md:right-10 z-30 w-[calc(100vw-0rem)] sm:w-80 max-w-sm animate-in fade-in slide-in-from-top-2 duration-300">
+            <div className="glass-card p-4 rounded-b-2xl border border-border-color bg-bg-main/95 backdrop-blur-xl shadow-xl max-h-80 overflow-y-auto custom-scrollbar sm:rounded-2xl">
               <div className="flex items-center justify-between mb-3">
                 <p className="text-[10px] font-black uppercase tracking-[0.3em] text-text-secondary">
                   Notifications

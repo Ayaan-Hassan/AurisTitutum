@@ -54,7 +54,7 @@ const mapFirebaseUser = (firebaseUser) => ({
   id: firebaseUser.uid,
   email: firebaseUser.email,
   name: firebaseUser.displayName || firebaseUser.email?.split("@")[0],
-  photoURL: firebaseUser.photoURL,
+  photoURL: firebaseUser.photoURL || null,
   createdAt: firebaseUser.metadata.creationTime,
 });
 
@@ -76,6 +76,7 @@ const mergeUserIdentityIntoConfig = (config = {}, user = null) => {
     ...normalized,
     email: user?.email || normalized.email || "",
     name: normalized.name || user?.name || fallbackName,
+    avatar: normalized.avatar || user?.photoURL || null,
   };
 };
 
@@ -136,8 +137,6 @@ const googleProvider = new GoogleAuthProvider();
 googleProvider.addScope('https://www.googleapis.com/auth/spreadsheets');
 googleProvider.addScope('email');
 googleProvider.addScope('profile');
-// Set custom parameters for better UX on mobile
-googleProvider.setCustomParameters({ prompt: 'select_account' });
 const facebookProvider = new FacebookAuthProvider();
 
 export const useAuth = () => {

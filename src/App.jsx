@@ -204,6 +204,7 @@ const mergeUserIdentityIntoConfig = (config = {}, user = null) => {
     ...normalized,
     email: user?.email || normalized.email || "",
     name: normalized.name || user?.name || fallbackName,
+    avatar: normalized.avatar || user?.photoURL || null,
   };
 };
 
@@ -1018,7 +1019,7 @@ function AppContent() {
                     </button>
                     <button
                       onClick={() =>
-                        setNewHabit({ ...newHabit, mode: "count" })
+                        setNewHabit({ ...newHabit, mode: "count", unit: "" })
                       }
                       className={`py-4 rounded-2xl text-[10px] font-bold uppercase tracking-[0.2em] border transition-all ${newHabit.mode === "count" ? "bg-accent text-bg-main border-accent" : "bg-white/5 border-white/10 text-text-secondary hover:border-white/20"}`}
                     >
