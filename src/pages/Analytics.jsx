@@ -317,7 +317,7 @@ const Analytics = ({ habits, selectedHabitId, setSelectedHabitId }) => {
                                                 <XAxis dataKey="name" tick={{ fill: chartColors.text, fontSize: 10 }} />
                                                 <YAxis tick={{ fill: chartColors.text, fontSize: 10 }} />
                                                 <Tooltip contentStyle={{ backgroundColor: chartColors.tooltipBg, border: `1px solid ${chartColors.tooltipBorder}`, borderRadius: '12px', fontSize: '11px', color: chartColors.tooltipText }} />
-                                                <Legend />
+                                                <Legend wrapperStyle={{ paddingTop: '20px' }} />
                                                 {selectedHabits.map((habitId) => {
                                                     const habit = habits.find(h => h.id === habitId);
                                                     return (
@@ -341,7 +341,7 @@ const Analytics = ({ habits, selectedHabitId, setSelectedHabitId }) => {
                                                 <XAxis dataKey="name" tick={{ fill: chartColors.text, fontSize: 10 }} />
                                                 <YAxis tick={{ fill: chartColors.text, fontSize: 10 }} />
                                                 <Tooltip contentStyle={{ backgroundColor: chartColors.tooltipBg, border: `1px solid ${chartColors.tooltipBorder}`, borderRadius: '12px', fontSize: '11px', color: chartColors.tooltipText }} />
-                                                <Legend />
+                                                <Legend wrapperStyle={{ paddingTop: '20px' }} />
                                                 {selectedHabits.map((habitId) => {
                                                     const habit = habits.find(h => h.id === habitId);
                                                     return <Bar key={habitId} dataKey={habitId} name={habit?.name} fill={habitColors[habitId]} fillOpacity={0.9} radius={[4, 4, 0, 0]} />;
@@ -353,7 +353,7 @@ const Analytics = ({ habits, selectedHabitId, setSelectedHabitId }) => {
                                                 <XAxis dataKey="name" tick={{ fill: chartColors.text, fontSize: 10 }} />
                                                 <YAxis tick={{ fill: chartColors.text, fontSize: 10 }} />
                                                 <Tooltip contentStyle={{ backgroundColor: chartColors.tooltipBg, border: `1px solid ${chartColors.tooltipBorder}`, borderRadius: '12px', fontSize: '11px', color: chartColors.tooltipText }} />
-                                                <Legend />
+                                                <Legend wrapperStyle={{ paddingTop: '20px' }} />
                                                 {selectedHabits.map((habitId) => {
                                                     const habit = habits.find(h => h.id === habitId);
                                                     return <Line key={habitId} type="monotone" dataKey={habitId} name={habit?.name} stroke={habitColors[habitId]} strokeWidth={2.5} strokeOpacity={0.9} dot={{ fill: habitColors[habitId], r: 3, fillOpacity: 0.9 }} activeDot={{ r: 5, fill: habitColors[habitId] }} />;
