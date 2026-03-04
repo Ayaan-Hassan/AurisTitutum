@@ -4,6 +4,7 @@ import Icon from "../components/Icon";
 import { Card } from "../components/ui/Card";
 import { Button } from "../components/ui/Button";
 import HabitPerformanceModal from "../components/HabitPerformanceModal";
+import { getLocalDateKey } from "../utils/date";
 
 const isUnicodeSymbol = (ch) =>
   /^[\u25A0-\u27FF\u2190-\u21FF\u221E\u2295\u2297\u25D0\u25D1⟳◆▲▼●◯□△★✦◈⬡∞✕✓⊕⊗◐◑◇]/.test(ch);
@@ -157,7 +158,7 @@ const DashboardUploadControl = ({ habit, logActivity }) => {
 // ─── Inline Rating Stars for Dashboard (once per day) ──────────────────────
 const DashboardRatingControl = ({ habit, logActivity }) => {
   const [hovered, setHovered] = useState(0);
-  const todayKey = new Date().toISOString().split("T")[0];
+  const todayKey = getLocalDateKey();
   const todayLog = (habit.logs || []).find(l => l.date === todayKey);
   const todayEntries = todayLog?.entries || [];
   const lastEntry = todayEntries[todayEntries.length - 1];
@@ -348,11 +349,11 @@ const Dashboard = ({ habits, logActivity, insights }) => {
     const days = [];
     for (let i = 0; i < startPad; i++) days.push(null);
     for (let d = 1; d <= last.getDate(); d++)
-      days.push(new Date(y, m, d).toISOString().split("T")[0]);
+      days.push(getLocalDateKey(new Date(y, m, d)));
     return days;
   }, [calendarMonth]);
 
-  const todayKey = new Date().toISOString().split("T")[0];
+  const todayKey = getLocalDateKey();
 
   return (
     <div className="page-fade space-y-6 pb-20">

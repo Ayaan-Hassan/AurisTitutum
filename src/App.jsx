@@ -277,12 +277,10 @@ const writeScopedState = (scope, state) => {
   );
 };
 
-const getLocalDateKey = (date = new Date()) => {
-  const y = date.getFullYear();
-  const m = String(date.getMonth() + 1).padStart(2, "0");
-  const d = String(date.getDate()).padStart(2, "0");
-  return `${y}-${m}-${d}`;
-};
+import { getLocalDateKey } from "./utils/date";
+
+// eslint-disable-next-line
+const _unused_date_key = true;
 
 // Image compression utility
 const compressImage = (base64Str) => {
@@ -371,6 +369,7 @@ function AppContent() {
   const cloudSaveTimerRef = useRef(null);
   const skipNextCloudSaveRef = useRef(false);
   const remoteUpdatedAtRef = useRef(0);
+  const isSavingToCloudRef = useRef(false);
 
   // Global preloader — runs once on app load
   useEffect(() => {
@@ -488,6 +487,11 @@ function AppContent() {
     });
 
     if (!areAppStatesEqual(remoteState, latestStateRef.current)) {
+      if (cloudSaveTimerRef.current || isSavingToCloudRef.current) {
+        // Prevent overwriting local state if we have a pending push to Firebase
+        return;
+      }
+
       // Meaningful update from remote
       const hasContent = remoteState.habits.length > 0 || remoteState.notes.length > 0 || remoteState.reminders.length > 0;
       // Also prevent overwriting local state with completely empty state immediately after login
@@ -524,12 +528,15 @@ function AppContent() {
 
     cloudSaveTimerRef.current = setTimeout(async () => {
       try {
+        isSavingToCloudRef.current = true;
         await replaceHabitsState(habits);
         await replaceNotesState(notes);
         await replaceRemindersState(reminders);
         await updateUserConfig(userConfig);
       } catch (error) {
         console.error("[firebase-sync] Failed to persist cloud state:", error);
+      } finally {
+        isSavingToCloudRef.current = false;
       }
     }, 900);
 

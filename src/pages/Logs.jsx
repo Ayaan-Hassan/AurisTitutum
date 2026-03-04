@@ -11,6 +11,7 @@ import {
   getLogsFromSheets,
   getCachedSheetInfo,
 } from "../services/sheetsApi";
+import { getLocalDateKey } from "../utils/date";
 
 const Logs = ({ habits, setHabits }) => {
   const navigate = useNavigate();
@@ -220,7 +221,7 @@ const Logs = ({ habits, setHabits }) => {
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
-    link.download = `auristitutum_logs_${new Date().toISOString().split("T")[0]}.csv`;
+    link.download = `auristitutum_logs_${getLocalDateKey()}.csv`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);

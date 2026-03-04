@@ -4,6 +4,7 @@ import { Card } from "../components/ui/Card";
 import { Button } from "../components/ui/Button";
 import { ConfirmModal, RenameModal } from "../components/Modals";
 import HabitPerformanceModal from "../components/HabitPerformanceModal";
+import { getLocalDateKey } from "../utils/date";
 
 // Detect plain Unicode symbols vs coloured emoji
 const isUnicodeSymbol = (ch) =>
@@ -82,7 +83,7 @@ const TimerControl = ({ habitId, logActivity }) => {
 // ─── Rating Mode Component ────────────────────────────────────────────────────
 const RatingControl = ({ habitId, logActivity, logs }) => {
   const [hoveredStar, setHoveredStar] = useState(0);
-  const todayKey = new Date().toISOString().split("T")[0];
+  const todayKey = getLocalDateKey();
   const todayLog = (logs || []).find((l) => l.date === todayKey);
   // Once per day: read the most-recent rating entry for today directly from entries
   const todayEntries = todayLog?.entries || [];
@@ -380,7 +381,7 @@ const Habits = ({ habits, setHabits, logActivity }) => {
 
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
         {habits.map((h) => {
-          const todayKey = new Date().toISOString().split("T")[0];
+          const todayKey = getLocalDateKey();
           const checkedToday = (h.logs || []).some(
             (l) => l.date === todayKey && l.count > 0,
           );
@@ -506,8 +507,8 @@ const Habits = ({ habits, setHabits, logActivity }) => {
                   {Array.from({ length: 7 }).map((_, idx) => {
                     const d = new Date();
                     d.setDate(d.getDate() - (6 - idx));
-                    const dateStr = d.toISOString().split("T")[0];
-                    const todayStr = new Date().toISOString().split("T")[0];
+                    const dateStr = getLocalDateKey(d);
+                    const todayStr = getLocalDateKey();
                     const isToday = dateStr === todayStr;
                     const dayLabel = d.toLocaleDateString("en-US", {
                       weekday: "short",

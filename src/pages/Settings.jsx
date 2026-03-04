@@ -7,6 +7,7 @@ import { Button } from "../components/ui/Button";
 import { Input } from "../components/ui/Input";
 import Switch from "../components/ui/Switch";
 import { ConfirmModal } from "../components/Modals";
+import { getLocalDateKey } from "../utils/date";
 import {
   connectGoogleSheets,
   disconnectGoogleSheets,
@@ -111,7 +112,7 @@ const Settings = ({
     const blob = new Blob([csvContent], { type: "text/csv" });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
-    const today = new Date().toISOString().split("T")[0];
+    const today = getLocalDateKey();
     link.href = url;
     link.download = `habitflow_pro_logs_${today}.csv`;
     document.body.appendChild(link);

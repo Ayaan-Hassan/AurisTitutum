@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from "react";
-
+import { getLocalDateKey } from "../utils/date";
 const REMINDER_STORAGE_KEY = "habitflow_unlogged_reminder_shown_date";
 const BROWSER_REMINDER_STORAGE_KEY =
   "habitflow_unlogged_browser_reminder_shown_date";
@@ -113,7 +113,7 @@ export const useHabitNotifications = (habits, config) => {
               : "It has been ~20 hours since your last log. A single action can restart the streak.";
 
         addNotification({
-          key: `inactivity-${targetLevel}-${new Date().toISOString().split("T")[0]}`,
+          key: `inactivity-${targetLevel}-${getLocalDateKey()}`,
           title,
           body,
           level: targetLevel,
