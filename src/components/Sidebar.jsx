@@ -47,8 +47,8 @@ const Sidebar = ({ userConfig, onOpenAuris }) => {
                 key={item.id}
                 to={item.id}
                 className={`sidebar-item w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-all ${isActive(item.id)
-                    ? "active text-text-primary"
-                    : "text-text-secondary hover:text-text-primary hover:bg-accent-dim"
+                  ? "active text-text-primary"
+                  : "text-text-secondary hover:text-text-primary hover:bg-accent-dim"
                   }`}
               >
                 <Icon name={item.icon} size={16} />
@@ -65,18 +65,17 @@ const Sidebar = ({ userConfig, onOpenAuris }) => {
               Auris AI
             </button>
 
-            {/* ── Contact Us — special highlighted button ── */}
+            {/* ── Contact Us — same size as other items, with separator + border ── */}
             <div className="pt-3 mt-3 border-t border-border-color">
               <Link
                 to="/app/contact"
-                className={`w-full flex items-center gap-3 px-4 py-3.5 rounded-xl text-sm font-bold transition-all border ${isContactActive
-                    ? "bg-accent/15 border-accent/50 text-accent"
-                    : "bg-accent/8 border-accent/25 text-accent/80 hover:bg-accent/15 hover:border-accent/50 hover:text-accent"
+                className={`sidebar-item w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-all border ${isContactActive
+                  ? "active text-text-primary border-border-color bg-accent-dim"
+                  : "text-text-secondary hover:text-text-primary hover:bg-accent-dim border-border-color"
                   }`}
-                style={{ backgroundColor: isContactActive ? "rgba(235,235,235,0.12)" : "rgba(235,235,235,0.06)" }}
               >
-                <Icon name="mail" size={17} />
-                <span className="tracking-wide">Contact Us</span>
+                <Icon name="mail" size={16} />
+                Contact Us
               </Link>
             </div>
           </nav>

@@ -241,11 +241,10 @@ const Layout = ({
                         <Link
                           to={item.href}
                           onClick={() => setMobileNavOpen(false)}
-                          className={`w-full flex items-center gap-3 px-4 py-3.5 rounded-xl text-sm font-bold transition-all border ${active
-                              ? "bg-accent/15 border-accent/50 text-accent"
-                              : "border-accent/25 text-accent/80 hover:bg-accent/10 hover:border-accent/40 hover:text-accent"
+                          className={`sidebar-item w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-all border ${active
+                            ? "active text-text-primary border-border-color bg-accent-dim"
+                            : "text-text-secondary hover:text-text-primary hover:bg-accent-dim border-border-color"
                             }`}
-                          style={{ backgroundColor: active ? "rgba(235,235,235,0.12)" : "rgba(235,235,235,0.05)" }}
                         >
                           <Icon name={item.icon} size={16} />
                           {item.label}
@@ -259,8 +258,8 @@ const Layout = ({
                       to={item.href}
                       onClick={() => setMobileNavOpen(false)}
                       className={`sidebar-item w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-all ${active
-                          ? "active text-text-primary"
-                          : "text-text-secondary hover:text-text-primary hover:bg-accent-dim"
+                        ? "active text-text-primary"
+                        : "text-text-secondary hover:text-text-primary hover:bg-accent-dim"
                         }`}
                     >
                       <Icon name={item.icon} size={16} />
@@ -346,13 +345,12 @@ const Layout = ({
                 {notifications.length > 0 && (
                   <button
                     type="button"
-                    className="text-[10px] text-text-secondary hover:text-text-primary"
+                    className="text-[10px] text-text-secondary hover:text-text-primary font-bold tracking-widest uppercase"
                     onClick={() => {
                       onNotificationsRead?.();
-                      setNotificationsOpen(false);
                     }}
                   >
-                    Mark unread
+                    {notifications.every((n) => n.read) ? "Mark unread" : "Mark read"}
                   </button>
                 )}
               </div>

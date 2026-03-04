@@ -55,7 +55,10 @@ export const useHabitNotifications = (habits, config) => {
   }, []);
 
   const markAllRead = useCallback(() => {
-    setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
+    setNotifications((prev) => {
+      const allRead = prev.length > 0 && prev.every((n) => n.read);
+      return prev.map((n) => ({ ...n, read: !allRead }));
+    });
   }, []);
 
   // Helper: compute hours since last activity

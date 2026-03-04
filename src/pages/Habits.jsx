@@ -41,8 +41,7 @@ const TimerControl = ({ habitId, logActivity }) => {
   const handleStop = () => {
     setRunning(false);
     if (elapsed > 0) {
-      const minutes = Math.max(1, Math.round(elapsed / 60));
-      logActivity(habitId, true, minutes, "min");
+      logActivity(habitId, true, elapsed, "sec");
       setElapsed(0);
     }
   };
@@ -85,7 +84,13 @@ const RatingControl = ({ habitId, logActivity, logs }) => {
   const [hoveredStar, setHoveredStar] = useState(0);
   const todayKey = new Date().toISOString().split("T")[0];
   const todayLog = (logs || []).find((l) => l.date === todayKey);
-  const todayRating = todayLog?.count ? Math.round(todayLog.count) : 0;
+  // Once per day: read the most-recent rating entry for today directly from entries
+  const todayEntries = todayLog?.entries || [];
+  // entries are stored as "HH:MM:SS|value|stars" for rating mode
+  const lastEntry = todayEntries[todayEntries.length - 1];
+  const todayRating = lastEntry && typeof lastEntry === "string" && lastEntry.includes("|")
+    ? Math.round(Number(lastEntry.split("|")[1]) || 0)
+    : (todayLog?.count ? Math.min(5, Math.round(todayLog.count)) : 0);
 
   // Once per day: if already rated today, just show the rating
   if (todayRating > 0) {
@@ -140,9 +145,8 @@ const UploadControl = ({ habit, logActivity, onViewGallery }) => {
 
   const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
 
-  // Desktop: open browser webcam after confirmation
+  // Desktop: open browser webcam (no confirmation dialog — just open)
   const openDesktopCamera = async () => {
-    if (!window.confirm("Open your webcam to take a photo?")) return;
     try {
       const s = await navigator.mediaDevices.getUserMedia({ video: true });
       setStream(s);

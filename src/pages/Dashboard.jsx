@@ -35,7 +35,7 @@ const DashboardTimerControl = ({ habitId, logActivity }) => {
   const stop = () => {
     setRunning(false);
     if (elapsed > 0) {
-      logActivity(habitId, true, Math.max(1, Math.round(elapsed / 60)), "min");
+      logActivity(habitId, true, elapsed, "sec");
       setElapsed(0);
     }
   };
@@ -549,8 +549,8 @@ const Dashboard = ({ habits, logActivity, insights }) => {
 
         {/* Weekday headers */}
         <div className="grid grid-cols-7 gap-1 mb-1">
-          {["S", "M", "T", "W", "T", "F", "S"].map((d, i) => (
-            <div key={i} className="text-[9px] font-bold text-text-secondary uppercase text-center py-1">{d}</div>
+          {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((d) => (
+            <div key={d} className="text-[8px] sm:text-[9px] font-bold text-text-secondary uppercase text-center py-1">{d}</div>
           ))}
         </div>
 
@@ -561,25 +561,21 @@ const Dashboard = ({ habits, logActivity, insights }) => {
             const hasAny = dateStr && anyActivityDates.has(dateStr);
             const isToday = dateStr === todayKey;
             const dayNum = dateStr ? new Date(dateStr + "T12:00:00").getDate() : "";
-            const isFuture = dateStr && dateStr > todayKey;
 
-            let cellClass = "aspect-square rounded-lg flex items-center justify-center text-[10px] sm:text-[11px] font-mono transition-all ";
-
-            if (!dateStr) {
-              cellClass += "invisible";
-            } else if (isFuture) {
-              cellClass += "bg-bg-main/30 border border-border-color/50 text-text-secondary/30";
-            } else if (isToday && hasAny) {
-              cellClass += "bg-accent text-bg-main border border-accent shadow-sm cursor-pointer hover:opacity-90 ring-2 ring-accent/40";
-            } else if (isToday) {
-              cellClass += "bg-bg-main/80 border-2 border-accent/60 text-accent cursor-pointer hover:bg-accent/10";
-            } else if (hasGood) {
-              cellClass += "bg-black dark:bg-white text-white dark:text-bg-main border border-black dark:border-white shadow-sm cursor-pointer hover:opacity-80";
-            } else if (hasAny) {
-              cellClass += "bg-danger/20 border border-danger/40 text-danger cursor-pointer hover:opacity-80";
-            } else {
-              cellClass += "bg-bg-main/50 border border-border-color text-text-secondary hover:border-text-secondary";
-            }
+            const cellClass = [
+              "aspect-square rounded-lg flex items-center justify-center text-[10px] sm:text-[11px] font-mono transition-all",
+              !dateStr
+                ? "invisible"
+                : isToday && hasGood
+                  ? "bg-accent text-bg-main border border-accent shadow-sm cursor-pointer hover:opacity-90"
+                  : isToday
+                    ? "bg-bg-main/80 border-2 border-accent/60 text-accent"
+                    : hasGood
+                      ? "bg-black dark:bg-white text-white dark:text-bg-main border border-black dark:border-white shadow-sm cursor-pointer hover:opacity-80"
+                      : hasAny
+                        ? "bg-bg-main/50 border border-border-color text-text-secondary cursor-pointer hover:border-text-secondary"
+                        : "bg-bg-main/50 border border-border-color text-text-secondary",
+            ].join(" ");
 
             return (
               <div
@@ -592,23 +588,6 @@ const Dashboard = ({ habits, logActivity, insights }) => {
               </div>
             );
           })}
-        </div>
-
-        {/* Legend */}
-        <div className="flex flex-wrap gap-3 mt-4 pt-3 border-t border-border-color">
-          <div className="flex items-center gap-1.5">
-            <div className="w-3 h-3 rounded-sm bg-black dark:bg-white border border-black dark:border-white" />
-            <span className="text-[9px] text-text-secondary font-mono uppercase">Good</span>
-          </div>
-          <div className="flex items-center gap-1.5">
-            <div className="w-3 h-3 rounded-sm bg-danger/20 border border-danger/40" />
-            <span className="text-[9px] text-text-secondary font-mono uppercase">Bad</span>
-          </div>
-          <div className="flex items-center gap-1.5">
-            <div className="w-3 h-3 rounded-sm bg-bg-main/50 border border-border-color" />
-            <span className="text-[9px] text-text-secondary font-mono uppercase">No log</span>
-          </div>
-          <span className="text-[9px] text-text-secondary font-mono ml-auto">Click a logged day to view entries</span>
         </div>
       </Card>
 
