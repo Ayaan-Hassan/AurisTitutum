@@ -66,7 +66,9 @@ const Notes = ({ notes, setNotes }) => {
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                 <div>
                     <h2 className="text-2xl font-bold tracking-tighter text-text-primary">Notes</h2>
-                    <p className="text-text-secondary text-xs mt-1">Quick notes and reminders to keep in mind.</p>
+                    <p className="text-text-secondary text-xs mt-1">
+                        Quick notes and ideas — {notes.length} {notes.length === 1 ? 'note' : 'notes'} total.
+                    </p>
                 </div>
                 <div className="flex items-center gap-2 w-full sm:w-auto">
                     <div className="flex-1 sm:flex-initial relative">
@@ -123,7 +125,7 @@ const Notes = ({ notes, setNotes }) => {
             {filtered.length > 0 ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
                     {filtered.map(note => (
-                        <Card key={note.id} className="flex flex-col hover:translate-y-0 hover:shadow-none hover:border-border-color group">
+                        <Card key={note.id} className="flex flex-col hover:translate-y-0 hover:shadow-none hover:border-border-color group min-h-[160px]">
                             {editingId === note.id ? (
                                 <div className="space-y-3">
                                     <input
@@ -167,17 +169,28 @@ const Notes = ({ notes, setNotes }) => {
                     ))}
                 </div>
             ) : (
-                <Card className="hover:translate-y-0 hover:shadow-none hover:border-border-color">
-                    <div className="flex flex-col items-center justify-center py-16 text-center">
-                        <Icon name="file-text" size={40} className="text-text-secondary opacity-50 mb-4" />
-                        <p className="text-sm text-text-secondary uppercase tracking-widest">
+                <div className="relative overflow-hidden rounded-2xl border border-border-color bg-card-bg">
+                    <div className="absolute -top-16 -right-16 w-48 h-48 rounded-full bg-accent/5 blur-[60px] pointer-events-none" />
+                    <div className="flex flex-col items-center justify-center py-20 text-center relative z-10">
+                        <div className="w-16 h-16 rounded-2xl bg-accent/8 border border-accent/20 flex items-center justify-center mb-5" style={{ backgroundColor: 'rgba(235,235,235,0.06)' }}>
+                            <Icon name="sticky-note" size={28} className="text-text-secondary opacity-60" />
+                        </div>
+                        <p className="text-base font-bold text-text-primary mb-2">
                             {search ? 'No matching notes' : 'No notes yet'}
                         </p>
-                        <p className="text-xs text-text-secondary mt-1">
-                            {search ? 'Try a different search term.' : 'Create a note to remember something for later.'}
+                        <p className="text-xs text-text-secondary max-w-xs mx-auto leading-relaxed">
+                            {search ? 'Try a different search term.' : 'Capture thoughts, ideas, and reminders. Your first note is just a click away.'}
                         </p>
+                        {!search && (
+                            <button
+                                onClick={() => setShowAdd(true)}
+                                className="mt-6 px-5 py-2.5 bg-accent text-bg-main text-[10px] font-black uppercase tracking-[0.25em] rounded-xl hover:opacity-90 active:scale-95 transition-all"
+                            >
+                                Write your first note
+                            </button>
+                        )}
                     </div>
-                </Card>
+                </div>
             )}
 
             <ConfirmModal

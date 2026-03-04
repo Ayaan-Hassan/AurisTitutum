@@ -132,6 +132,12 @@ const isMobileDevice = () =>
   );
 
 const googleProvider = new GoogleAuthProvider();
+// Request offline access so we get a refresh_token for Google Sheets OAuth
+googleProvider.addScope('https://www.googleapis.com/auth/spreadsheets');
+googleProvider.addScope('email');
+googleProvider.addScope('profile');
+// Set custom parameters for better UX on mobile
+googleProvider.setCustomParameters({ prompt: 'select_account' });
 const facebookProvider = new FacebookAuthProvider();
 
 export const useAuth = () => {
@@ -367,11 +373,16 @@ export const AuthProvider = ({ children }) => {
         const redirectResult = await getRedirectResult(auth);
         if (redirectResult?.user) {
           redirectUser = redirectResult.user;
+          // Navigate to app immediately after successful redirect so we
+          // don't get stuck on the login page
+          if (typeof window !== 'undefined' && window.location.pathname === '/login') {
+            window.history.replaceState({}, '', '/app');
+          }
         }
       } catch (err) {
         // Non-fatal: log but continue. Errors here are usually popup_closed_by_user etc.
         console.warn("getRedirectResult error (non-fatal):", err?.code);
-        if (err?.code && err.code !== 'auth/popup-closed-by-user') {
+        if (err?.code && err.code !== 'auth/popup-closed-by-user' && err.code !== 'auth/null-user') {
           setError(getErrorMessage(err?.code));
         }
       }
@@ -624,20 +635,32 @@ function getErrorMessage(errorCode) {
     case "auth/user-disabled":
       return "This account has been disabled";
     case "auth/user-not-found":
-      return "No account found with this email";
+      return "No account found with this email. Please sign up first.";
     case "auth/wrong-password":
-      return "Incorrect password";
+      return "Incorrect password. Please check and try again.";
+    case "auth/invalid-credential":
+      return "Invalid email or password. Please check your credentials.";
+    case "auth/invalid-login-credentials":
+      return "Invalid email or password. Please check your credentials.";
     case "auth/email-already-in-use":
-      return "Email already registered";
+      return "Email already registered. Please sign in instead.";
     case "auth/weak-password":
       return "Password should be at least 6 characters";
     case "auth/operation-not-allowed":
-      return "Operation not allowed";
+      return "This sign-in method is not enabled. Please contact support.";
     case "auth/popup-closed-by-user":
       return "Sign-in cancelled";
     case "auth/cancelled-popup-request":
       return "Sign-in cancelled";
+    case "auth/network-request-failed":
+      return "Network error. Please check your connection and try again.";
+    case "auth/too-many-requests":
+      return "Too many failed attempts. Please try again later.";
+    case "auth/popup-blocked":
+      return "Sign-in popup was blocked. Please allow popups and try again.";
+    case "auth/account-exists-with-different-credential":
+      return "An account already exists with this email using a different sign-in method.";
     default:
-      return "Authentication error. Please try again";
+      return "Authentication error. Please try again.";
   }
 }

@@ -429,7 +429,7 @@ const Settings = ({
                   <p className="text-xs font-bold text-text-primary">
                     Your Habit Spreadsheet
                   </p>
-                  <p className="text-[10px] text-text-secondary mt-0.5 truncate">
+                  <p className="text-[10px] text-text-secondary mt-0.5 truncate max-w-[200px] sm:max-w-xs">
                     {sheetsStatus.sheetUrl}
                   </p>
                 </div>

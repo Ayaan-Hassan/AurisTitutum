@@ -76,16 +76,16 @@ export const checkSheetsConnection = async (user) => {
 
   const userId = getUserId(user);
 
-  const stored =
-    getCachedSheetInfo(userId) ||
-    normalizeSheetsState((await getUserSetting(userId, "sheets")) || {});
-
-  if (stored.connected || stored.sheetUrl) {
-    inMemorySheetsState.set(userId, stored);
+  // Always try to load from Firestore to get fresh tokens
+  let stored = inMemorySheetsState.get(userId);
+  if (!stored || !stored.connected) {
+    const firestoreData = await getUserSetting(userId, "sheets");
+    stored = normalizeSheetsState(firestoreData || {});
+    if (stored.connected || stored.sheetUrl) {
+      inMemorySheetsState.set(userId, stored);
+    }
   }
 
-  // Without a persistent backend Redis store, the backend doesn't know the status.
-  // We completely rely on Firebase Firestore state that we load!
   return stored.connected || stored.sheetUrl ? stored : { connected: false };
 };
 
@@ -185,7 +185,15 @@ export const syncAllLogs = async (user, habits) => {
     throw new Error("No logs to sync");
   }
 
-  const sheetInfo = getCachedSheetInfo(userId);
+  let sheetInfo = getCachedSheetInfo(userId);
+  // If in-memory cache is empty (e.g. page reload), reload from Firestore
+  if (!sheetInfo?.spreadsheetId) {
+    const firestoreData = await getUserSetting(userId, "sheets");
+    sheetInfo = normalizeSheetsState(firestoreData || {});
+    if (sheetInfo?.connected) {
+      inMemorySheetsState.set(userId, sheetInfo);
+    }
+  }
   const res = await fetch(`${API_BASE}/sync-logs`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -211,7 +219,15 @@ export const syncAllLogs = async (user, habits) => {
 export const getLogsFromSheets = async (user) => {
   const userId = getUserId(user);
 
-  const sheetInfo = getCachedSheetInfo(userId);
+  let sheetInfo = getCachedSheetInfo(userId);
+  // If in-memory cache is empty, reload from Firestore
+  if (!sheetInfo?.spreadsheetId) {
+    const firestoreData = await getUserSetting(userId, "sheets");
+    sheetInfo = normalizeSheetsState(firestoreData || {});
+    if (sheetInfo?.connected) {
+      inMemorySheetsState.set(userId, sheetInfo);
+    }
+  }
 
   const res = await fetch(
     `${API_BASE}/get-logs`, {

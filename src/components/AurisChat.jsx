@@ -5,7 +5,12 @@ export default function AurisChat({ isOpen, onClose }) {
 
   return (
     <>
-      <div className="fixed inset-0 bg-black/40 z-40 animate-in fade-in duration-200" onClick={onClose} aria-hidden="true" />
+      {/* Full-screen backdrop — always shown, blurs everything underneath */}
+      <div
+        className="fixed inset-0 bg-black/50 backdrop-blur-md z-40 animate-in fade-in duration-200"
+        onClick={onClose}
+        aria-hidden="true"
+      />
 
       {/* Desktop: slide-in panel from right */}
       <div className="hidden md:flex fixed top-0 right-0 bottom-0 w-full max-w-md bg-bg-main border-l border-border-color shadow-xl z-50 flex-col animate-in slide-in-from-right">
@@ -48,9 +53,12 @@ export default function AurisChat({ isOpen, onClose }) {
         </div>
       </div>
 
-      {/* Mobile: centered compact popup */}
-      <div className="md:hidden fixed inset-0 z-50 flex items-center justify-center p-6">
-        <div className="w-full max-w-sm bg-bg-main border border-border-color rounded-2xl shadow-2xl animate-in zoom-in-95 duration-200">
+      {/* Mobile: centered compact popup — backdrop is already set above, this just contains the popup */}
+      <div className="md:hidden fixed inset-0 z-50 flex items-center justify-center p-6 pointer-events-none">
+        <div
+          className="w-full max-w-sm bg-bg-main border border-border-color rounded-2xl shadow-2xl animate-in zoom-in-95 duration-200 pointer-events-auto"
+          onClick={(e) => e.stopPropagation()}
+        >
           <div className="flex items-center justify-between p-4 border-b border-border-color">
             <div className="flex items-center gap-2">
               <div className="w-8 h-8 rounded-lg bg-accent/20 flex items-center justify-center">

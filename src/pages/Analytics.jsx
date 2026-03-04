@@ -27,21 +27,24 @@ const Analytics = ({ habits, selectedHabitId, setSelectedHabitId }) => {
     };
 
     const habitColors = useMemo(() => {
-        const root = typeof document !== 'undefined' ? getComputedStyle(document.documentElement) : null;
-        const chartPrimary = root?.getPropertyValue('--chart-primary')?.trim() || (theme === 'dark' ? '#3b82f6' : '#2563eb');
-        const chartSecondary = root?.getPropertyValue('--chart-secondary')?.trim() || (theme === 'dark' ? '#8b5cf6' : '#7c3aed');
-        const chartAccent = root?.getPropertyValue('--chart-accent')?.trim() || (theme === 'dark' ? '#ef4444' : '#dc2626');
-        const success = root?.getPropertyValue('--success')?.trim() || (theme === 'dark' ? '#10b981' : '#059669');
-        const accent = root?.getPropertyValue('--accent')?.trim() || (theme === 'dark' ? '#E4E4E7' : '#18181b');
-        // Ensure high contrast colors - never use background colors for data
-        return [
-            chartPrimary,      // Blue - high contrast
-            chartSecondary,    // Purple - high contrast
-            chartAccent,       // Red - high contrast
-            success,           // Green - high contrast
-            accent             // Accent color - high contrast
-        ];
-    }, [theme]);
+        // Color habits by TYPE: Good (constructive) = blue, Bad (destructive) = red
+        // Ensure high contrast against dark and light backgrounds
+        const GOOD_COLORS = ['#3b82f6', '#6366f1', '#06b6d4', '#8b5cf6', '#0ea5e9'];
+        const BAD_COLORS = ['#ef4444', '#f97316', '#f59e0b', '#e11d48', '#dc2626'];
+        const colorMap = {};
+        let goodCount = 0;
+        let badCount = 0;
+        habits.forEach(h => {
+            if (h.type === 'Bad') {
+                colorMap[h.id] = BAD_COLORS[badCount % BAD_COLORS.length];
+                badCount++;
+            } else {
+                colorMap[h.id] = GOOD_COLORS[goodCount % GOOD_COLORS.length];
+                goodCount++;
+            }
+        });
+        return colorMap;
+    }, [habits]);
 
     const toggleHabit = (habitId) => {
         setSelectedHabits(prev => {
@@ -116,10 +119,10 @@ const Analytics = ({ habits, selectedHabitId, setSelectedHabitId }) => {
 
     const pieData = useMemo(() => {
         if (chartType !== 'pie' || selectedHabits.length === 0) return [];
-        return selectedHabits.map((habitId, index) => {
+        return selectedHabits.map((habitId) => {
             const habit = habits.find(h => h.id === habitId);
             const total = chartData.reduce((sum, dataPoint) => sum + (dataPoint[habitId] || 0), 0);
-            return { name: habit?.name || habitId, value: total, fill: habitColors[index] };
+            return { name: habit?.name || habitId, value: total, fill: habitColors[habitId] };
         }).filter(d => d.value > 0);
     }, [chartData, selectedHabits, habits, chartType, habitColors]);
 
@@ -187,10 +190,11 @@ const Analytics = ({ habits, selectedHabitId, setSelectedHabitId }) => {
                         <select
                             value={timeRange}
                             onChange={e => setTimeRange(e.target.value)}
-                            className="bg-accent-dim border border-border-color text-text-primary text-[10px] font-bold uppercase rounded-xl px-3 py-2 outline-none cursor-pointer"
+                            style={{ backgroundColor: 'var(--bg-main)', color: 'var(--text-primary)', borderColor: 'var(--border-color)' }}
+                            className="border text-[10px] font-bold uppercase rounded-xl px-3 py-2 outline-none cursor-pointer"
                         >
                             {['daily', 'weekly', 'monthly', 'yearly'].map(r => (
-                                <option key={r} value={r}>{r}</option>
+                                <option key={r} value={r} style={{ backgroundColor: 'var(--bg-main)', color: 'var(--text-primary)' }}>{r}</option>
                             ))}
                         </select>
                     </div>
@@ -206,12 +210,13 @@ const Analytics = ({ habits, selectedHabitId, setSelectedHabitId }) => {
                         <select
                             value={chartType}
                             onChange={e => setChartType(e.target.value)}
-                            className="bg-accent-dim border border-border-color text-text-primary text-[10px] font-bold uppercase rounded-xl px-3 py-2 outline-none cursor-pointer"
+                            style={{ backgroundColor: 'var(--bg-main)', color: 'var(--text-primary)', borderColor: 'var(--border-color)' }}
+                            className="border text-[10px] font-bold uppercase rounded-xl px-3 py-2 outline-none cursor-pointer"
                         >
-                            <option value="line">Line</option>
-                            <option value="bar">Bar</option>
-                            <option value="area">Area</option>
-                            {compareMode && selectedHabits.length > 1 && <option value="pie">Pie</option>}
+                            <option value="line" style={{ backgroundColor: 'var(--bg-main)', color: 'var(--text-primary)' }}>Line</option>
+                            <option value="bar" style={{ backgroundColor: 'var(--bg-main)', color: 'var(--text-primary)' }}>Bar</option>
+                            <option value="area" style={{ backgroundColor: 'var(--bg-main)', color: 'var(--text-primary)' }}>Area</option>
+                            {compareMode && selectedHabits.length > 1 && <option value="pie" style={{ backgroundColor: 'var(--bg-main)', color: 'var(--text-primary)' }}>Pie</option>}
                         </select>
                     </div>
                     {/* Desktop: button group for chart type */}
@@ -236,8 +241,7 @@ const Analytics = ({ habits, selectedHabitId, setSelectedHabitId }) => {
                         ) : (
                             habits.map(h => {
                                 const isSelected = selectedHabits.includes(h.id);
-                                const colorIdx = selectedHabits.indexOf(h.id);
-                                const dotColor = colorIdx >= 0 ? habitColors[colorIdx] : null;
+                                const dotColor = habitColors[h.id] || null;
                                 return (
                                     <button
                                         key={h.id}
@@ -259,12 +263,12 @@ const Analytics = ({ habits, selectedHabitId, setSelectedHabitId }) => {
                         {selectedHabits.length > 0 ? (
                             <>
                                 <div className="flex flex-wrap gap-3 mb-4">
-                                    {selectedHabits.map((habitId, index) => {
+                                    {selectedHabits.map((habitId) => {
                                         const habit = habits.find(h => h.id === habitId);
                                         if (!habit) return null;
                                         return (
                                             <div key={habitId} className="flex items-center gap-2">
-                                                <div className="w-3 h-3 rounded-full" style={{ backgroundColor: habitColors[index] }} />
+                                                <div className="w-3 h-3 rounded-full" style={{ backgroundColor: habitColors[habitId] }} />
                                                 <span className="text-xs text-text-secondary">{habit.name}</span>
                                             </div>
                                         );
@@ -304,7 +308,7 @@ const Analytics = ({ habits, selectedHabitId, setSelectedHabitId }) => {
                                                 <YAxis tick={{ fill: chartColors.text, fontSize: 10 }} />
                                                 <Tooltip contentStyle={{ backgroundColor: chartColors.tooltipBg, border: `1px solid ${chartColors.tooltipBorder}`, borderRadius: '12px', fontSize: '11px', color: chartColors.tooltipText }} />
                                                 <Legend />
-                                                {selectedHabits.map((habitId, index) => {
+                                                {selectedHabits.map((habitId) => {
                                                     const habit = habits.find(h => h.id === habitId);
                                                     return (
                                                         <Area
@@ -312,11 +316,11 @@ const Analytics = ({ habits, selectedHabitId, setSelectedHabitId }) => {
                                                             type="monotone"
                                                             dataKey={habitId}
                                                             name={habit?.name}
-                                                            fill={habitColors[index]}
-                                                            stroke={habitColors[index]}
+                                                            fill={habitColors[habitId]}
+                                                            stroke={habitColors[habitId]}
                                                             strokeWidth={2}
                                                             fillOpacity={0.3}
-                                                            activeDot={{ r: 5, fill: habitColors[index] }}
+                                                            activeDot={{ r: 5, fill: habitColors[habitId] }}
                                                         />
                                                     );
                                                 })}
@@ -328,9 +332,9 @@ const Analytics = ({ habits, selectedHabitId, setSelectedHabitId }) => {
                                                 <YAxis tick={{ fill: chartColors.text, fontSize: 10 }} />
                                                 <Tooltip contentStyle={{ backgroundColor: chartColors.tooltipBg, border: `1px solid ${chartColors.tooltipBorder}`, borderRadius: '12px', fontSize: '11px', color: chartColors.tooltipText }} />
                                                 <Legend />
-                                                {selectedHabits.map((habitId, index) => {
+                                                {selectedHabits.map((habitId) => {
                                                     const habit = habits.find(h => h.id === habitId);
-                                                    return <Bar key={habitId} dataKey={habitId} name={habit?.name} fill={habitColors[index]} fillOpacity={0.9} radius={[4, 4, 0, 0]} />;
+                                                    return <Bar key={habitId} dataKey={habitId} name={habit?.name} fill={habitColors[habitId]} fillOpacity={0.9} radius={[4, 4, 0, 0]} />;
                                                 })}
                                             </BarChart>
                                         ) : (
@@ -340,9 +344,9 @@ const Analytics = ({ habits, selectedHabitId, setSelectedHabitId }) => {
                                                 <YAxis tick={{ fill: chartColors.text, fontSize: 10 }} />
                                                 <Tooltip contentStyle={{ backgroundColor: chartColors.tooltipBg, border: `1px solid ${chartColors.tooltipBorder}`, borderRadius: '12px', fontSize: '11px', color: chartColors.tooltipText }} />
                                                 <Legend />
-                                                {selectedHabits.map((habitId, index) => {
+                                                {selectedHabits.map((habitId) => {
                                                     const habit = habits.find(h => h.id === habitId);
-                                                    return <Line key={habitId} type="monotone" dataKey={habitId} name={habit?.name} stroke={habitColors[index]} strokeWidth={2.5} strokeOpacity={0.9} dot={{ fill: habitColors[index], r: 3, fillOpacity: 0.9 }} activeDot={{ r: 5, fill: habitColors[index] }} />;
+                                                    return <Line key={habitId} type="monotone" dataKey={habitId} name={habit?.name} stroke={habitColors[habitId]} strokeWidth={2.5} strokeOpacity={0.9} dot={{ fill: habitColors[habitId], r: 3, fillOpacity: 0.9 }} activeDot={{ r: 5, fill: habitColors[habitId] }} />;
                                                 })}
                                             </LineChart>
                                         )}

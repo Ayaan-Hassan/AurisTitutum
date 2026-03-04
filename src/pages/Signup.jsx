@@ -34,10 +34,12 @@ const Signup = () => {
     try {
       const result = await signup(name, email, password);
       if (result.success) {
-        navigate("/", { replace: true });
+        navigate("/app", { replace: true });
+      } else {
+        setError(result.error || "Failed to create account. Please try again.");
       }
     } catch (_err) {
-      setError("Failed to create account");
+      setError("Failed to create account. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -182,7 +184,7 @@ const Signup = () => {
                 autoComplete="email"
                 error={
                   error &&
-                  (error.includes("email") || error.includes("already"))
+                    (error.includes("email") || error.includes("already"))
                     ? error
                     : ""
                 }
@@ -200,7 +202,7 @@ const Signup = () => {
                 autoComplete="new-password"
                 error={
                   error &&
-                  (error.includes("password") || error.includes("Weak"))
+                    (error.includes("password") || error.includes("Weak"))
                     ? error
                     : ""
                 }

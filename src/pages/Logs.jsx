@@ -158,10 +158,12 @@ const Logs = ({ habits, setHabits }) => {
     (habits || []).forEach((h) => {
       (h.logs || []).forEach((day) => {
         (day.entries || []).forEach((entry) => {
-          const isCount = typeof entry === "string" && entry.includes("|");
+          // Skip base64 image entries from upload mode — they show in gallery not table
+          const isPhotoEntry = typeof entry === 'string' && entry.startsWith('data:image');
+          const isCount = typeof entry === "string" && entry.includes("|") && !isPhotoEntry;
           const [time, value, unit] = isCount
             ? entry.split("|")
-            : [entry, null, null];
+            : [isPhotoEntry ? '__photo__' : entry, null, null];
           all.push({
             habit: h.name,
             habitId: h.id,
@@ -172,6 +174,7 @@ const Logs = ({ habits, setHabits }) => {
             time,
             value: value != null ? value : null,
             unit: unit || null,
+            isPhoto: isPhotoEntry,
           });
         });
       });
@@ -321,11 +324,10 @@ const Logs = ({ habits, setHabits }) => {
                 key={f.key}
                 type="button"
                 onClick={() => setFilter(f.key)}
-                className={`px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-widest whitespace-nowrap ${
-                  filter === f.key
-                    ? "bg-accent text-bg-main"
-                    : "text-text-secondary hover:text-text-primary"
-                }`}
+                className={`px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-widest whitespace-nowrap ${filter === f.key
+                  ? "bg-accent text-bg-main"
+                  : "text-text-secondary hover:text-text-primary"
+                  }`}
               >
                 {f.label}
               </button>
@@ -334,14 +336,15 @@ const Logs = ({ habits, setHabits }) => {
         </div>
 
         {/* Action buttons */}
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap gap-2 w-full sm:w-auto">
           <Button
             onClick={exportToCSV}
             variant="outline"
             icon="download"
-            className="bg-bg-main shrink-0"
+            className="bg-bg-main shrink-0 text-[9px] sm:text-[10px]"
           >
-            Export CSV
+            <span className="hidden sm:inline">Export CSV</span>
+            <span className="sm:hidden">CSV</span>
           </Button>
 
           {sheetsStatus.connected ? (
@@ -349,28 +352,30 @@ const Logs = ({ habits, setHabits }) => {
               onClick={handleSyncToSheets}
               variant="outline"
               icon="cloud-sync"
-              className="bg-bg-main shrink-0"
+              className="bg-bg-main shrink-0 text-[9px] sm:text-[10px]"
               disabled={syncing || flattenedLogs.length === 0}
             >
-              {syncing ? "Syncing…" : "Sync to Sheets"}
+              {syncing ? "Syncing…" : <><span className="hidden sm:inline">Sync to Sheets</span><span className="sm:hidden">Sync</span></>}
             </Button>
           ) : (
             <Button
               onClick={handleConnectFromLogs}
               variant="outline"
               icon="file-spreadsheet"
-              className="bg-bg-main shrink-0"
+              className="bg-bg-main shrink-0 text-[9px] sm:text-[10px]"
             >
-              Connect Sheets
+              <span className="hidden sm:inline">Connect Sheets</span>
+              <span className="sm:hidden">Sheets</span>
             </Button>
           )}
 
           <Button
             onClick={() => setClearConfirmOpen(true)}
             variant="outline"
-            className="bg-bg-main shrink-0 border-danger/50 text-danger hover:bg-danger/10"
+            className="bg-bg-main shrink-0 border-danger/50 text-danger hover:bg-danger/10 text-[9px] sm:text-[10px]"
           >
-            Clear logs
+            <span className="hidden sm:inline">Clear logs</span>
+            <span className="sm:hidden">Clear</span>
           </Button>
         </div>
       </div>
@@ -394,13 +399,12 @@ const Logs = ({ habits, setHabits }) => {
           <div className="flex items-center gap-2 flex-wrap">
             {syncMessage && (
               <span
-                className={`text-[10px] font-medium ${
-                  syncMessage.type === "success"
-                    ? "text-emerald-400"
-                    : syncMessage.type === "error"
-                      ? "text-red-400"
-                      : "text-text-secondary"
-                }`}
+                className={`text-[10px] font-medium ${syncMessage.type === "success"
+                  ? "text-emerald-400"
+                  : syncMessage.type === "error"
+                    ? "text-red-400"
+                    : "text-text-secondary"
+                  }`}
               >
                 {syncMessage.text}
               </span>
@@ -470,11 +474,10 @@ const Logs = ({ habits, setHabits }) => {
                   </td>
                   <td className="py-3 px-4 whitespace-nowrap">
                     <span
-                      className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded ${
-                        log.type === "Good"
-                          ? "bg-success/20 text-success"
-                          : "bg-danger/20 text-danger"
-                      }`}
+                      className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded ${log.type === "Good"
+                        ? "bg-success/20 text-success"
+                        : "bg-danger/20 text-danger"
+                        }`}
                     >
                       {log.type === "Good" ? "Constructive" : "Destructive"}
                     </span>
@@ -483,10 +486,18 @@ const Logs = ({ habits, setHabits }) => {
                     {formatDate(log.date)}
                   </td>
                   <td className="py-3 px-4 text-xs font-mono text-text-secondary whitespace-nowrap">
-                    {log.time}
-                    {log.value != null
-                      ? ` · ${log.value} ${log.unit || ""}`
-                      : ""}
+                    {log.isPhoto ? (
+                      <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-lg bg-accent/10 border border-accent/20 text-[10px] font-bold text-accent/80 uppercase tracking-widest">
+                        📷 Photo
+                      </span>
+                    ) : (
+                      <>
+                        {log.time}
+                        {log.value != null
+                          ? ` · ${log.value} ${log.unit || ""}`
+                          : ""}
+                      </>
+                    )}
                   </td>
                 </tr>
               ))}

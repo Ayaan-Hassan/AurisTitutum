@@ -12,6 +12,7 @@ import Reminders from "./pages/Reminders";
 import Login from "./pages/Login";
 import Signup from "./pages/Signup";
 import Landing from "./pages/Landing";
+import Contact from "./pages/Contact";
 import { ThemeProvider } from "./components/ThemeProvider";
 import { AuthProvider, useAuth } from "./contexts/AuthContext";
 import { useHabitNotifications } from "./hooks/useHabitNotifications";
@@ -831,6 +832,7 @@ function AppContent() {
                     />
                   }
                 />
+                <Route path="contact" element={<Contact />} />
               </Routes>
             </Layout>
           }

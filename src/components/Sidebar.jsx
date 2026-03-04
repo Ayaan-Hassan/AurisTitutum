@@ -24,6 +24,8 @@ const Sidebar = ({ userConfig, onOpenAuris }) => {
     return path.startsWith(href);
   };
 
+  const isContactActive = path.startsWith("/app/contact");
+
   return (
     <>
       <aside className="w-64 bg-bg-sidebar border-r border-border-color flex flex-col shrink-0 h-screen transition-all duration-300 max-md:hidden md:flex">
@@ -44,11 +46,10 @@ const Sidebar = ({ userConfig, onOpenAuris }) => {
               <Link
                 key={item.id}
                 to={item.id}
-                className={`sidebar-item w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-all ${
-                  isActive(item.id)
+                className={`sidebar-item w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-all ${isActive(item.id)
                     ? "active text-text-primary"
                     : "text-text-secondary hover:text-text-primary hover:bg-accent-dim"
-                }`}
+                  }`}
               >
                 <Icon name={item.icon} size={16} />
                 {item.label}
@@ -63,6 +64,21 @@ const Sidebar = ({ userConfig, onOpenAuris }) => {
               <Icon name="brain" size={16} />
               Auris AI
             </button>
+
+            {/* ── Contact Us — special highlighted button ── */}
+            <div className="pt-3 mt-3 border-t border-border-color">
+              <Link
+                to="/app/contact"
+                className={`w-full flex items-center gap-3 px-4 py-3.5 rounded-xl text-sm font-bold transition-all border ${isContactActive
+                    ? "bg-accent/15 border-accent/50 text-accent"
+                    : "bg-accent/8 border-accent/25 text-accent/80 hover:bg-accent/15 hover:border-accent/50 hover:text-accent"
+                  }`}
+                style={{ backgroundColor: isContactActive ? "rgba(235,235,235,0.12)" : "rgba(235,235,235,0.06)" }}
+              >
+                <Icon name="mail" size={17} />
+                <span className="tracking-wide">Contact Us</span>
+              </Link>
+            </div>
           </nav>
         </div>
         <div className="mt-auto p-6 space-y-4">

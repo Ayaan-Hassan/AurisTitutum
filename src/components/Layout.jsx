@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import Sidebar from "./Sidebar";
 import RealTimeClock from "./RealTimeClock";
@@ -21,6 +21,7 @@ const Layout = ({
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [aurisOpen, setAurisOpen] = useState(false);
+  const notifAutoCloseRef = useRef(null);
 
   const { theme, setTheme } = useTheme();
 
@@ -35,6 +36,18 @@ const Layout = ({
     };
   }, [aurisOpen]);
 
+  // Auto-close notifications panel after 6 seconds
+  useEffect(() => {
+    if (notificationsOpen) {
+      notifAutoCloseRef.current = setTimeout(() => {
+        setNotificationsOpen(false);
+      }, 6000);
+    } else {
+      clearTimeout(notifAutoCloseRef.current);
+    }
+    return () => clearTimeout(notifAutoCloseRef.current);
+  }, [notificationsOpen]);
+
   // Map path to view name for header
   const pathname = location.pathname;
   let viewName = "dashboard";
@@ -44,6 +57,7 @@ const Layout = ({
   else if (pathname.startsWith("/app/analytics")) viewName = "analytics";
   else if (pathname.startsWith("/app/settings")) viewName = "settings";
   else if (pathname.startsWith("/app/reminders")) viewName = "reminders";
+  else if (pathname.startsWith("/app/contact")) viewName = "contact";
 
   // Compute daily streak: consecutive days with at least one constructive ("Good") habit log
   const streak = (() => {
@@ -63,6 +77,17 @@ const Layout = ({
   })();
 
   const unreadCount = notifications.filter((n) => !n.read).length;
+
+  const mobileNavLinks = [
+    { href: "/app", icon: "layout-dashboard", label: "Main Console" },
+    { href: "/app/habits", icon: "activity", label: "Habit Registry" },
+    { href: "/app/logs", icon: "file-text", label: "Logs" },
+    { href: "/app/notes", icon: "sticky-note", label: "Notes" },
+    { href: "/app/analytics", icon: "bar-chart-3", label: "Analytics" },
+    { href: "/app/reminders", icon: "bell", label: "Reminders" },
+    { href: "/app/settings", icon: "settings-2", label: "Settings" },
+    { href: "/app/contact", icon: "mail", label: "Contact Us", special: true },
+  ];
 
   return (
     <div className="flex h-screen overflow-hidden bg-bg-main text-text-primary font-sans transition-colors duration-300">
@@ -205,52 +230,44 @@ const Layout = ({
                 </button>
               </div>
               <nav className="space-y-1 flex-1 overflow-y-auto custom-scrollbar">
-                {[
-                  {
-                    href: "/app",
-                    icon: "layout-dashboard",
-                    label: "Main Console",
-                  },
-                  {
-                    href: "/app/habits",
-                    icon: "activity",
-                    label: "Habit Registry",
-                  },
-                  { href: "/app/logs", icon: "file-text", label: "Logs" },
-                  { href: "/app/notes", icon: "sticky-note", label: "Notes" },
-                  {
-                    href: "/app/analytics",
-                    icon: "bar-chart-3",
-                    label: "Analytics",
-                  },
-                  {
-                    href: "/app/reminders",
-                    icon: "bell",
-                    label: "Reminders",
-                  },
-                  {
-                    href: "/app/settings",
-                    icon: "settings-2",
-                    label: "Settings",
-                  },
-                ].map((item) => (
-                  <Link
-                    key={item.href}
-                    to={item.href}
-                    onClick={() => setMobileNavOpen(false)}
-                    className={`sidebar-item w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-all ${(
-                        item.href === "/app"
-                          ? pathname === "/app" || pathname === "/app/"
-                          : pathname.startsWith(item.href)
-                      )
-                        ? "active text-text-primary"
-                        : "text-text-secondary hover:text-text-primary hover:bg-accent-dim"
-                      }`}
-                  >
-                    <Icon name={item.icon} size={16} />
-                    {item.label}
-                  </Link>
-                ))}
+                {mobileNavLinks.map((item) => {
+                  const active =
+                    item.href === "/app"
+                      ? pathname === "/app" || pathname === "/app/"
+                      : pathname.startsWith(item.href);
+                  if (item.special) {
+                    return (
+                      <div key={item.href} className="pt-2 mt-2 border-t border-border-color">
+                        <Link
+                          to={item.href}
+                          onClick={() => setMobileNavOpen(false)}
+                          className={`w-full flex items-center gap-3 px-4 py-3.5 rounded-xl text-sm font-bold transition-all border ${active
+                              ? "bg-accent/15 border-accent/50 text-accent"
+                              : "border-accent/25 text-accent/80 hover:bg-accent/10 hover:border-accent/40 hover:text-accent"
+                            }`}
+                          style={{ backgroundColor: active ? "rgba(235,235,235,0.12)" : "rgba(235,235,235,0.05)" }}
+                        >
+                          <Icon name={item.icon} size={16} />
+                          {item.label}
+                        </Link>
+                      </div>
+                    );
+                  }
+                  return (
+                    <Link
+                      key={item.href}
+                      to={item.href}
+                      onClick={() => setMobileNavOpen(false)}
+                      className={`sidebar-item w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-all ${active
+                          ? "active text-text-primary"
+                          : "text-text-secondary hover:text-text-primary hover:bg-accent-dim"
+                        }`}
+                    >
+                      <Icon name={item.icon} size={16} />
+                      {item.label}
+                    </Link>
+                  );
+                })}
                 <button
                   type="button"
                   onClick={() => {
@@ -320,8 +337,8 @@ const Layout = ({
 
         {/* Notification dropdown */}
         {notificationsOpen && user && (
-          <div className="fixed top-16 sm:top-20 right-3 sm:right-4 md:right-10 z-30 w-[calc(100vw-1.5rem)] sm:w-80 max-w-sm">
-            <div className="glass-card p-4 rounded-2xl border border-border-color bg-bg-main/95 backdrop-blur-xl shadow-xl max-h-80 overflow-y-auto custom-scrollbar">
+          <div className="fixed top-16 sm:top-20 right-0 sm:right-4 md:right-10 z-30 w-[calc(100vw-0rem)] sm:w-80 max-w-sm">
+            <div className="glass-card p-4 rounded-2xl border border-border-color bg-bg-main/95 backdrop-blur-xl shadow-xl max-h-80 overflow-y-auto custom-scrollbar sm:rounded-2xl rounded-t-none">
               <div className="flex items-center justify-between mb-3">
                 <p className="text-[10px] font-black uppercase tracking-[0.3em] text-text-secondary">
                   Notifications
@@ -335,7 +352,7 @@ const Layout = ({
                       setNotificationsOpen(false);
                     }}
                   >
-                    Mark read
+                    Mark unread
                   </button>
                 )}
               </div>

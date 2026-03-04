@@ -247,7 +247,7 @@ const UploadControl = ({ habit, logActivity, onViewGallery }) => {
 };
 
 // ─── Gallery Modal ────────────────────────────────────────────────────────────
-const GalleryModal = ({ open, habit, onClose }) => {
+const GalleryModal = ({ open, habit, onClose, setHabits }) => {
   useEffect(() => {
     if (!open) return;
     const onEsc = (e) => { if (e.key === "Escape") onClose?.(); };
@@ -263,9 +263,21 @@ const GalleryModal = ({ open, habit, onClose }) => {
       .map((img) => ({ date: l.date, img }))
   ).reverse();
 
+  const handleDelete = (entryImg) => {
+    setHabits?.((prev) => prev.map((h) => {
+      if (h.id !== habit.id) return h;
+      const updatedLogs = (h.logs || []).map((l) => ({
+        ...l,
+        entries: (l.entries || []).filter((e) => e !== entryImg),
+        count: Math.max(0, (l.entries || []).filter((e) => e !== entryImg).length),
+      })).filter((l) => l.count > 0 || (l.entries || []).length > 0);
+      return { ...h, logs: updatedLogs };
+    }));
+  };
+
   return (
     <>
-      <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-[130]" onClick={onClose} />
+      <div className="fixed inset-0 bg-black/70 backdrop-blur-md z-[130]" onClick={onClose} />
       <div className="fixed inset-0 z-[131] p-4 flex items-center justify-center">
         <div
           className="w-full max-w-2xl max-h-[90vh] overflow-y-auto custom-scrollbar rounded-3xl border border-border-color bg-bg-main shadow-2xl p-6"
@@ -287,8 +299,15 @@ const GalleryModal = ({ open, habit, onClose }) => {
               {photoLogs.map((entry, idx) => (
                 <div key={idx} className="group relative rounded-2xl overflow-hidden border border-border-color aspect-square bg-bg-sidebar">
                   <img src={entry.img} alt={`Log ${idx + 1}`} className="w-full h-full object-cover transition-transform group-hover:scale-105" />
-                  <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-2">
+                  <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-2 flex items-center justify-between">
                     <p className="text-[9px] text-white/80 font-mono">{entry.date}</p>
+                    <button
+                      onClick={() => handleDelete(entry.img)}
+                      className="w-6 h-6 rounded-lg bg-red-500/80 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-500"
+                      title="Delete photo"
+                    >
+                      <Icon name="trash" size={11} className="text-white" />
+                    </button>
                   </div>
                 </div>
               ))}
@@ -366,8 +385,8 @@ const Habits = ({ habits, setHabits, logActivity }) => {
                 {h.emoji ? (
                   <div
                     className={`w-10 h-10 rounded-xl mb-4 flex items-center justify-center border ${h.type === "Good"
-                        ? "bg-accent text-bg-main border-accent"
-                        : "bg-bg-sidebar text-text-secondary border-border-color"
+                      ? "bg-accent text-bg-main border-accent"
+                      : "bg-bg-sidebar text-text-secondary border-border-color"
                       }`}
                   >
                     <span
@@ -394,8 +413,8 @@ const Habits = ({ habits, setHabits, logActivity }) => {
                 ) : (
                   <div
                     className={`w-10 h-10 rounded-xl mb-4 flex items-center justify-center border ${h.type === "Good"
-                        ? "bg-accent text-bg-main border-accent"
-                        : "bg-bg-sidebar text-text-secondary border-border-color"
+                      ? "bg-accent text-bg-main border-accent"
+                      : "bg-bg-sidebar text-text-secondary border-border-color"
                       }`}
                   >
                     <Icon
@@ -411,8 +430,8 @@ const Habits = ({ habits, setHabits, logActivity }) => {
                 <div className="flex items-center gap-2 flex-wrap">
                   <span
                     className={`text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded ${h.type === "Good"
-                        ? "bg-accent-dim text-text-primary"
-                        : "bg-bg-sidebar text-text-secondary"
+                      ? "bg-accent-dim text-text-primary"
+                      : "bg-bg-sidebar text-text-secondary"
                       }`}
                   >
                     {h.type} NODE
@@ -580,10 +599,10 @@ const Habits = ({ habits, setHabits, logActivity }) => {
                   <button
                     onClick={() => logActivity(h.id, !checkedToday)}
                     className={`flex items-center gap-2.5 px-4 py-2.5 rounded-xl border-2 text-xs font-bold uppercase tracking-widest transition-all ${checkedToday
-                        ? isGood
-                          ? "bg-emerald-500/20 border-emerald-500/70 text-emerald-400 shadow-[0_0_16px_rgba(52,211,153,0.2)]"
-                          : "bg-red-500/20 border-red-500/70 text-red-400 shadow-[0_0_16px_rgba(239,68,68,0.2)]"
-                        : "border-border-color text-text-secondary hover:border-text-secondary hover:bg-accent-dim"
+                      ? isGood
+                        ? "bg-emerald-500/20 border-emerald-500/70 text-emerald-400 shadow-[0_0_16px_rgba(52,211,153,0.2)]"
+                        : "bg-red-500/20 border-red-500/70 text-red-400 shadow-[0_0_16px_rgba(239,68,68,0.2)]"
+                      : "border-border-color text-text-secondary hover:border-text-secondary hover:bg-accent-dim"
                       }`}
                   >
                     {checkedToday ? (
@@ -694,6 +713,7 @@ const Habits = ({ habits, setHabits, logActivity }) => {
         open={!!galleryTarget}
         habit={galleryHabit}
         onClose={() => setGalleryTarget(null)}
+        setHabits={setHabits}
       />
     </div>
   );
