@@ -185,6 +185,16 @@ const Analytics = ({ habits, selectedHabitId, setSelectedHabitId }) => {
                         {compareMode ? 'Single' : 'Compare'}
                     </button>
 
+                    {/* Select All Option */}
+                    {compareMode && (
+                        <button
+                            onClick={() => setSelectedHabits(habits.map(h => h.id))}
+                            className="px-4 py-2 rounded-xl text-[10px] font-bold uppercase tracking-widest border border-border-color bg-bg-main text-text-secondary hover:text-text-primary hover:border-accent transition-all"
+                        >
+                            Select All
+                        </button>
+                    )}
+
                     {/* Mobile: dropdown select for time range */}
                     <div className="md:hidden">
                         <select

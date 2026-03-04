@@ -62,12 +62,12 @@ const Contact = () => {
   return (
     <div className="page-fade flex flex-col min-h-[calc(100vh-120px)] max-w-4xl mx-auto pb-12">
 
-      {/* ── Advanced Contact Form ── */}
+      {/* ── Contact Form ── */}
       <h2 className="text-2xl sm:text-3xl font-bold tracking-tight text-text-primary mb-2">
-        Priority Support Gateway
+        Contact Support
       </h2>
       <p className="text-text-secondary text-sm mb-8 leading-relaxed">
-        Submit inquiries, bug reports, or partnership proposals. Select the appropriate classification to ensure your request reaches the right queue.
+        Have a question, feedback, or need help? Fill out the form below and we'll get back to you as soon as possible.
       </p>
 
       <Card className="flex-1 relative overflow-hidden rounded-xl bg-card-bg/50 border-border-color shadow-lg">
@@ -100,7 +100,7 @@ const Contact = () => {
               {/* Optional Name */}
               <div className="space-y-2">
                 <label className="text-[10px] font-black text-text-secondary uppercase tracking-[0.3em]">
-                  Identifier (Optional)
+                  Name (Optional)
                 </label>
                 <div className="relative">
                   <div className="absolute left-4 top-1/2 -translate-y-1/2 text-text-secondary/50">
@@ -120,7 +120,7 @@ const Contact = () => {
               {/* Optional Email */}
               <div className="space-y-2">
                 <label className="text-[10px] font-black text-text-secondary uppercase tracking-[0.3em]">
-                  Comms Channel (Optional)
+                  Email Address (Optional)
                 </label>
                 <div className="relative">
                   <div className="absolute left-4 top-1/2 -translate-y-1/2 text-text-secondary/50">
@@ -142,7 +142,7 @@ const Contact = () => {
               {/* Inquiry Type */}
               <div className="space-y-2">
                 <label className="text-[10px] font-black text-text-secondary uppercase tracking-[0.3em]">
-                  Classification
+                  Topic
                 </label>
                 <div className="relative">
                   <select
@@ -175,8 +175,8 @@ const Contact = () => {
                       type="button"
                       onClick={() => handlePriority(level)}
                       className={`flex-1 py-3 text-xs font-bold rounded-lg transition-all ${form.priority === level
-                          ? level === "High" ? "bg-red-500/20 text-red-400 border border-red-500/30" : "bg-accent text-bg-main shadow-md"
-                          : "text-text-secondary hover:bg-bg-sidebar hover:text-text-primary"
+                        ? level === "High" ? "bg-red-500/20 text-red-400 border border-red-500/30" : "bg-accent text-bg-main shadow-md"
+                        : "text-text-secondary hover:bg-bg-sidebar hover:text-text-primary"
                         }`}
                     >
                       {level}
@@ -189,7 +189,7 @@ const Contact = () => {
             {/* Subject */}
             <div className="space-y-2 relative">
               <label className="text-[10px] font-black text-text-secondary uppercase tracking-[0.3em]">
-                Subject Header *
+                Subject *
               </label>
               <input
                 type="text"
@@ -204,7 +204,7 @@ const Contact = () => {
             {/* Message */}
             <div className="space-y-2 relative flex-1 flex flex-col">
               <label className="text-[10px] font-black text-text-secondary uppercase tracking-[0.3em]">
-                Payload Data *
+                Message *
               </label>
               <textarea
                 name="message"

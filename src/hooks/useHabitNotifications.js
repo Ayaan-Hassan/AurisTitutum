@@ -54,8 +54,13 @@ export const useHabitNotifications = (habits, config) => {
     });
   }, []);
 
-  const markAllRead = useCallback(() => {
+  const markAllRead = useCallback((notificationId = null) => {
     setNotifications((prev) => {
+      if (notificationId) {
+        // Toggle specific notification
+        return prev.map((n) => (n.id === notificationId ? { ...n, read: !n.read } : n));
+      }
+      // Toggle all
       const allRead = prev.length > 0 && prev.every((n) => n.read);
       return prev.map((n) => ({ ...n, read: !allRead }));
     });
@@ -129,50 +134,8 @@ export const useHabitNotifications = (habits, config) => {
       inactivityLevelRef.current = null;
     }
 
-    const today = getLocalDateStr();
-    const unloggedGoodHabits = habits.filter(
-      (h) => h.type === "Good" && !h.logs.some((l) => l.date === today),
-    );
-
-    if (unloggedGoodHabits.length > 0) {
-      // Show in-app reminder only once per day (no stacking/overlap)
-      const lastShown =
-        typeof localStorage !== "undefined"
-          ? localStorage.getItem(REMINDER_STORAGE_KEY)
-          : null;
-      if (lastShown !== today) {
-        if (typeof localStorage !== "undefined")
-          localStorage.setItem(REMINDER_STORAGE_KEY, today);
-        const names = unloggedGoodHabits.map((h) => h.name).join(", ");
-        const message = `Reminder: You haven't logged ${names} today. Keep the flow!`;
-        addToast(message, "reminder");
-        addNotification({
-          key: `unlogged-${today}`,
-          title: "Unlogged habits detected",
-          body: message,
-          level: "daily-reminder",
-        });
-      }
-
-      const browserLastShown =
-        typeof localStorage !== "undefined"
-          ? localStorage.getItem(BROWSER_REMINDER_STORAGE_KEY)
-          : null;
-      if (
-        browserLastShown !== today &&
-        typeof Notification !== "undefined" &&
-        Notification.permission === "granted"
-      ) {
-        new Notification("AurisTitutum PRO", {
-          body: `Reminder: You haven't logged ${unloggedGoodHabits.map((h) => h.name).join(", ")} today. Keep the flow!`,
-          icon: "/favicon.ico",
-          requireInteraction: true,
-        });
-        if (typeof localStorage !== "undefined") {
-          localStorage.setItem(BROWSER_REMINDER_STORAGE_KEY, today);
-        }
-      }
-    }
+    // We will no longer spam unlogged daily reminders immediately on sign-in
+    // to strictly adhere to user's requested "only show exactly exactly on time" rule.
   }, [
     config?.notificationsEnabled,
     habits,

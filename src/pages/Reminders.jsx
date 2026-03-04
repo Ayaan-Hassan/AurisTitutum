@@ -249,10 +249,45 @@ const Reminders = ({ reminders, setReminders }) => {
 
   // In-browser fallbacks
   useEffect(() => {
-    if (notifPermission !== "granted") return;
+    if (notifPermission !== "granted" || !user) return;
     const cleanup = scheduleInBrowserReminders(reminders);
     return cleanup;
-  }, [reminders, notifPermission]);
+  }, [reminders, notifPermission, user]);
+
+  if (!user) {
+    return (
+      <div className="page-fade space-y-6 pb-20">
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+          <div>
+            <h2 className="text-2xl font-bold tracking-tighter text-text-primary">Reminders</h2>
+            <p className="text-text-secondary text-xs mt-1">
+              Push notifications and exact scheduling require an account.
+            </p>
+          </div>
+        </div>
+        <Card className="p-8 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6 hover:translate-y-0 hover:shadow-none hover:border-border-color">
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 rounded-xl bg-accent-dim border border-border-color flex items-center justify-center">
+              <Icon name="bell" size={24} className="text-accent" />
+            </div>
+            <div>
+              <h3 className="text-sm font-bold text-text-primary">Sign in to unlock Reminders</h3>
+              <p className="text-xs text-text-secondary mt-1 max-w-sm">
+                Schedule exact dates and times, create recurring alerts, and receive cross-device push notifications.
+              </p>
+            </div>
+          </div>
+          <Button
+            variant="primary"
+            className="w-full sm:w-auto"
+            onClick={() => { window.location.href = '/login'; }}
+          >
+            Sign in to continue
+          </Button>
+        </Card>
+      </div>
+    );
+  }
 
   const handleAdd = async (data) => {
     const reminder = {

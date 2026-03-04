@@ -22,8 +22,22 @@ const Layout = ({
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [aurisOpen, setAurisOpen] = useState(false);
   const notifAutoCloseRef = useRef(null);
+  const notifDropdownRef = useRef(null);
 
   const { theme, setTheme } = useTheme();
+
+  // Close notifications if clicked outside
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (notificationsOpen && notifDropdownRef.current && !notifDropdownRef.current.contains(e.target)) {
+        if (!e.target.closest('#nav-bell-icon')) {
+          setNotificationsOpen(false);
+        }
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [notificationsOpen]);
 
   useEffect(() => {
     if (aurisOpen) {
@@ -336,7 +350,7 @@ const Layout = ({
 
         {/* Notification dropdown */}
         {notificationsOpen && user && (
-          <div className="fixed top-16 sm:top-20 right-0 sm:right-4 md:right-10 z-30 w-[calc(100vw-0rem)] sm:w-80 max-w-sm animate-in fade-in slide-in-from-top-2 duration-300">
+          <div ref={notifDropdownRef} className="fixed top-16 sm:top-20 right-0 sm:right-4 md:right-10 z-[100] w-[calc(100vw-0rem)] sm:w-80 max-w-sm animate-in fade-in slide-in-from-top-2 duration-300">
             <div className="glass-card p-4 rounded-b-2xl border border-border-color bg-bg-main/95 backdrop-blur-xl shadow-xl max-h-80 overflow-y-auto custom-scrollbar sm:rounded-2xl">
               <div className="flex items-center justify-between mb-3">
                 <p className="text-[10px] font-black uppercase tracking-[0.3em] text-text-secondary">
@@ -359,7 +373,8 @@ const Layout = ({
                   {notifications.map((n) => (
                     <div
                       key={n.id}
-                      className={`rounded-xl border px-3 py-2 text-xs ${n.read ? "border-border-color/60 bg-bg-main" : "border-accent/40 bg-accent/5"}`}
+                      onClick={() => onNotificationsRead?.(n.id)} // Specific toggle function assumption
+                      className={`rounded-xl border px-3 py-2 text-xs cursor-pointer hover:border-text-secondary transition-all ${n.read ? "border-border-color/60 bg-bg-main" : "border-accent/40 bg-accent/5"}`}
                     >
                       <div className="flex items-center justify-between gap-2 mb-1">
                         <span className="font-semibold text-text-primary">
