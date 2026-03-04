@@ -80,15 +80,31 @@ const TimerControl = ({ habitId, logActivity }) => {
   );
 };
 
-// ─── Rating Mode Component ───────────────────────────────────────────────────
+// ─── Rating Mode Component ────────────────────────────────────────────────────
 const RatingControl = ({ habitId, logActivity, logs }) => {
   const [hoveredStar, setHoveredStar] = useState(0);
   const todayKey = new Date().toISOString().split("T")[0];
   const todayLog = (logs || []).find((l) => l.date === todayKey);
   const todayRating = todayLog?.count ? Math.round(todayLog.count) : 0;
 
-  const displayRating = hoveredStar || todayRating;
+  // Once per day: if already rated today, just show the rating
+  if (todayRating > 0) {
+    return (
+      <div className="flex items-center gap-2">
+        <div className="flex gap-0.5">
+          {[1, 2, 3, 4, 5].map((v) => (
+            <svg key={v} viewBox="0 0 24 24" className="w-5 h-5" fill={v <= todayRating ? "currentColor" : "none"} stroke="currentColor" strokeWidth={1.5}>
+              <polygon points="12,2 15.09,8.26 22,9.27 17,14.14 18.18,21.02 12,17.77 5.82,21.02 7,14.14 2,9.27 8.91,8.26"
+                className={v <= todayRating ? "text-amber-400" : "text-border-color"} />
+            </svg>
+          ))}
+        </div>
+        <span className="text-[10px] text-text-secondary font-mono uppercase tracking-widest">Rated today</span>
+      </div>
+    );
+  }
 
+  const displayRating = hoveredStar;
   return (
     <div className="flex flex-col gap-2 w-full">
       <div className="flex items-center gap-1.5">
@@ -101,29 +117,15 @@ const RatingControl = ({ habitId, logActivity, logs }) => {
             className="flex-1 group transition-all hover:scale-110 active:scale-95"
             title={`Rate ${val} star${val !== 1 ? "s" : ""}`}
           >
-            <svg
-              viewBox="0 0 24 24"
-              className="w-full"
-              style={{ maxWidth: "32px", margin: "0 auto" }}
-              fill={val <= displayRating ? "currentColor" : "none"}
-              stroke="currentColor"
-              strokeWidth={1.5}
-            >
-              <polygon
-                points="12,2 15.09,8.26 22,9.27 17,14.14 18.18,21.02 12,17.77 5.82,21.02 7,14.14 2,9.27 8.91,8.26"
-                className={val <= displayRating
-                  ? "text-amber-400"
-                  : "text-border-color group-hover:text-amber-300"}
-              />
+            <svg viewBox="0 0 24 24" className="w-full" style={{ maxWidth: "32px", margin: "0 auto" }}
+              fill={val <= displayRating ? "currentColor" : "none"} stroke="currentColor" strokeWidth={1.5}>
+              <polygon points="12,2 15.09,8.26 22,9.27 17,14.14 18.18,21.02 12,17.77 5.82,21.02 7,14.14 2,9.27 8.91,8.26"
+                className={val <= displayRating ? "text-amber-400" : "text-border-color group-hover:text-amber-300"} />
             </svg>
           </button>
         ))}
       </div>
-      {todayRating > 0 && (
-        <p className="text-[10px] text-text-secondary text-center font-mono uppercase tracking-widest">
-          Today: {todayRating} ★
-        </p>
-      )}
+      <p className="text-[10px] text-text-secondary text-center font-mono uppercase tracking-widest">Tap a star to rate today</p>
     </div>
   );
 };
@@ -131,19 +133,28 @@ const RatingControl = ({ habitId, logActivity, logs }) => {
 // ─── Upload Mode Component ───────────────────────────────────────────────────
 const UploadControl = ({ habit, logActivity, onViewGallery }) => {
   const fileInputRef = useRef(null);
+  const cameraInputRef = useRef(null); // mobile camera-only input
   const cameraRef = useRef(null);
   const [cameraOpen, setCameraOpen] = useState(false);
   const [stream, setStream] = useState(null);
 
-  const openCamera = async () => {
+  const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+
+  // Desktop: open browser webcam after confirmation
+  const openDesktopCamera = async () => {
+    if (!window.confirm("Open your webcam to take a photo?")) return;
     try {
-      const s = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
+      const s = await navigator.mediaDevices.getUserMedia({ video: true });
       setStream(s);
       setCameraOpen(true);
     } catch {
-      // Fallback to file input
       fileInputRef.current?.click();
     }
+  };
+
+  // Mobile: trigger camera-capture file picker
+  const openMobileCamera = () => {
+    cameraInputRef.current?.click();
   };
 
   useEffect(() => {
@@ -179,7 +190,6 @@ const UploadControl = ({ habit, logActivity, onViewGallery }) => {
   };
 
   const savePhoto = (dataUrl) => {
-    // Store photo in logActivity as a base64 encoded entry
     logActivity(habit.id, true, 1, "photo", dataUrl);
   };
 
@@ -191,32 +201,30 @@ const UploadControl = ({ habit, logActivity, onViewGallery }) => {
 
   return (
     <>
-      {/* Camera modal */}
+      {/* Desktop webcam modal */}
       {cameraOpen && (
         <div className="fixed inset-0 z-[200] bg-black flex flex-col items-center justify-center">
           <video ref={cameraRef} autoPlay playsInline className="w-full max-h-[70vh] object-contain" />
           <div className="flex gap-4 mt-6">
-            <button
-              onClick={capturePhoto}
-              className="w-16 h-16 rounded-full bg-white flex items-center justify-center shadow-2xl"
-            >
+            <button onClick={capturePhoto} className="w-16 h-16 rounded-full bg-white flex items-center justify-center shadow-2xl">
               <div className="w-12 h-12 rounded-full border-4 border-gray-300" />
             </button>
-            <button onClick={stopCamera} className="px-6 py-3 rounded-xl bg-white/20 text-white font-bold">
-              Cancel
-            </button>
+            <button onClick={stopCamera} className="px-6 py-3 rounded-xl bg-white/20 text-white font-bold">Cancel</button>
           </div>
         </div>
       )}
 
       <div className="flex gap-2 w-full">
+        {/* Camera button: mobile opens native camera picker; desktop opens webcam */}
         <button
-          onClick={openCamera}
+          onClick={isMobile ? openMobileCamera : openDesktopCamera}
           className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl border-2 border-border-color bg-bg-main text-text-secondary hover:border-accent hover:text-accent transition-all text-xs font-bold"
         >
           <Icon name="camera" size={14} />
           Camera
         </button>
+
+        {/* Upload button: always just opens file picker (no capture attribute) */}
         <button
           onClick={() => fileInputRef.current?.click()}
           className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl border-2 border-border-color bg-bg-main text-text-secondary hover:border-accent hover:text-accent transition-all text-xs font-bold"
@@ -224,6 +232,7 @@ const UploadControl = ({ habit, logActivity, onViewGallery }) => {
           <Icon name="image" size={14} />
           Upload
         </button>
+
         {photoLogs.length > 0 && (
           <button
             onClick={onViewGallery}
@@ -233,14 +242,11 @@ const UploadControl = ({ habit, logActivity, onViewGallery }) => {
             {photoLogs.length}
           </button>
         )}
-        <input
-          ref={fileInputRef}
-          type="file"
-          accept="image/*"
-          capture="environment"
-          className="hidden"
-          onChange={handleFileUpload}
-        />
+
+        {/* Mobile camera-only file input (with capture) */}
+        <input ref={cameraInputRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={handleFileUpload} />
+        {/* Regular file picker (no capture) */}
+        <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleFileUpload} />
       </div>
     </>
   );

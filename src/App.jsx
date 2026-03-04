@@ -540,7 +540,14 @@ function AppContent() {
     };
   }, [habits, notes, reminders, userConfig, userKey, authContext.dataLoading]);
 
-  const logActivity = (id, increment = true, amount = 1, unit = "", photoData = null) => {
+  const logInProgressRef = useRef(false);
+
+  const logActivity = useCallback((id, increment = true, amount = 1, unit = "", photoData = null) => {
+    // Guard against double-taps / concurrency
+    if (logInProgressRef.current) return;
+    logInProgressRef.current = true;
+    setTimeout(() => { logInProgressRef.current = false; }, 300);
+
     const amt = Math.max(1, Math.floor(Number(amount) || 1));
     const now = new Date();
     const todayKey = getLocalDateKey(now);
@@ -682,7 +689,8 @@ function AppContent() {
         return { ...h, logs: updatedLogs, totalLogs: updatedTotal };
       }),
     );
-  };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const handleAvatarUpload = (e) => {
     const file = e.target.files[0];
