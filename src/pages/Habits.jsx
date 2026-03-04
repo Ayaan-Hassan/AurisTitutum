@@ -136,6 +136,38 @@ const RatingControl = ({ habitId, logActivity, logs }) => {
   );
 };
 
+// ─── Photo Compression Utility ───────────────────────────────────────────────
+const compressPhoto = (base64Str) => {
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.src = base64Str;
+    img.onload = () => {
+      const canvas = document.createElement("canvas");
+      // Scale down image safely before saving to Firestore to prevent memory crash
+      const MAX_SIZE = 1080;
+      let width = img.width;
+      let height = img.height;
+      if (width > height) {
+        if (width > MAX_SIZE) {
+          height = Math.round(height * (MAX_SIZE / width));
+          width = MAX_SIZE;
+        }
+      } else {
+        if (height > MAX_SIZE) {
+          width = Math.round(width * (MAX_SIZE / height));
+          height = MAX_SIZE;
+        }
+      }
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext("2d");
+      ctx.drawImage(img, 0, 0, width, height);
+      // Reduce quality to 0.6 standard
+      resolve(canvas.toDataURL("image/jpeg", 0.6));
+    };
+  });
+};
+
 // ─── Upload Mode Component ───────────────────────────────────────────────────
 const UploadControl = ({ habit, logActivity, onViewGallery }) => {
   const fileInputRef = useRef(null);
@@ -189,7 +221,10 @@ const UploadControl = ({ habit, logActivity, onViewGallery }) => {
     const file = e.target.files[0];
     if (!file) return;
     const reader = new FileReader();
-    reader.onload = (ev) => savePhoto(ev.target.result);
+    reader.onload = async (ev) => {
+      const compressed = await compressPhoto(ev.target.result);
+      savePhoto(compressed);
+    };
     reader.readAsDataURL(file);
     e.target.value = null;
   };
@@ -593,46 +628,28 @@ const Habits = ({ habits, setHabits, logActivity }) => {
 
               {/* Log Action Controls */}
               <div className="pt-6 border-t border-border-color flex items-center justify-between gap-2 flex-wrap">
-                {h.mode === "count" || h.mode === "timer" ? (
-                  h.mode === "timer" ? (
-                    <TimerControl habitId={h.id} logActivity={logActivity} />
-                  ) : (
-                    <div className="flex items-center gap-1.5">
-                      <input
-                        type="number"
-                        min="1"
-                        placeholder="0"
-                        className="w-14 h-10 rounded-xl bg-bg-main border border-border-color text-center text-sm font-mono text-text-primary px-2"
-                        value={countInputs[h.id] ?? ""}
-                        onChange={(e) =>
-                          setCountInputs((prev) => ({
-                            ...prev,
-                            [h.id]: e.target.value,
-                          }))
-                        }
-                      />
-                      <Button
-                        onClick={() => logActivity(h.id, false)}
-                        variant="outline"
-                        size="iconLg"
-                        icon="minus"
-                        className="rounded-xl w-10 h-10 p-0"
-                      />
-                      <Button
-                        onClick={() => {
-                          const n = countInputs[h.id];
-                          if (n) {
-                            logActivity(h.id, true, n, h.unit || "");
-                            setCountInputs((prev) => ({ ...prev, [h.id]: "" }));
-                          }
-                        }}
-                        variant="primary"
-                        size="iconLg"
-                        icon="plus"
-                        className="rounded-xl w-10 h-10 p-0"
-                      />
-                    </div>
-                  )
+                {h.mode === "timer" ? (
+                  <TimerControl habitId={h.id} logActivity={logActivity} />
+                ) : h.mode === "count" ? (
+                  <div className="flex items-center gap-1.5 p-1 bg-bg-main border border-border-color rounded-xl h-11">
+                    <Button
+                      onClick={() => logActivity(h.id, false)}
+                      variant="ghost"
+                      size="iconLg"
+                      icon="minus"
+                      className="rounded-lg w-10 h-full text-text-secondary hover:bg-bg-sidebar hover:text-text-primary border border-transparent shadow-none"
+                    />
+                    <span className="w-14 text-center text-[15px] font-mono font-bold text-text-primary select-none">
+                      {(h.logs || []).find((l) => l.date === todayKey)?.count || 0}
+                    </span>
+                    <Button
+                      onClick={() => logActivity(h.id, true)}
+                      variant="primary"
+                      size="iconLg"
+                      icon="plus"
+                      className="rounded-lg w-10 h-full shadow-none border-t border-white/20"
+                    />
+                  </div>
                 ) : h.mode === "check" ? (
                   /* ── Check Mode ── */
                   <button

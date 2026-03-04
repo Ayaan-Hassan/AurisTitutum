@@ -38,7 +38,8 @@ import {
     Bell,
     Star,
     Shield,
-    StickyNote
+    StickyNote,
+    Pin
 } from 'lucide-react';
 
 const Icon = ({ name, size = 18, className = "" }) => {
@@ -82,7 +83,8 @@ const Icon = ({ name, size = 18, className = "" }) => {
         'bell': Bell,
         'star': Star,
         'shield': Shield,
-        'sticky-note': StickyNote
+        'sticky-note': StickyNote,
+        'pin': Pin
     };
 
     const LucideIcon = icons[name];

@@ -149,7 +149,7 @@ const Contact = () => {
                     name="type"
                     value={form.type}
                     onChange={handleChange}
-                    className="w-full appearance-none bg-bg-main border border-border-color p-4 rounded-xl outline-none focus:border-accent text-sm text-text-primary transition-all"
+                    className="w-full h-[56px] appearance-none bg-bg-main border border-border-color px-4 rounded-xl outline-none focus:border-accent text-sm text-text-primary transition-all"
                   >
                     <option value="General Inquiry">General Inquiry</option>
                     <option value="Bug Report">Bug Report</option>
@@ -168,14 +168,14 @@ const Contact = () => {
                 <label className="text-[10px] font-black text-text-secondary uppercase tracking-[0.3em] block">
                   Priority Level
                 </label>
-                <div className="flex items-center gap-2 p-1 bg-bg-main border border-border-color rounded-xl">
+                <div className="flex items-center gap-1.5 p-1.5 bg-bg-main border border-border-color rounded-xl h-[56px]">
                   {["Low", "Normal", "High"].map((level) => (
                     <button
                       key={level}
                       type="button"
                       onClick={() => handlePriority(level)}
-                      className={`flex-1 py-3 text-xs font-bold rounded-lg transition-all ${form.priority === level
-                        ? level === "High" ? "bg-red-500/20 text-red-400 border border-red-500/30" : "bg-accent text-bg-main shadow-md"
+                      className={`flex-1 h-full text-[11px] sm:text-xs font-bold rounded-lg transition-all flex items-center justify-center ${form.priority === level
+                        ? level === "High" ? "bg-red-500/10 text-red-500 border border-red-500/20 shadow-sm" : "bg-accent text-bg-main shadow-md"
                         : "text-text-secondary hover:bg-bg-sidebar hover:text-text-primary"
                         }`}
                     >
