@@ -77,6 +77,7 @@ export const useReminderNotifications = (reminders) => {
         const dueAt = parseLocalDateTime(reminder.date, reminder.time);
 
         let fireKey = reminder.id;
+        let shouldFire = false;
         const FIFTEEN_MINS = 15 * 60 * 1000;
 
         if (repeat === "none") {

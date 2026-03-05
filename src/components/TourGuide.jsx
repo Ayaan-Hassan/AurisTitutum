@@ -59,6 +59,12 @@ const TourGuide = () => {
         }
     }, []);
 
+    const completeTour = () => {
+        setActiveStepIndex(-1);
+        setHasSeenTour(true);
+        localStorage.setItem('auris_tour_complete', 'true');
+    };
+
     useEffect(() => {
         if (activeStepIndex === -1) return;
 
@@ -97,12 +103,6 @@ const TourGuide = () => {
     const advanceTour = () => {
         setTargetRect(null); // Force animated jump
         setActiveStepIndex(prev => prev + 1);
-    };
-
-    const completeTour = () => {
-        setActiveStepIndex(-1);
-        setHasSeenTour(true);
-        localStorage.setItem('auris_tour_complete', 'true');
     };
 
     if (activeStepIndex === -1 || hasSeenTour || !targetRect) return null;
