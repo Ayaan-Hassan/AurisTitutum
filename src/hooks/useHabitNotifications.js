@@ -60,9 +60,8 @@ export const useHabitNotifications = (habits, config) => {
         // Toggle specific notification
         return prev.map((n) => (n.id === notificationId ? { ...n, read: !n.read } : n));
       }
-      // Toggle all
-      const allRead = prev.length > 0 && prev.every((n) => n.read);
-      return prev.map((n) => ({ ...n, read: !allRead }));
+      // Mark all read
+      return prev.map((n) => ({ ...n, read: true }));
     });
   }, []);
 

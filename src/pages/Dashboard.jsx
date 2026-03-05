@@ -6,9 +6,6 @@ import { Button } from "../components/ui/Button";
 import HabitPerformanceModal from "../components/HabitPerformanceModal";
 import { getLocalDateKey } from "../utils/date";
 
-const isUnicodeSymbol = (ch) =>
-  /^[\u25A0-\u27FF\u2190-\u21FF\u221E\u2295\u2297\u25D0\u25D1⟳◆▲▼●◯□△★✦◈⬡∞✕✓⊕⊗◐◑◇]/.test(ch);
-
 // ─── Inline Stopwatch (Timer) for Dashboard ────────────────────────────────
 const DashboardTimerControl = ({ habitId, logActivity }) => {
   const [running, setRunning] = useState(false);
@@ -134,13 +131,14 @@ const DashboardUploadControl = ({ habit, logActivity }) => {
           </div>
         </div>
       )}
-      <div className="flex items-center gap-1.5">
+      <div className="flex gap-2">
         <button
+          id="tour-camera-upload"
           onClick={openCamera}
-          className="flex items-center gap-1 px-2 py-1.5 rounded-lg border border-border-color bg-bg-main text-text-secondary hover:text-accent hover:border-accent text-[11px] font-bold transition-all"
+          className="flex-1 flex items-center justify-center gap-1 min-h-[40px] rounded-lg border border-accent/30 bg-bg-main text-accent hover:bg-accent/10 text-xs font-bold transition-all"
         >
-          <Icon name="camera" size={12} />
-          Cam
+          <Icon name="camera" size={14} />
+          Capture
         </button>
         <button
           onClick={() => { fileInputRef.current.removeAttribute("capture"); fileInputRef.current.click(); }}
@@ -257,7 +255,7 @@ const DayDetailPopup = ({ dateStr, habits, onClose }) => {
             ) : entries.map((e, i) => (
               <div key={i} className={`flex items-center gap-3 p-3 rounded-xl border ${e.type === "Good" ? "border-success/20 bg-success/5" : "border-danger/20 bg-danger/5"}`}>
                 <div className={`w-7 h-7 rounded-lg border flex items-center justify-center shrink-0 text-xs font-bold ${e.type === "Good" ? "border-success/30 bg-success/10 text-success" : "border-danger/30 bg-danger/10 text-danger"}`}>
-                  {e.emoji && !isUnicodeSymbol(e.emoji) ? (
+                  {e.emoji ? (
                     <span style={{ filter: "grayscale(1) brightness(1.2)", fontSize: "0.75rem" }}>{e.emoji}</span>
                   ) : (e.type === "Good" ? "+" : "−")}
                 </div>
@@ -430,7 +428,7 @@ const Dashboard = ({ habits, logActivity, insights }) => {
                   <div className="flex items-center gap-3 min-w-0">
                     <div className={`w-7 h-7 rounded-lg shrink-0 flex items-center justify-center border ${isGood ? "bg-accent/10 border-accent/30" : "bg-bg-main border-border-color"}`}>
                       {h.emoji ? (
-                        <span className="leading-none" style={isUnicodeSymbol(h.emoji) ? { color: isGood ? "var(--accent)" : "var(--text-secondary)", fontSize: "0.75rem" } : { filter: "grayscale(1) saturate(0) brightness(1.2)", fontSize: "0.8rem" }}>
+                        <span className="leading-none" style={{ filter: "grayscale(1) saturate(0) brightness(1.2)", fontSize: "0.8rem" }}>
                           {h.emoji}
                         </span>
                       ) : (
@@ -440,7 +438,7 @@ const Dashboard = ({ habits, logActivity, insights }) => {
                     <div className="min-w-0">
                       <div className="text-sm font-bold text-text-primary truncate">{h.name}</div>
                       <div className="text-[10px] text-text-secondary uppercase font-mono truncate">
-                        {h.mode === "check" ? `${h.totalLogs} day(s) checked` : h.mode === "quick" ? `${h.totalLogs} log(s)` : `${(h.logs || []).reduce((s, d) => s + (d.entries || []).length, 0)} log(s) · ${h.totalLogs} ${h.unit || ""}`}
+                        {h.mode === "check" ? `${h.totalLogs} day(s) checked` : h.mode === "quick" ? `${h.totalLogs} log(s)` : `${(h.logs || []).reduce((s, d) => s + (d.entries || []).length, 0)} log(s) · ${h.unit || ""}`}
                       </div>
                     </div>
                   </div>
@@ -481,23 +479,24 @@ const Dashboard = ({ habits, logActivity, insights }) => {
                             }))
                           }
                         />
-                        {h.unit && (
-                          <span className="text-[10px] text-text-secondary mr-1">{h.unit}</span>
-                        )}
                         <Button
                           onClick={() => {
                             const n = countInputs[h.id];
-                            logActivity(h.id, false, n ? Number(n) : 1, h.unit || "");
+                            if (!n) return;
+                            logActivity(h.id, false, Number(n), h.unit || "");
                             setCountInputs((prev) => ({ ...prev, [h.id]: "" }));
                           }}
+                          disabled={!countInputs[h.id]}
                           size="sm" variant="outline" icon="minus" className="bg-bg-main rounded-[6px] w-7 h-7 p-0"
                         />
                         <Button
                           onClick={() => {
                             const n = countInputs[h.id];
-                            logActivity(h.id, true, n ? Number(n) : 1, h.unit || "");
+                            if (!n) return;
+                            logActivity(h.id, true, Number(n), h.unit || "");
                             setCountInputs((prev) => ({ ...prev, [h.id]: "" }));
                           }}
+                          disabled={!countInputs[h.id]}
                           size="sm" variant="primary" icon="plus" className="rounded-[6px] w-7 h-7 p-0"
                         />
                       </div>
@@ -535,12 +534,10 @@ const Dashboard = ({ habits, logActivity, insights }) => {
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="text-[11px] font-bold text-text-primary truncate flex items-center gap-1.5">
-                    {log.emoji && (
-                      <span className="leading-none shrink-0" style={isUnicodeSymbol(log.emoji) ? { color: "var(--text-secondary)", fontSize: "0.7rem" } : { filter: "grayscale(1) saturate(0) brightness(1.2)", fontSize: "0.75rem" }}>
-                        {log.emoji}
-                      </span>
-                    )}
-                    {log.habit}
+                    <div className="flex items-center gap-2 min-w-0">
+                      <span className="leading-none shrink-0" style={{ filter: "grayscale(1) saturate(0) brightness(1.2)", fontSize: "0.75rem" }}>{log.emoji || (log.type === "Good" ? "+" : "−")}</span>
+                      <p className="text-[11px] font-bold text-text-primary truncate">{log.habit}</p>
+                    </div>
                   </div>
                   <div className="text-[9px] font-mono text-text-secondary">
                     {log.time} · {log.formattedDate}

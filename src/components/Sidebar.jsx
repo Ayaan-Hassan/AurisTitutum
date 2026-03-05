@@ -45,6 +45,7 @@ const Sidebar = ({ userConfig, onOpenAuris }) => {
             {navItems.map((item) => (
               <Link
                 key={item.id}
+                id={item.id === "/app/habits" ? "tour-nav-habits" : undefined}
                 to={item.id}
                 className={`sidebar-item w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-all ${isActive(item.id)
                   ? "active text-text-primary"
@@ -58,6 +59,7 @@ const Sidebar = ({ userConfig, onOpenAuris }) => {
 
             <button
               type="button"
+              id="tour-nav-ai-desktop-sidebar"
               onClick={() => onOpenAuris?.()}
               className="sidebar-item w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-all text-text-secondary hover:text-text-primary hover:bg-accent-dim"
             >

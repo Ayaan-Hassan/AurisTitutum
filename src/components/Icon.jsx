@@ -35,11 +35,12 @@ import {
     LineChart,
     FileSpreadsheet,
     CloudCog,
-    Bell,
-    Star,
-    Shield,
     StickyNote,
-    Pin
+    Pin,
+    Square,
+    Play,
+    RotateCcw,
+    CheckSquare
 } from 'lucide-react';
 
 const Icon = ({ name, size = 18, className = "" }) => {
@@ -84,7 +85,11 @@ const Icon = ({ name, size = 18, className = "" }) => {
         'star': Star,
         'shield': Shield,
         'sticky-note': StickyNote,
-        'pin': Pin
+        'pin': Pin,
+        'square': Square,
+        'play': Play,
+        'rotate-ccw': RotateCcw,
+        'check-square': CheckSquare
     };
 
     const LucideIcon = icons[name];

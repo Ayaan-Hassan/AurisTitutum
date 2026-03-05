@@ -7,11 +7,11 @@ import { useAuth } from '../contexts/AuthContext';
 
 const NOTE_COLORS = [
     { id: 'default', colorClass: 'var(--card-bg)' },
-    { id: 'blue', colorClass: 'rgba(59, 130, 246, 0.1)' },
-    { id: 'emerald', colorClass: 'rgba(16, 185, 129, 0.1)' },
-    { id: 'amber', colorClass: 'rgba(245, 158, 11, 0.1)' },
-    { id: 'rose', colorClass: 'rgba(244, 63, 94, 0.1)' },
-    { id: 'purple', colorClass: 'rgba(168, 85, 247, 0.1)' },
+    { id: 'blue', colorClass: 'rgba(59, 130, 246, 0.2)' },
+    { id: 'emerald', colorClass: 'rgba(16, 185, 129, 0.2)' },
+    { id: 'amber', colorClass: 'rgba(245, 158, 11, 0.2)' },
+    { id: 'rose', colorClass: 'rgba(244, 63, 94, 0.2)' },
+    { id: 'purple', colorClass: 'rgba(168, 85, 247, 0.2)' },
 ];
 
 const Notes = ({ notes, setNotes }) => {
@@ -321,9 +321,9 @@ const Notes = ({ notes, setNotes }) => {
 
             <ConfirmModal
                 open={!!deleteTarget}
-                title="Delete Data Node"
-                message="Are you sure you want to permanently erase this note? It will be purged from the array."
-                confirmLabel="Purge"
+                title="Delete Note"
+                message="Are you sure you want to delete this note?"
+                confirmLabel="Delete"
                 variant="danger"
                 onConfirm={() => { if (deleteTarget) { setNotes(prev => prev.filter(n => n.id !== deleteTarget)); setDeleteTarget(null); } }}
                 onCancel={() => setDeleteTarget(null)}
@@ -351,7 +351,7 @@ const Notes = ({ notes, setNotes }) => {
                                 <p className="text-[11px] font-mono text-text-secondary/50 uppercase tracking-[0.2em]">Compiled on {formatDate(note.createdAt)}</p>
                                 <div className="flex items-center gap-2">
                                     <Button onClick={() => { setExpandedNoteId(null); startEdit(note); }} variant="outline" icon="pencil">Edit Configuration</Button>
-                                    <Button onClick={() => { setExpandedNoteId(null); setDeleteTarget(note.id); }} variant="outline" className="border-danger/30 text-danger hover:bg-danger/10" icon="trash">Purge</Button>
+                                    <Button onClick={() => { setExpandedNoteId(null); setDeleteTarget(note.id); }} variant="outline" className="border-danger/30 text-danger hover:bg-danger/10" icon="trash">Delete</Button>
                                 </div>
                             </div>
                         </Card>

@@ -18,6 +18,7 @@ import { AuthProvider, useAuth } from "./contexts/AuthContext";
 import { useHabitNotifications } from "./hooks/useHabitNotifications";
 import { useReminderNotifications } from "./hooks/useReminderNotifications";
 import ToastContainer from "./components/Toast";
+import TourGuide from "./components/TourGuide";
 
 const DAILY_INSIGHTS = [
   {
@@ -759,14 +760,9 @@ function AppContent() {
     "🧬",
   ];
 
-  // Keep isUnicodeSymbol for rendering existing habits that may have stored Unicode symbols
-  const isUnicodeSymbol = (ch) =>
-    /^[\u25A0-\u27FF\u2190-\u21FF\u221E\u2295\u2297\u25D0\u25D1⟳◆▲▼●◯□△★✦◈⬡∞✕✓⊕⊗◐◑◇]/.test(
-      ch,
-    );
-
   return (
     <>
+      <TourGuide />
       <Routes>
         {/* Public Landing */}
         <Route path="/" element={<Landing habits={habits} user={user} />} />
@@ -952,13 +948,10 @@ function AppContent() {
                     <p className="text-[10px] text-text-secondary ml-1">
                       Selected:{" "}
                       <span
-                        style={
-                          isUnicodeSymbol(newHabit.emoji)
-                            ? { color: "var(--text-secondary)" }
-                            : {
-                              filter: "grayscale(1) saturate(0)",
-                            }
-                        }
+                        style={{
+                          filter: "grayscale(1) saturate(0) brightness(1.2)",
+                          fontSize: "1.1rem",
+                        }}
                       >
                         {newHabit.emoji}
                       </span>{" "}

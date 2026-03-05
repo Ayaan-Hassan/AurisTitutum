@@ -6,11 +6,6 @@ import { ConfirmModal, RenameModal } from "../components/Modals";
 import HabitPerformanceModal from "../components/HabitPerformanceModal";
 import { getLocalDateKey } from "../utils/date";
 
-// Detect plain Unicode symbols vs coloured emoji
-const isUnicodeSymbol = (ch) =>
-  /^[\u25A0-\u27FF\u2190-\u21FF\u221E\u2295\u2297\u25D0\u25D1⟳◆▲▼●◯□△★✦◈⬡∞✕✓⊕⊗◐◑◇]/.test(
-    ch,
-  );
 
 // ─── Timer Mode Component ──────────────────────────────────────────────────
 const TimerControl = ({ habitId, logActivity }) => {
@@ -465,21 +460,10 @@ const Habits = ({ habits, setHabits, logActivity }) => {
                   >
                     <span
                       className="text-lg leading-none"
-                      style={
-                        isUnicodeSymbol(h.emoji)
-                          ? {
-                            color:
-                              h.type === "Good"
-                                ? "var(--bg-main)"
-                                : "var(--text-secondary)",
-                            fontSize: "1.05rem",
-                          }
-                          : {
-                            filter:
-                              "grayscale(1) saturate(0) brightness(1.2)",
-                            fontSize: "1.1rem",
-                          }
-                      }
+                      style={{
+                        filter: "grayscale(1) saturate(0) brightness(1.2)",
+                        fontSize: "1.1rem"
+                      }}
                     >
                       {h.emoji}
                     </span>
@@ -645,15 +629,14 @@ const Habits = ({ habits, setHabits, logActivity }) => {
                         }))
                       }
                     />
-                    {h.unit && (
-                      <span className="text-xs font-bold text-text-secondary mr-2">{h.unit}</span>
-                    )}
                     <Button
                       onClick={() => {
                         const n = countInputs[h.id];
-                        logActivity(h.id, false, n ? Number(n) : 1, h.unit || "");
+                        if (!n) return;
+                        logActivity(h.id, false, Number(n), h.unit || "");
                         setCountInputs((prev) => ({ ...prev, [h.id]: "" }));
                       }}
+                      disabled={!countInputs[h.id]}
                       variant="ghost"
                       size="iconLg"
                       icon="minus"

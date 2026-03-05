@@ -175,7 +175,9 @@ const Contact = () => {
                       type="button"
                       onClick={() => handlePriority(level)}
                       className={`flex-1 h-full text-[11px] sm:text-xs font-bold rounded-lg transition-all flex items-center justify-center ${form.priority === level
-                        ? level === "High" ? "bg-red-500/10 text-red-500 border border-red-500/20 shadow-sm" : "bg-accent text-bg-main shadow-md"
+                        ? level === "High" ? "bg-red-500/10 text-red-500 border border-red-500/20 shadow-sm"
+                          : level === "Normal" ? "bg-blue-500/10 text-blue-500 border border-blue-500/20 shadow-sm"
+                            : "bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 shadow-sm"
                         : "text-text-secondary hover:bg-bg-sidebar hover:text-text-primary"
                         }`}
                     >

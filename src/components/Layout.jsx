@@ -131,8 +131,9 @@ const Layout = ({
         <header className="h-16 sm:h-20 border-b border-border-color flex items-center justify-between px-3 sm:px-4 md:px-10 sticky top-0 bg-bg-main/80 backdrop-blur-xl z-20 transition-colors duration-300">
           <div className="flex items-center gap-2 sm:gap-3 md:gap-4 min-w-0">
             <button
+              id="tour-nav-mobile-menu"
               type="button"
-              className="md:hidden w-9 h-9 rounded-xl border border-border-color flex items-center justify-center text-text-secondary hover:text-text-primary hover:bg-bg-main/80"
+              className="sm:hidden w-10 h-10 rounded-xl border border-border-color flex flex-col items-center justify-center gap-1.5 text-text-secondary hover:text-text-primary hover:bg-bg-main/60 transition-all"
               onClick={() => setMobileNavOpen(true)}
             >
               <div className="flex flex-col gap-1.5">
@@ -167,6 +168,7 @@ const Layout = ({
           </div>
           <div className="flex items-center gap-3 md:gap-4">
             <button
+              id="tour-nav-bell"
               type="button"
               className="relative w-9 h-9 rounded-xl border border-border-color flex items-center justify-center text-text-secondary hover:text-text-primary hover:bg-bg-main/70"
               onClick={() => {
@@ -200,6 +202,7 @@ const Layout = ({
               <RealTimeClock />
             </div>
             <button
+              id="tour-add-habit"
               onClick={onAddHabit}
               className="hidden sm:inline-flex px-3 sm:px-5 py-2 sm:py-2.5 bg-accent text-bg-main text-[10px] font-black rounded-lg hover:opacity-90 transition-all uppercase tracking-widest hover:scale-105 active:scale-95 h-9 sm:h-10 items-center"
             >
@@ -225,6 +228,7 @@ const Layout = ({
         </div>
 
         <button
+          id="tour-add-habit-mobile"
           type="button"
           onClick={onAddHabit}
           className="sm:hidden fixed bottom-6 right-4 z-30 w-14 h-14 rounded-full bg-accent text-bg-main shadow-[0_12px_30px_rgba(0,0,0,0.45)] border border-white/20 flex items-center justify-center active:scale-95"
@@ -286,6 +290,7 @@ const Layout = ({
                   );
                 })}
                 <button
+                  id="tour-nav-ai"
                   type="button"
                   onClick={() => {
                     setMobileNavOpen(false);
@@ -300,6 +305,14 @@ const Layout = ({
 
               {/* Contact Us at the bottom of navigation */}
               <div className="pt-2 border-t border-border-color">
+                <button
+                  id="tour-nav-ai-desktop"
+                  onClick={() => setAurisOpen(true)}
+                  className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium text-text-secondary hover:text-text-primary hover:bg-accent-dim transition-all"
+                >
+                  <Icon name="brain" size={16} />
+                  Auris AI
+                </button>
                 <Link
                   to="/app/contact"
                   onClick={() => setMobileNavOpen(false)}

@@ -77,14 +77,14 @@ export const useReminderNotifications = (reminders) => {
         const dueAt = parseLocalDateTime(reminder.date, reminder.time);
 
         let fireKey = reminder.id;
-        let shouldFire = false;
+        const FIFTEEN_MINS = 15 * 60 * 1000;
 
         if (repeat === "none") {
-          shouldFire = !!dueAt && now >= dueAt;
+          shouldFire = !!dueAt && now >= dueAt && (now.getTime() - dueAt.getTime()) < FIFTEEN_MINS;
         } else if (repeat === "daily") {
           fireKey = `${reminder.id}_${todayStr}`;
           shouldFire =
-            startsTodayOrEarlier && !!dueTodayAt && now >= dueTodayAt;
+            startsTodayOrEarlier && !!dueTodayAt && now >= dueTodayAt && (now.getTime() - dueTodayAt.getTime()) < FIFTEEN_MINS;
         } else if (repeat === "weekly") {
           fireKey = `${reminder.id}_${todayStr}`;
           const reminderDOW = getDayOfWeek(reminder.date);
@@ -92,7 +92,8 @@ export const useReminderNotifications = (reminders) => {
             startsTodayOrEarlier &&
             reminderDOW === todayDOW &&
             !!dueTodayAt &&
-            now >= dueTodayAt;
+            now >= dueTodayAt &&
+            (now.getTime() - dueTodayAt.getTime()) < FIFTEEN_MINS;
         }
 
         if (!shouldFire || firedIds.has(fireKey)) return;
