@@ -13,13 +13,13 @@ const Landing = ({ habits, user }) => {
     [habits],
   );
   const isLoggedIn = !!user;
+  const hasVisitedApp = localStorage.getItem("auris_visited_dashboard") === "true";
 
   useEffect(() => {
-    if (hasLocalData || isLoggedIn) {
-      const timer = setTimeout(() => navigate("/app", { replace: true }), 600);
-      return () => clearTimeout(timer);
+    if (hasLocalData || isLoggedIn || hasVisitedApp) {
+      navigate("/app", { replace: true });
     }
-  }, [hasLocalData, isLoggedIn, navigate]);
+  }, [hasLocalData, isLoggedIn, hasVisitedApp, navigate]);
 
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 10);
@@ -109,9 +109,8 @@ const Landing = ({ habits, user }) => {
     <div className="min-h-screen bg-bg-main text-text-primary overflow-x-hidden">
       {/* ── HEADER ── */}
       <header
-        className={`sticky top-0 z-30 border-b border-border-color/60 bg-bg-main/85 backdrop-blur-md transition-all duration-300 ${
-          scrolled ? "shadow-[0_4px_24px_rgba(0,0,0,0.3)]" : ""
-        }`}
+        className={`sticky top-0 z-30 border-b border-border-color/60 bg-bg-main/85 backdrop-blur-md transition-all duration-300 ${scrolled ? "shadow-[0_4px_24px_rgba(0,0,0,0.3)]" : ""
+          }`}
       >
         <div className="max-w-6xl mx-auto px-4 sm:px-8 h-14 flex items-center justify-between gap-3">
           {/* Logo */}
@@ -295,11 +294,10 @@ const Landing = ({ habits, user }) => {
                       className="flex items-center gap-2.5 px-3 py-2 rounded-lg bg-bg-main border border-border-color"
                     >
                       <div
-                        className={`w-4 h-4 rounded-md border flex items-center justify-center shrink-0 ${
-                          item.done
+                        className={`w-4 h-4 rounded-md border flex items-center justify-center shrink-0 ${item.done
                             ? "bg-accent border-accent"
                             : "border-border-color"
-                        }`}
+                          }`}
                       >
                         {item.done && (
                           <Icon

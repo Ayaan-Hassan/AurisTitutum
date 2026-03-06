@@ -338,14 +338,15 @@ function AppContent() {
   const [notes, setNotes] = useState(initialState.notes);
   const [reminders, setReminders] = useState(initialState.reminders);
   const fileInputRef = useRef(null);
-  const latestStateRef = useRef(initialState);
   const loadedScopeRef = useRef("guest");
   const pendingScopeInitRef = useRef(null);
   const cloudStateReadyRef = useRef(false);
   const cloudSaveTimerRef = useRef(null);
   const skipNextCloudSaveRef = useRef(false);
-  const remoteUpdatedAtRef = useRef(0);
   const isSavingToCloudRef = useRef(false);
+  
+  // Track the state that is currently synced with the cloud
+  const cloudStateRef = useRef(initialState);
 
   useEffect(() => {
     if (!user) return;
@@ -389,14 +390,7 @@ function AppContent() {
     };
   }, [handleAddHabitRequest]);
 
-  useEffect(() => {
-    latestStateRef.current = normalizeAppState({
-      habits,
-      userConfig,
-      notes,
-      reminders,
-    });
-  }, [habits, userConfig, notes, reminders]);
+
 
   useEffect(() => {
     if (loadedScopeRef.current === activeScope) return;
@@ -454,7 +448,7 @@ function AppContent() {
       reminders: authContext.reminders,
     });
 
-    if (!areAppStatesEqual(remoteState, latestStateRef.current)) {
+    if (!areAppStatesEqual(remoteState, cloudStateRef.current)) {
       if (cloudSaveTimerRef.current || isSavingToCloudRef.current) {
         // Prevent overwriting local state if we have a pending push to Firebase
         return;
@@ -463,7 +457,6 @@ function AppContent() {
       // Meaningful update from remote
       const hasContent = remoteState.habits.length > 0 || remoteState.notes.length > 0 || remoteState.reminders.length > 0;
       // Also prevent overwriting local state with completely empty state immediately after login
-      // authContext.habits might take a few ms to load. AuthContext sets dataLoading.
       if (hasContent || !authContext.dataLoading) {
         skipNextCloudSaveRef.current = true;
         setHabits(remoteState.habits);
@@ -471,7 +464,7 @@ function AppContent() {
         setNotes(remoteState.notes);
         setReminders(remoteState.reminders);
         writeScopedState(activeScope, remoteState);
-        latestStateRef.current = remoteState;
+        cloudStateRef.current = remoteState;
       }
     }
 
@@ -489,18 +482,32 @@ function AppContent() {
       return undefined;
     }
 
+    const currentState = normalizeAppState({
+      habits,
+      userConfig,
+      notes,
+      reminders,
+    });
+
+    // Don't push if nothing has functionally changed compared to the last cloud state
+    if (areAppStatesEqual(currentState, cloudStateRef.current)) {
+      return undefined;
+    }
+
     if (cloudSaveTimerRef.current) {
       clearTimeout(cloudSaveTimerRef.current);
       cloudSaveTimerRef.current = null;
     }
 
     cloudSaveTimerRef.current = setTimeout(async () => {
+      cloudSaveTimerRef.current = null; // Important: Clear the timer ID so we don't lock future updates
       try {
         isSavingToCloudRef.current = true;
         await replaceHabitsState(habits);
         await replaceNotesState(notes);
         await replaceRemindersState(reminders);
         await updateUserConfig(userConfig);
+        cloudStateRef.current = currentState; // Mark as synced
       } catch (error) {
         console.error("[firebase-sync] Failed to persist cloud state:", error);
       } finally {

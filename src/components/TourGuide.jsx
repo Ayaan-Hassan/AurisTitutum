@@ -6,48 +6,48 @@ import { useLocation } from 'react-router-dom';
 const STEPS = [
     {
         targetId: 'tour-add-habit',
-        title: 'Initialize Node',
-        text: 'Tap here to construct a new behavioral node. Features range from counters to camera logs.',
-        position: 'bottom' // Tooltip position relative to target
+        title: 'New Habit Button',
+        text: 'Click here to create a new habit. You can set up counters, timers, or simple check-offs.',
+        position: 'bottom'
     },
     {
         targetId: 'tour-nav-mobile-menu',
-        title: 'Command Console',
-        text: 'Access your full analytics, matrix notes, and settings from the sidebar menu.',
+        title: 'Menu Button',
+        text: 'Tap this icon to open the sidebar. You can see your analytics, notes, and settings here.',
         position: 'right',
         mobileOnly: true
     },
     {
         targetId: 'tour-nav-habits',
-        title: 'Habit Registry',
-        text: 'Manage all your active routines here. Monitor progress and calibrate specific behaviors.',
+        title: 'Habit Management',
+        text: 'Click here to find a list of all your active habits. You can edit or delete them at any time.',
         position: 'right',
         desktopOnly: true
     },
     {
         targetId: 'tour-camera-upload',
-        title: 'Photo Uploads',
-        text: 'Log behaviors instantly by capturing physical evidence securely via your camera.',
+        title: 'Camera Upload',
+        text: 'This camera button lets you take a quick photo of what you just did to save as proof.',
         position: 'top',
-        wait: 200 // Allows UI to render if needed
+        wait: 200
     },
     {
         targetId: 'tour-nav-bell',
         title: 'System Alerts',
-        text: 'Smart check-ins will ping you here if you drift or stay inactive too long.',
+        text: 'Check this bell for reminders and check-ins if you haven\'t recorded anything lately.',
         position: 'bottom'
     },
     {
         targetId: 'tour-nav-ai',
-        title: 'Auris AI Lens',
-        text: 'Tap the brain icon to speak directly to your intelligence layer regarding your data.',
+        title: 'Auris AI Assistant',
+        text: 'Tap the brain icon to speak directly to the AI about your habits and progress.',
         position: 'bottom',
         mobileOnly: true
     },
     {
         targetId: 'tour-nav-ai-desktop-sidebar',
-        title: 'Auris AI Lens',
-        text: 'Tap the brain icon to speak directly to your intelligence layer regarding your data.',
+        title: 'Auris AI Assistant',
+        text: 'Tap the brain icon to speak directly to the AI about your habits and progress.',
         position: 'right',
         desktopOnly: true
     }
@@ -83,6 +83,7 @@ const TourGuide = () => {
     useEffect(() => {
         if (activeStepIndex === -1) return;
 
+        let checkTimeoutId;
         const findAndSetTarget = () => {
             // Find current step skipping platform-specific ones if necessary
             let step = STEPS[activeStepIndex];
@@ -96,23 +97,36 @@ const TourGuide = () => {
                 return;
             }
 
-            const el = document.getElementById(step.targetId);
-            if (el) {
-                // Scroll element into view smoothly if needed (mostly for habits down the page)
-                el.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'center' });
-                setTimeout(() => {
-                    const rect = el.getBoundingClientRect();
-                    setTargetRect(rect);
-                }, 300); // give time for scroll
-            } else {
-                // Element not found on this screen, skip to next
-                setActiveStepIndex(prev => prev + 1);
-            }
+            let retries = 0;
+            const attemptFind = () => {
+                const el = document.getElementById(step.targetId);
+                if (el) {
+                    el.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'center' });
+                    setTimeout(() => {
+                        const currentEl = document.getElementById(step.targetId);
+                        if (currentEl) {
+                            setTargetRect(currentEl.getBoundingClientRect());
+                        }
+                    }, 300); // give time for scroll
+                } else {
+                    retries++;
+                    if (retries < 15) { // Try for 1.5s
+                        checkTimeoutId = setTimeout(attemptFind, 100);
+                    } else {
+                        // Element not found on this screen after 1.5s, skip to next
+                        setActiveStepIndex(prev => prev + 1);
+                    }
+                }
+            };
+            attemptFind();
         };
 
         findAndSetTarget();
         window.addEventListener('resize', findAndSetTarget);
-        return () => window.removeEventListener('resize', findAndSetTarget);
+        return () => {
+            window.removeEventListener('resize', findAndSetTarget);
+            if (checkTimeoutId) clearTimeout(checkTimeoutId);
+        };
     }, [activeStepIndex, isMobile]);
 
     const advanceTour = () => {

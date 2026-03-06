@@ -235,7 +235,7 @@ const DayDetailPopup = ({ dateStr, habits, onClose }) => {
 
   return (
     <>
-      <div className="fixed inset-0 bg-black/60 backdrop-blur-md z-[120]" onClick={onClose} />
+      <div className="fixed top-[-100px] bottom-[-100px] left-[-100px] right-[-100px] bg-black/60 backdrop-blur-md z-[120]" onClick={onClose} />
       <div className="fixed inset-0 z-[121] flex items-center justify-center p-4">
         <div
           className="w-full max-w-md bg-bg-main border border-border-color rounded-3xl shadow-2xl overflow-hidden animate-in fade-in zoom-in-95"
@@ -290,6 +290,10 @@ const DayDetailPopup = ({ dateStr, habits, onClose }) => {
 
 // ─── Main Dashboard ──────────────────────────────────────────────────────────
 const Dashboard = ({ habits, logActivity, insights }) => {
+  useEffect(() => {
+    localStorage.setItem("auris_visited_dashboard", "true");
+  }, []);
+
   const [calendarMonth, setCalendarMonth] = useState(() => new Date());
   const [performanceTarget, setPerformanceTarget] = useState(null);
   const [selectedDay, setSelectedDay] = useState(null);
