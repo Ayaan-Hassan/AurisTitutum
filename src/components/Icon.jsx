@@ -43,7 +43,9 @@ import {
     Square,
     Play,
     RotateCcw,
-    CheckSquare
+    CheckSquare,
+    Camera,
+    Image as ImageIcon
 } from 'lucide-react';
 
 const Icon = ({ name, size = 18, className = "" }) => {
@@ -92,7 +94,9 @@ const Icon = ({ name, size = 18, className = "" }) => {
         'square': Square,
         'play': Play,
         'rotate-ccw': RotateCcw,
-        'check-square': CheckSquare
+        'check-square': CheckSquare,
+        'camera': Camera,
+        'image': ImageIcon
     };
 
     const LucideIcon = icons[name];

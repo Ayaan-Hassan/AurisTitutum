@@ -3,7 +3,7 @@ import { Button } from './ui/Button';
 import Icon from './Icon';
 import { useLocation } from 'react-router-dom';
 
-const STEPS = [
+const DESKTOP_STEPS = [
     {
         targetId: 'tour-add-habit',
         title: 'New Habit Button',
@@ -11,18 +11,10 @@ const STEPS = [
         position: 'bottom'
     },
     {
-        targetId: 'tour-nav-mobile-menu',
-        title: 'Menu Button',
-        text: 'Tap this icon to open the sidebar. You can see your analytics, notes, and settings here.',
-        position: 'right',
-        mobileOnly: true
-    },
-    {
         targetId: 'tour-nav-habits',
         title: 'Habit Management',
         text: 'Click here to find a list of all your active habits. You can edit or delete them at any time.',
-        position: 'right',
-        desktopOnly: true
+        position: 'right'
     },
     {
         targetId: 'tour-camera-upload',
@@ -38,18 +30,38 @@ const STEPS = [
         position: 'bottom'
     },
     {
-        targetId: 'tour-nav-ai',
-        title: 'Auris AI Assistant',
-        text: 'Tap the brain icon to speak directly to the AI about your habits and progress.',
-        position: 'bottom',
-        mobileOnly: true
-    },
-    {
         targetId: 'tour-nav-ai-desktop-sidebar',
         title: 'Auris AI Assistant',
         text: 'Tap the brain icon to speak directly to the AI about your habits and progress.',
-        position: 'right',
-        desktopOnly: true
+        position: 'right'
+    }
+];
+
+const MOBILE_STEPS = [
+    {
+        targetId: 'tour-nav-mobile-menu',
+        title: 'Menu Button',
+        text: 'Tap this icon to open the sidebar. You can see your analytics, notes, and settings here.',
+        position: 'bottom'
+    },
+    {
+        targetId: 'tour-camera-upload',
+        title: 'Camera Upload',
+        text: 'This camera button lets you take a quick photo of what you just did to save as proof.',
+        position: 'top',
+        wait: 200
+    },
+    {
+        targetId: 'tour-nav-ai',
+        title: 'Auris AI Assistant',
+        text: 'Tap the brain icon to speak directly to the AI about your habits and progress.',
+        position: 'bottom'
+    },
+    {
+        targetId: 'tour-add-habit-mobile',
+        title: 'New Habit Button',
+        text: 'Tap the floating + button here to create a new habit. You can set up counters or timers.',
+        position: 'top'
     }
 ];
 
@@ -88,15 +100,10 @@ const TourGuide = () => {
 
         let checkTimeoutId;
         const findAndSetTarget = () => {
-            // Find current step skipping platform-specific ones if necessary
-            let step = STEPS[activeStepIndex];
+            const activeSteps = isMobile ? MOBILE_STEPS : DESKTOP_STEPS;
+            let step = activeSteps[activeStepIndex];
             if (!step) {
                 completeTour();
-                return;
-            }
-
-            if ((step.mobileOnly && !isMobile) || (step.desktopOnly && isMobile)) {
-                setActiveStepIndex(prev => prev + 1);
                 return;
             }
 
@@ -139,7 +146,8 @@ const TourGuide = () => {
 
     if (activeStepIndex === -1 || hasSeenTour || !targetRect) return null;
 
-    const currentStep = STEPS[activeStepIndex];
+    const activeSteps = isMobile ? MOBILE_STEPS : DESKTOP_STEPS;
+    const currentStep = activeSteps[activeStepIndex];
 
     // Calculate tooltip placement
     const padding = 16;
@@ -256,8 +264,8 @@ const TourGuide = () => {
                             <Icon name="sparkles" size={12} />
                             {currentStep.title}
                         </h4>
-                        <span className="text-[9px] text-text-secondary font-mono bg-bg-sidebar px-1.5 py-0.5 rounded">
-                            {activeStepIndex + 1}/{STEPS.length}
+                        <span className="text-accent font-mono text-[9px] tracking-widest font-bold">
+                            {activeStepIndex + 1}/{isMobile ? MOBILE_STEPS.length : DESKTOP_STEPS.length}
                         </span>
                     </div>
                     <p className="text-xs text-text-primary leading-relaxed font-medium">
