@@ -86,6 +86,8 @@ const normalizeNote = (note = {}) => {
     id: String(note?.id || `${Date.now()}_${Math.random().toString(36).slice(2, 8)}`),
     title: note?.title || "Untitled",
     body: note?.body || "",
+    color: note?.color || "default",
+    pinned: !!note?.pinned,
     createdAt: note?.createdAt || now,
     updatedAt: note?.updatedAt || now,
   };
@@ -497,10 +499,6 @@ export const AuthProvider = ({ children }) => {
     setError(null);
     try {
       await authPersistenceReady;
-      if (isMobileDevice()) {
-        await signInWithRedirect(auth, googleProvider);
-        return { success: true };
-      }
       const result = await signInWithPopup(auth, googleProvider);
       return { success: true, user: result.user };
     } catch (err) {
@@ -520,10 +518,6 @@ export const AuthProvider = ({ children }) => {
     setError(null);
     try {
       await authPersistenceReady;
-      if (isMobileDevice()) {
-        await signInWithRedirect(auth, facebookProvider);
-        return { success: true };
-      }
       const result = await signInWithPopup(auth, facebookProvider);
       return { success: true, user: result.user };
     } catch (err) {
