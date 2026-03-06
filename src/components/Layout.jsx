@@ -123,6 +123,11 @@ const Layout = ({
     { href: "/app/contact", icon: "mail", label: "Contact Us", special: true },
   ];
 
+  const adminUid = import.meta.env.VITE_ADMIN_UID;
+  if (user && adminUid && user.uid === adminUid) {
+    mobileNavLinks.push({ href: "/app/admin", icon: "shield-check", label: "Admin Space", special: true });
+  }
+
   return (
     <div className="flex h-screen overflow-hidden bg-bg-main text-text-primary font-sans transition-colors duration-300">
       <Sidebar userConfig={userConfig} onOpenAuris={() => setAurisOpen(true)} />

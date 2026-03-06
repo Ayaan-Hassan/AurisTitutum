@@ -34,6 +34,7 @@ import {
 } from "../services/habitService";
 import { replaceLogs, serializeLogsFromHabits, subscribeLogs } from "../services/logService";
 import { replaceReminders, subscribeReminders } from "../services/reminderService";
+import { identifyUser, trackEvent } from "../utils/telemetry";
 
 const AuthContext = createContext(null);
 
@@ -410,6 +411,7 @@ export const AuthProvider = ({ children }) => {
         redirectUser = null;
 
         const mappedUser = mapFirebaseUser(resolvedUser);
+        identifyUser(mappedUser.uid, mappedUser.email, mappedUser.name);
         setUser(mappedUser);
         setAuthLoading(false);
 
@@ -459,6 +461,7 @@ export const AuthProvider = ({ children }) => {
     try {
       await authPersistenceReady;
       const result = await signInWithEmailAndPassword(auth, email, password);
+      trackEvent("login", { method: "email" });
       return { success: true, user: result.user };
     } catch (err) {
       const errorMessage = getErrorMessage(err.code);
@@ -481,6 +484,7 @@ export const AuthProvider = ({ children }) => {
       await updateProfile(result.user, {
         displayName: name,
       });
+      trackEvent("signup", { method: "email" });
       return { success: true, user: result.user };
     } catch (err) {
       const errorMessage = getErrorMessage(err.code);
@@ -500,6 +504,7 @@ export const AuthProvider = ({ children }) => {
     try {
       await authPersistenceReady;
       const result = await signInWithPopup(auth, googleProvider);
+      trackEvent("login", { method: "google" });
       return { success: true, user: result.user };
     } catch (err) {
       const errorMessage = getErrorMessage(err.code);
@@ -519,6 +524,7 @@ export const AuthProvider = ({ children }) => {
     try {
       await authPersistenceReady;
       const result = await signInWithPopup(auth, facebookProvider);
+      trackEvent("login", { method: "facebook" });
       return { success: true, user: result.user };
     } catch (err) {
       const errorMessage = getErrorMessage(err.code);

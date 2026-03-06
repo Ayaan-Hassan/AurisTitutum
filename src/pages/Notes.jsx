@@ -4,6 +4,7 @@ import { Card } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
 import { ConfirmModal } from '../components/Modals';
 import { useAuth } from '../contexts/AuthContext';
+import { trackEvent } from '../utils/telemetry';
 
 const NOTE_COLORS = [
     { id: 'default', colorClass: 'var(--card-bg)' },
@@ -65,6 +66,7 @@ const Notes = ({ notes, setNotes }) => {
             updatedAt: new Date().toISOString(),
         };
         setNotes(prev => [note, ...prev]);
+        trackEvent("note_created", { color: newColor });
         setNewTitle('');
         setNewBody('');
         setNewColor('default');

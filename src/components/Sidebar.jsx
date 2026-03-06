@@ -1,8 +1,10 @@
 import { Link, useLocation } from "react-router-dom";
 import Icon from "./Icon";
 import { useTheme } from "./ThemeProvider";
+import { useAuth } from "../contexts/AuthContext";
 
 const Sidebar = ({ userConfig, onOpenAuris }) => {
+  const { user } = useAuth();
   const location = useLocation();
   const { theme, setTheme } = useTheme();
   const path = location.pathname;
@@ -16,6 +18,13 @@ const Sidebar = ({ userConfig, onOpenAuris }) => {
     { id: "/app/reminders", icon: "bell", label: "Reminders" },
     { id: "/app/settings", icon: "settings-2", label: "Settings" },
   ];
+
+  const adminUid = import.meta.env.VITE_ADMIN_UID;
+  const isAdmin = user && adminUid && user.uid === adminUid;
+
+  if (isAdmin) {
+    navItems.push({ id: "/app/admin", icon: "shield-check", label: "Admin Space" });
+  }
 
   const isActive = (href) => {
     if (href === "/app") {

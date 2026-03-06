@@ -12,6 +12,7 @@ import {
   registerScheduledReminder,
   unregisterScheduledReminder,
 } from "../services/pushNotifications";
+import { trackEvent } from "../utils/telemetry";
 
 const getTodayStr = () => {
   const now = new Date();
@@ -298,7 +299,7 @@ const Reminders = ({ reminders, setReminders }) => {
     };
     // Immediately add the reminder (instant, no waiting for permission)
     setReminders((prev) => [...prev, reminder]);
-    setShowAdd(false);
+    trackEvent("reminder_created", { repeat: data.repeat });
     // Request notification permission in the background
     requestPermissionInBackground();
     // Register with Firestore
@@ -325,6 +326,7 @@ const Reminders = ({ reminders, setReminders }) => {
     if (!deleteTarget) return;
     if (user) { try { await unregisterScheduledReminder(user.uid, deleteTarget); } catch (err) { console.error(err); } }
     setReminders((prev) => prev.filter((r) => r.id !== deleteTarget));
+    trackEvent("reminder_deleted");
     setDeleteTarget(null);
   };
 

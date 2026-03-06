@@ -13,6 +13,8 @@ import Login from "./pages/Login";
 import Signup from "./pages/Signup";
 import Landing from "./pages/Landing";
 import Contact from "./pages/Contact";
+import AdminDashboard from "./pages/AdminDashboard";
+import { trackEvent } from "./utils/telemetry";
 import { ThemeProvider } from "./components/ThemeProvider";
 import { AuthProvider, useAuth } from "./contexts/AuthContext";
 import { useHabitNotifications } from "./hooks/useHabitNotifications";
@@ -344,7 +346,7 @@ function AppContent() {
   const cloudSaveTimerRef = useRef(null);
   const skipNextCloudSaveRef = useRef(false);
   const isSavingToCloudRef = useRef(false);
-  
+
   // Track the state that is currently synced with the cloud
   const cloudStateRef = useRef(initialState);
 
@@ -814,6 +816,7 @@ function AppContent() {
                   }
                 />
                 <Route path="contact" element={<Contact />} />
+                <Route path="admin" element={<AdminDashboard />} />
               </Routes>
             </Layout>
           }
@@ -1063,6 +1066,7 @@ function AppContent() {
                       unit: "",
                       emoji: "",
                     });
+                    trackEvent("habit_created", { type: newHabit.type, mode: newHabit.mode });
                     setShowAddModal(false);
                   }}
                   disabled={!newHabit.name.trim()}
