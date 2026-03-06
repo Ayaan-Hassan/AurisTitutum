@@ -67,7 +67,10 @@ const TourGuide = () => {
         const seen = localStorage.getItem('auris_tour_complete');
         // Need both user configuration ready AND haven't seen tour
         if (seen !== 'true') {
-            const timer = setTimeout(() => setActiveStepIndex(0), 1000);
+            const timer = setTimeout(() => {
+                setActiveStepIndex(0);
+                localStorage.setItem('auris_tour_complete', 'true'); // Flag it as seen immediately
+            }, 1000);
             return () => clearTimeout(timer);
         } else {
             setHasSeenTour(true);
@@ -144,6 +147,8 @@ const TourGuide = () => {
     let tooltipLeft = 0;
 
     // Safe defaults, we position the tooltip relative to the target rect dynamically
+    const TOOLTIP_WIDTH = 280;
+
     if (currentStep.position === 'bottom') {
         tooltipTop = targetRect.bottom + padding;
         tooltipLeft = targetRect.left + (targetRect.width / 2);
@@ -154,18 +159,50 @@ const TourGuide = () => {
         tooltipTop = targetRect.top + (targetRect.height / 2);
         tooltipLeft = targetRect.right + padding;
     } else {
-        // left
         tooltipTop = targetRect.top + (targetRect.height / 2);
         tooltipLeft = targetRect.left - padding;
     }
 
+    // Clamp horizontally to save it from going offscreen
+    let finalLeft = tooltipLeft;
+    let translateXName = '-50%';
+    let isCentered = false;
+
+    if (currentStep.position === 'bottom' || currentStep.position === 'top') {
+        const minLeft = TOOLTIP_WIDTH / 2 + 10;
+        const maxLeft = window.innerWidth - (TOOLTIP_WIDTH / 2) - 10;
+        if (tooltipLeft < minLeft) {
+            finalLeft = 10;
+            translateXName = '0'; // align left edge
+        } else if (tooltipLeft > maxLeft) {
+            finalLeft = window.innerWidth - TOOLTIP_WIDTH - 10;
+            translateXName = '0'; // align right edge (since we set left exactly)
+        } else {
+            isCentered = true;
+        }
+    }
+
     // Generate bouncy arrow logic
-    const arrowDirectionClass = {
-        'bottom': 'bottom-full left-1/2 -translate-x-1/2 rotate-180 mb-2',
-        'top': 'top-full left-1/2 -translate-x-1/2 mt-2',
+    let arrowDirectionClass = {
+        'bottom': 'bottom-full',
+        'top': 'top-full',
         'right': 'right-full top-1/2 -translate-y-1/2 rotate-90 mr-2',
         'left': 'left-full top-1/2 -translate-y-1/2 -rotate-90 ml-2'
     }[currentStep.position];
+
+    if (currentStep.position === 'bottom' || currentStep.position === 'top') {
+        if (!isCentered && tooltipLeft > window.innerWidth / 2) {
+            // align arrow near the right
+            arrowDirectionClass += ' right-6';
+        } else if (!isCentered && tooltipLeft <= window.innerWidth / 2) {
+            // align arrow near the left
+            arrowDirectionClass += ' left-6';
+        } else {
+            arrowDirectionClass += ' left-1/2 -translate-x-1/2';
+        }
+        if (currentStep.position === 'bottom') arrowDirectionClass += ' rotate-180 mb-2';
+        if (currentStep.position === 'top') arrowDirectionClass += ' mt-2';
+    }
 
     return (
         <>
@@ -198,12 +235,12 @@ const TourGuide = () => {
                 className="fixed z-[9992] pointer-events-auto transition-all duration-500 ease-[cubic-bezier(0.34,1.56,0.64,1)]"
                 style={{
                     top: tooltipTop,
-                    left: tooltipLeft,
+                    left: finalLeft,
                     transform: currentStep.position === 'bottom' || currentStep.position === 'top'
-                        ? `translate(-50%, ${currentStep.position === 'bottom' ? '0' : '-100%'})`
+                        ? `translate(${translateXName}, ${currentStep.position === 'bottom' ? '0' : '-100%'})`
                         : `translate(${currentStep.position === 'right' ? '0' : '-100%'}, -50%)`,
                     width: 'max-content',
-                    maxWidth: '280px'
+                    maxWidth: `${TOOLTIP_WIDTH}px`
                 }}
             >
                 <div className="relative bg-bg-main border border-accent rounded-2xl p-5 shadow-[0_20px_40px_rgba(0,0,0,0.4)]">

@@ -59,6 +59,38 @@ const DashboardTimerControl = ({ habitId, logActivity }) => {
   );
 };
 
+// ─── Photo Compression Utility ───────────────────────────────────────────────
+const compressPhoto = (base64Str) => {
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.src = base64Str;
+    img.onload = () => {
+      const canvas = document.createElement("canvas");
+      // Scale down image safely before saving to Firestore to prevent memory crash
+      const MAX_SIZE = 1080;
+      let width = img.width;
+      let height = img.height;
+      if (width > height) {
+        if (width > MAX_SIZE) {
+          height = Math.round(height * (MAX_SIZE / width));
+          width = MAX_SIZE;
+        }
+      } else {
+        if (height > MAX_SIZE) {
+          width = Math.round(width * (MAX_SIZE / height));
+          height = MAX_SIZE;
+        }
+      }
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext("2d");
+      ctx.drawImage(img, 0, 0, width, height);
+      // Reduce quality to 0.6 standard
+      resolve(canvas.toDataURL("image/jpeg", 0.6));
+    };
+  });
+};
+
 // ─── Inline Upload Control for Dashboard ───────────────────────────────────
 const DashboardUploadControl = ({ habit, logActivity }) => {
   const fileInputRef = useRef(null);
@@ -95,7 +127,7 @@ const DashboardUploadControl = ({ habit, logActivity }) => {
     setCameraOpen(false);
   };
 
-  const capturePhoto = () => {
+  const capturePhoto = async () => {
     if (!cameraRef.current) return;
     const canvas = document.createElement("canvas");
     canvas.width = cameraRef.current.videoWidth;
@@ -103,14 +135,18 @@ const DashboardUploadControl = ({ habit, logActivity }) => {
     canvas.getContext("2d").drawImage(cameraRef.current, 0, 0);
     const dataUrl = canvas.toDataURL("image/jpeg", 0.75);
     stopCamera();
-    logActivity(habit.id, true, 1, "photo", dataUrl);
+    const compressed = await compressPhoto(dataUrl);
+    logActivity(habit.id, true, 1, "photo", compressed);
   };
 
   const handleFile = (e) => {
     const file = e.target.files[0];
     if (!file) return;
     const reader = new FileReader();
-    reader.onload = (ev) => logActivity(habit.id, true, 1, "photo", ev.target.result);
+    reader.onload = async (ev) => {
+      const compressed = await compressPhoto(ev.target.result);
+      logActivity(habit.id, true, 1, "photo", compressed);
+    };
     reader.readAsDataURL(file);
     e.target.value = null;
   };
@@ -131,26 +167,23 @@ const DashboardUploadControl = ({ habit, logActivity }) => {
           </div>
         </div>
       )}
-      <div className="flex gap-2">
-        <Button
+      <div className="flex gap-1.5">
+        <button
           id="tour-camera-upload"
           onClick={openCamera}
-          variant="outline"
-          size="sm"
-          icon="camera"
-          className="flex-1 min-h-[32px] rounded-lg"
+          className="w-8 h-8 border border-border-color bg-bg-main text-text-secondary hover:text-text-primary rounded-lg flex items-center justify-center transition-all shrink-0 active:scale-95"
+          title="Capture"
         >
-          Capture
-        </Button>
-        <Button
+          <Icon name="camera" size={12} />
+        </button>
+        <button
           onClick={() => { fileInputRef.current.removeAttribute("capture"); fileInputRef.current.click(); }}
-          variant="outline"
-          size="sm"
-          icon="image"
-          className="min-h-[32px] rounded-lg"
+          className="h-8 px-2 border border-border-color bg-bg-main text-text-secondary hover:text-text-primary rounded-lg flex items-center justify-center transition-all shrink-0 active:scale-95 gap-1.5"
+          title="Upload"
         >
-          {photoCount > 0 ? `Photo (${photoCount})` : "Upload"}
-        </Button>
+          <Icon name="image" size={12} />
+          {photoCount > 0 && <span className="text-[10px] font-bold">{photoCount}</span>}
+        </button>
         <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleFile} />
       </div>
     </>
