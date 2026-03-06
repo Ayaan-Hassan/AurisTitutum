@@ -313,30 +313,6 @@ const compressImage = (base64Str) => {
   });
 };
 
-export const Preloader = memo(({ isLoading }) => {
-  const [shouldRender, setShouldRender] = useState(true);
-
-  useEffect(() => {
-    if (!isLoading) {
-      const timer = setTimeout(() => setShouldRender(false), 1000);
-      return () => clearTimeout(timer);
-    }
-  }, [isLoading]);
-
-  if (!shouldRender) return null;
-
-  return (
-    <div className={`preloader-container ${!isLoading ? "loaded" : ""}`}>
-      <div className="logo-box">
-        <div className="logo-inner"></div>
-      </div>
-      <p className="preloader-title">
-        AurisTitutum <span>| PRO</span>
-      </p>
-    </div>
-  );
-});
-
 function AppContent() {
   const authContext = useAuth();
   const { user, replaceHabitsState, replaceNotesState, replaceRemindersState, updateUserConfig } = authContext;
@@ -347,7 +323,6 @@ function AppContent() {
     readScopedState("guest") || readLegacyState() || {},
   );
 
-  const [showPreloader, setShowPreloader] = useState(true);
   const [habits, setHabits] = useState(initialState.habits);
   const [userConfig, setUserConfig] = useState(initialState.userConfig);
 
@@ -371,14 +346,6 @@ function AppContent() {
   const skipNextCloudSaveRef = useRef(false);
   const remoteUpdatedAtRef = useRef(0);
   const isSavingToCloudRef = useRef(false);
-
-  // Global preloader — runs once on app load
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setShowPreloader(false);
-    }, 2000);
-    return () => clearTimeout(timer);
-  }, []);
 
   useEffect(() => {
     if (!user) return;
@@ -714,11 +681,6 @@ function AppContent() {
   };
 
   const [dailyInsight] = useState(() => getDailyInsight());
-
-  // Block rendering until preloader finishes
-  if (showPreloader) {
-    return <Preloader isLoading={showPreloader} />;
-  }
 
   // Curated aesthetic emoji list — only proper emoji, grayscale-filtered to match dark/gray theme
   const THEMED_EMOJIS = [

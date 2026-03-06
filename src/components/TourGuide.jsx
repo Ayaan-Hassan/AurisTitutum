@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { Button } from './ui/Button';
 import Icon from './Icon';
+import { useLocation } from 'react-router-dom';
 
 const STEPS = [
     {
@@ -40,7 +41,15 @@ const STEPS = [
         targetId: 'tour-nav-ai',
         title: 'Auris AI Lens',
         text: 'Tap the brain icon to speak directly to your intelligence layer regarding your data.',
-        position: 'bottom'
+        position: 'bottom',
+        mobileOnly: true
+    },
+    {
+        targetId: 'tour-nav-ai-desktop-sidebar',
+        title: 'Auris AI Lens',
+        text: 'Tap the brain icon to speak directly to your intelligence layer regarding your data.',
+        position: 'right',
+        desktopOnly: true
     }
 ];
 
@@ -48,16 +57,22 @@ const TourGuide = () => {
     const [activeStepIndex, setActiveStepIndex] = useState(-1);
     const [targetRect, setTargetRect] = useState(null);
     const [hasSeenTour, setHasSeenTour] = useState(false);
+    const location = useLocation();
     const isMobile = window.innerWidth <= 768;
 
     useEffect(() => {
+        // Only start tour if on /app dashboard
+        if (location.pathname !== '/app' && location.pathname !== '/app/') return;
+
         const seen = localStorage.getItem('auris_tour_complete');
+        // Need both user configuration ready AND haven't seen tour
         if (seen !== 'true') {
-            setTimeout(() => setActiveStepIndex(0), 1000);
+            const timer = setTimeout(() => setActiveStepIndex(0), 1000);
+            return () => clearTimeout(timer);
         } else {
             setHasSeenTour(true);
         }
-    }, []);
+    }, [location.pathname]);
 
     const completeTour = () => {
         setActiveStepIndex(-1);
@@ -142,7 +157,7 @@ const TourGuide = () => {
         <>
             {/* Dim Overlay - Closes or Advances when clicked everywhere */}
             <div
-                className="fixed inset-0 z-[9990] bg-black/60 backdrop-blur-sm transition-all duration-500 cursor-none"
+                className="fixed inset-0 z-[9990] bg-black/40 transition-all duration-500 cursor-none"
                 onClick={advanceTour}
             >
                 <div className="absolute inset-0 flex items-end justify-center pb-10 pointer-events-none">

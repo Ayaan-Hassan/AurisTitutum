@@ -645,9 +645,11 @@ const Habits = ({ habits, setHabits, logActivity }) => {
                     <Button
                       onClick={() => {
                         const n = countInputs[h.id];
-                        logActivity(h.id, true, n ? Number(n) : 1, h.unit || "");
+                        if (!n) return;
+                        logActivity(h.id, true, Number(n), h.unit || "");
                         setCountInputs((prev) => ({ ...prev, [h.id]: "" }));
                       }}
+                      disabled={!countInputs[h.id]}
                       variant="primary"
                       size="iconLg"
                       icon="plus"

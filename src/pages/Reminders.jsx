@@ -280,7 +280,7 @@ const Reminders = ({ reminders, setReminders }) => {
           <Button
             variant="primary"
             className="w-full sm:w-auto"
-            onClick={() => { window.location.href = '/login'; }}
+            onClick={() => { navigate('/login'); }}
           >
             Sign in to continue
           </Button>

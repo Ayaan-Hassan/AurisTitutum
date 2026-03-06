@@ -305,14 +305,6 @@ const Layout = ({
 
               {/* Contact Us at the bottom of navigation */}
               <div className="pt-2 border-t border-border-color">
-                <button
-                  id="tour-nav-ai-desktop"
-                  onClick={() => setAurisOpen(true)}
-                  className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium text-text-secondary hover:text-text-primary hover:bg-accent-dim transition-all"
-                >
-                  <Icon name="brain" size={16} />
-                  Auris AI
-                </button>
                 <Link
                   to="/app/contact"
                   onClick={() => setMobileNavOpen(false)}

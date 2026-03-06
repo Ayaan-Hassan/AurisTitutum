@@ -132,21 +132,25 @@ const DashboardUploadControl = ({ habit, logActivity }) => {
         </div>
       )}
       <div className="flex gap-2">
-        <button
+        <Button
           id="tour-camera-upload"
           onClick={openCamera}
-          className="flex-1 flex items-center justify-center gap-1 min-h-[40px] rounded-lg border border-accent/30 bg-bg-main text-accent hover:bg-accent/10 text-xs font-bold transition-all"
+          variant="outline"
+          size="sm"
+          icon="camera"
+          className="flex-1 min-h-[32px] rounded-lg"
         >
-          <Icon name="camera" size={14} />
           Capture
-        </button>
-        <button
+        </Button>
+        <Button
           onClick={() => { fileInputRef.current.removeAttribute("capture"); fileInputRef.current.click(); }}
-          className="flex items-center gap-1 px-2 py-1.5 rounded-lg border border-border-color bg-bg-main text-text-secondary hover:text-accent hover:border-accent text-[11px] font-bold transition-all"
+          variant="outline"
+          size="sm"
+          icon="image"
+          className="min-h-[32px] rounded-lg"
         >
-          <Icon name="image" size={12} />
           {photoCount > 0 ? `Photo (${photoCount})` : "Upload"}
-        </button>
+        </Button>
         <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleFile} />
       </div>
     </>
