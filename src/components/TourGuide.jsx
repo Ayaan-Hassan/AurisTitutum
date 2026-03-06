@@ -17,13 +17,6 @@ const DESKTOP_STEPS = [
         position: 'right'
     },
     {
-        targetId: 'tour-camera-upload',
-        title: 'Camera Upload',
-        text: 'This camera button lets you take a quick photo of what you just did to save as proof.',
-        position: 'top',
-        wait: 200
-    },
-    {
         targetId: 'tour-nav-bell',
         title: 'System Alerts',
         text: 'Check this bell for reminders and check-ins if you haven\'t recorded anything lately.',
@@ -45,16 +38,9 @@ const MOBILE_STEPS = [
         position: 'bottom'
     },
     {
-        targetId: 'tour-camera-upload',
-        title: 'Camera Upload',
-        text: 'This camera button lets you take a quick photo of what you just did to save as proof.',
-        position: 'top',
-        wait: 200
-    },
-    {
-        targetId: 'tour-nav-ai',
-        title: 'Auris AI Assistant',
-        text: 'Tap the brain icon to speak directly to the AI about your habits and progress.',
+        targetId: 'tour-nav-bell',
+        title: 'System Alerts',
+        text: 'Check this bell for reminders and check-ins if you haven\'t recorded anything lately.',
         position: 'bottom'
     },
     {
