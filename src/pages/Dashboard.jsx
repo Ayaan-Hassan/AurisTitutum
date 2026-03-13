@@ -271,47 +271,71 @@ const DayDetailPopup = ({ dateStr, habits, onClose }) => {
       <div className="fixed top-[-100px] bottom-[-100px] left-[-100px] right-[-100px] bg-black/60 backdrop-blur-md z-[120]" onClick={onClose} />
       <div className="fixed inset-0 z-[121] flex items-center justify-center p-4">
         <div
-          className="w-full max-w-md bg-bg-main border border-border-color rounded-3xl shadow-2xl overflow-hidden animate-in fade-in zoom-in-95"
+          className="w-full max-w-lg bg-bg-main border border-border-color rounded-[2rem] shadow-[0_32px_64px_-16px_rgba(0,0,0,0.6)] overflow-hidden animate-in slideUp fade-in"
           onClick={e => e.stopPropagation()}
         >
           {/* Header */}
-          <div className="flex items-center justify-between px-6 pt-6 pb-4 border-b border-border-color">
-            <div>
-              <p className="text-[9px] font-black uppercase tracking-[0.3em] text-text-secondary mb-0.5">Activity Log</p>
-              <h3 className="text-base font-bold text-text-primary">{formatted}</h3>
+          <div className="bg-accent-dim p-6 border-b border-border-color relative overflow-hidden">
+            <div className="absolute top-[-50px] right-[-50px] opacity-10 blur-3xl rounded-full bg-accent w-48 h-48 pointer-events-none" />
+            <div className="flex items-start justify-between relative z-10">
+              <div>
+                <p className="text-[10px] font-black uppercase tracking-[0.3em] text-accent mb-2 flex items-center gap-2">
+                   <Icon name="calendar" size={12} /> Activity Log
+                </p>
+                <h3 className="text-xl sm:text-2xl font-bold text-text-primary mb-3 tracking-tight">{formatted}</h3>
+                <div className="flex gap-4">
+                  <div className="flex items-center gap-1.5">
+                    <div className="w-2.5 h-2.5 rounded-full bg-success"></div>
+                    <span className="text-[10px] font-mono font-bold text-text-secondary uppercase tracking-widest">{entries.filter(e => e.type === "Good").length} Constructive</span>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <div className="w-2.5 h-2.5 rounded-full bg-danger"></div>
+                    <span className="text-[10px] font-mono font-bold text-text-secondary uppercase tracking-widest">{entries.filter(e => e.type === "Bad").length} Destructive</span>
+                  </div>
+                </div>
+              </div>
+              <button onClick={onClose} className="w-9 h-9 rounded-xl border border-white/10 bg-white/5 flex items-center justify-center text-text-secondary hover:text-text-primary hover:bg-white/10 transition-all shadow-sm">
+                <Icon name="x" size={16} />
+              </button>
             </div>
-            <button onClick={onClose} className="w-8 h-8 rounded-xl border border-border-color flex items-center justify-center text-text-secondary hover:text-text-primary transition-all">
-              <Icon name="x" size={15} />
-            </button>
           </div>
 
           {/* Entries */}
-          <div className="overflow-y-auto custom-scrollbar max-h-[55vh] p-4 space-y-2">
+          <div className="overflow-y-auto custom-scrollbar max-h-[55vh] p-6 relative">
+            <div className="absolute left-[44px] top-8 bottom-8 w-px bg-border-color z-0"></div>
             {entries.length === 0 ? (
-              <div className="py-12 text-center text-sm text-text-secondary">No activity logged on this day.</div>
+              <div className="py-16 flex flex-col items-center justify-center text-center text-text-secondary gap-4">
+                 <Icon name="inbox" size={32} className="opacity-30" />
+                 <p className="text-sm font-medium">No activity logged on this day.</p>
+              </div>
             ) : entries.map((e, i) => (
-              <div key={i} className={`flex items-center gap-3 p-3 rounded-xl border ${e.type === "Good" ? "border-success/20 bg-success/5" : "border-danger/20 bg-danger/5"}`}>
-                <div className={`w-7 h-7 rounded-lg border flex items-center justify-center shrink-0 text-xs font-bold ${e.type === "Good" ? "border-success/30 bg-success/10 text-success" : "border-danger/30 bg-danger/10 text-danger"}`}>
+              <div key={i} className="flex gap-4 mb-5 relative z-10 group">
+                <div className={`w-10 h-10 rounded-2xl border-2 flex items-center justify-center shrink-0 z-10 bg-bg-main shadow-lg transition-transform group-hover:scale-110 ${e.type === "Good" ? "border-success text-success" : "border-danger text-danger"}`}>
                   {e.emoji ? (
-                    <span style={{ filter: "grayscale(1) brightness(1.2)", fontSize: "0.75rem" }}>{e.emoji}</span>
-                  ) : (e.type === "Good" ? "+" : "−")}
+                    <span style={{ filter: "grayscale(1) brightness(1.2)", fontSize: "1.1rem" }}>{e.emoji}</span>
+                  ) : (e.type === "Good" ? <Icon name="check" size={18}/> : <Icon name="x" size={18}/>)}
                 </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-xs font-bold text-text-primary truncate">{e.habit}</p>
-                  <p className="text-[10px] font-mono text-text-secondary">{e.time ? `${e.time} · ` : ""}{e.display}</p>
+                <div className={`flex-1 min-w-0 p-4 rounded-2xl border transition-all shadow-sm ${e.type === "Good" ? "bg-success/5 border-success/20 hover:border-success/40 hover:bg-success/10" : "bg-danger/5 border-danger/20 hover:border-danger/40 hover:bg-danger/10"}`}>
+                  <div className="flex items-start justify-between gap-3 mb-1">
+                    <p className="text-sm font-bold text-text-primary truncate">{e.habit}</p>
+                    {e.time && <span className="text-[10px] font-mono font-bold text-text-secondary px-2 py-0.5 rounded-md bg-black/20 shrink-0">{e.time}</span>}
+                  </div>
+                  <div className="flex items-center gap-2 mt-2">
+                    <p className="text-xs font-mono font-medium text-text-secondary">{e.display}</p>
+                    {e.isPhoto && e.photoUrl && (
+                      <img src={e.photoUrl} alt="photo" className="w-14 h-14 ml-auto rounded-lg object-cover border border-white/10 shadow-md transform transition-all group-hover:scale-105 origin-right" />
+                    )}
+                  </div>
                 </div>
-                {e.isPhoto && e.photoUrl && (
-                  <img src={e.photoUrl} alt="photo" className="w-10 h-10 rounded-lg object-cover border border-border-color shrink-0" />
-                )}
               </div>
             ))}
           </div>
 
           {/* Summary */}
           {entries.length > 0 && (
-            <div className="px-6 py-4 border-t border-border-color">
-              <p className="text-[10px] text-text-secondary font-mono uppercase tracking-wider">
-                {entries.length} {entries.length === 1 ? "entry" : "entries"} · {[...new Set(entries.map(e => e.habit))].length} habit{[...new Set(entries.map(e => e.habit))].length !== 1 ? "s" : ""}
+            <div className="px-6 py-5 border-t border-border-color bg-bg-main">
+              <p className="text-[10px] text-text-secondary font-mono uppercase tracking-[0.2em]">
+                {entries.length} {entries.length === 1 ? "entry" : "entries"} across {[...new Set(entries.map(e => e.habit))].length} habit{[...new Set(entries.map(e => e.habit))].length !== 1 ? "s" : ""}
               </p>
             </div>
           )}
@@ -367,18 +391,30 @@ const Dashboard = ({ habits, logActivity, insights }) => {
 
   const habitListHeight = Math.min(Math.max(habits.length, 2) * 52 + 24, 400);
 
-  const loggedDates = useMemo(() => {
-    const set = new Set();
-    (habits || []).filter((h) => h.type === "Good").forEach((h) => (h.logs || []).forEach((d) => set.add(d.date)));
-    return set;
+  const dailyColors = useMemo(() => {
+    const colors = {};
+    (habits || []).forEach((h) => {
+      (h.logs || []).forEach((d) => {
+        if ((d.entries || []).length > 0) {
+          const type = h.type; // "Good" or "Bad"
+          if (!colors[d.date]) {
+            colors[d.date] = type === "Good" ? "green" : "red";
+          } else {
+            if ((colors[d.date] === "green" && type === "Bad") || (colors[d.date] === "red" && type === "Good")) {
+              colors[d.date] = "white"; // mixed
+            }
+          }
+        }
+      });
+    });
+    return colors;
   }, [habits]);
 
-  // Dates that have ANY log (good or bad)
   const anyActivityDates = useMemo(() => {
     const set = new Set();
-    (habits || []).forEach((h) => (h.logs || []).forEach((d) => { if ((d.entries || []).length > 0) set.add(d.date); }));
+    Object.keys(dailyColors).forEach(k => set.add(k));
     return set;
-  }, [habits]);
+  }, [dailyColors]);
 
   const calendarDays = useMemo(() => {
     const y = calendarMonth.getFullYear();
@@ -464,9 +500,25 @@ const Dashboard = ({ habits, logActivity, insights }) => {
             {habits.map((h) => {
               const checkedToday = (h.logs || []).some((l) => l.date === todayKey && l.count > 0);
               const isGood = h.type === "Good";
+              
+              const weeklyLogs = Array.from({ length: 7 }).map((_, i) => {
+                const d = new Date();
+                d.setDate(d.getDate() - (6 - i));
+                const dateStr = getLocalDateKey(d);
+                return (h.logs || []).some(l => l.date === dateStr && l.count > 0);
+              });
+              const weeklyTotal = weeklyLogs.filter(Boolean).length;
+              const weeklyProgress = (weeklyTotal / 7) * 100;
+              const isFull = weeklyTotal === 7;
+
               return (
-                <div key={h.id} className="flex items-center justify-between p-3 bg-accent-dim border border-border-color rounded-xl group transition-all hover:border-text-secondary">
-                  <div className="flex items-center gap-3 min-w-0">
+                <div key={h.id} className="relative flex items-center justify-between p-3 bg-accent-dim border border-border-color rounded-xl group transition-all hover:border-text-secondary overflow-hidden">
+                  <div className={`absolute left-0 top-0 bottom-0 z-0 transition-[width] duration-1000 ease-out flex items-start overflow-hidden ${isGood ? "bg-success/10" : "bg-danger/10"}`} style={{ width: `${weeklyProgress}%` }}>
+                      {isFull && (
+                        <div className={`w-[200%] h-4 absolute top-[-5px] left-0 animate-wave rounded-[50%] ${isGood ? "bg-success/20" : "bg-danger/20"}`} />
+                      )}
+                  </div>
+                  <div className="flex items-center gap-3 min-w-0 relative z-10">
                     <div className={`w-7 h-7 rounded-lg shrink-0 flex items-center justify-center border ${isGood ? "bg-accent/10 border-accent/30" : "bg-bg-main border-border-color"}`}>
                       {h.emoji ? (
                         <span className="leading-none" style={{ filter: "grayscale(1) saturate(0) brightness(1.2)", fontSize: "0.8rem" }}>
@@ -483,7 +535,7 @@ const Dashboard = ({ habits, logActivity, insights }) => {
                       </div>
                     </div>
                   </div>
-                  <div className="flex items-center gap-1.5 shrink-0 ml-2">
+                  <div className="flex items-center gap-1.5 shrink-0 ml-2 relative z-10">
                     <Button onClick={() => setPerformanceTarget(h.id)} size="sm" variant="outline" icon="bar-chart-2" className="bg-bg-main rounded-lg w-8 h-8 p-0" title="Habit performance" />
 
                     {h.mode === "timer" ? (
@@ -598,7 +650,7 @@ const Dashboard = ({ habits, logActivity, insights }) => {
 
       {/* Activity Calendar */}
       <Card className="p-4 sm:p-6 overflow-hidden hover:translate-y-0 hover:shadow-none hover:border-border-color">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
+        <div className="flex flex-col items-center sm:flex-row sm:items-center sm:justify-between gap-3 mb-4 text-center sm:text-left">
           <h4 className="text-[10px] sm:text-xs font-bold uppercase tracking-[0.2em] text-text-secondary">Activity Calendar</h4>
           <div className="flex items-center gap-2">
             <button
@@ -631,25 +683,30 @@ const Dashboard = ({ habits, logActivity, insights }) => {
         {/* Day cells */}
         <div className="grid grid-cols-7 gap-1">
           {calendarDays.map((dateStr, i) => {
-            const hasGood = dateStr && loggedDates.has(dateStr);
-            const hasAny = dateStr && anyActivityDates.has(dateStr);
+            const color = dateStr ? dailyColors[dateStr] : null;
+            const hasGood = color === "green";
+            const hasBad = color === "red";
+            const hasMixed = color === "white";
+            const hasAny = !!color;
             const isToday = dateStr === todayKey;
             const dayNum = dateStr ? new Date(dateStr + "T12:00:00").getDate() : "";
 
-            const cellClass = [
-              "aspect-square rounded-lg flex items-center justify-center text-[10px] sm:text-[11px] font-mono transition-all",
-              !dateStr
-                ? "invisible"
-                : isToday && hasGood
-                  ? "bg-accent text-bg-main border border-accent shadow-sm cursor-pointer hover:opacity-90"
-                  : isToday
-                    ? "bg-bg-main/80 border-2 border-accent/60 text-accent"
-                    : hasGood
-                      ? "bg-black dark:bg-white text-white dark:text-bg-main border border-black dark:border-white shadow-sm cursor-pointer hover:opacity-80"
-                      : hasAny
-                        ? "bg-bg-main/50 border border-border-color text-text-secondary cursor-pointer hover:border-text-secondary"
-                        : "bg-bg-main/50 border border-border-color text-text-secondary",
-            ].join(" ");
+            let themeClass = "bg-bg-main/50 border border-border-color text-text-secondary";
+            if (dateStr) {
+               if (isToday) {
+                 if (hasGood) themeClass = "bg-[#4ade80] text-black border border-[#4ade80] shadow-sm cursor-pointer hover:opacity-90";
+                 else if (hasBad) themeClass = "bg-[#ef4444] text-white border border-[#ef4444] shadow-sm cursor-pointer hover:opacity-90";
+                 else if (hasMixed) themeClass = "bg-black dark:bg-white text-white dark:text-bg-main border border-black dark:border-white shadow-sm cursor-pointer hover:opacity-90";
+                 else themeClass = "bg-bg-main/80 border-2 border-accent/60 text-accent";
+               } else {
+                 if (hasGood) themeClass = "bg-[#4ade80] text-black border border-[#4ade80] shadow-sm cursor-pointer hover:opacity-80";
+                 else if (hasBad) themeClass = "bg-[#ef4444] text-white border border-[#ef4444] shadow-sm cursor-pointer hover:opacity-80";
+                 else if (hasMixed) themeClass = "bg-black dark:bg-white text-white dark:text-bg-main border border-black dark:border-white shadow-sm cursor-pointer hover:opacity-80";
+                 else themeClass = "bg-bg-main/50 border border-border-color text-text-secondary hover:border-text-secondary";
+               }
+            }
+
+            const cellClass = `aspect-square rounded-lg flex items-center justify-center text-[10px] sm:text-[11px] font-mono transition-all ${!dateStr ? "invisible" : themeClass}`;
 
             return (
               <div

@@ -56,6 +56,29 @@ const getCalendarDays = (monthDate) => {
   return days;
 };
 
+const AnimatedNumber = ({ value }) => {
+  const [display, setDisplay] = useState(0);
+  useEffect(() => {
+    let start = 0;
+    const duration = 1000;
+    const increment = value === 0 ? 0 : value / (duration / 16);
+    if (value === 0) {
+      setDisplay(0);
+      return;
+    }
+    const timer = setInterval(() => {
+      start += increment;
+      if ((increment > 0 && start >= value) || (increment < 0 && start <= value)) {
+        start = value;
+        clearInterval(timer);
+      }
+      setDisplay(Math.round(start));
+    }, 16);
+    return () => clearInterval(timer);
+  }, [value]);
+  return <>{display}</>;
+};
+
 const HabitPerformanceModal = ({ open, habit, onClose }) => {
   const [calendarMonth, setCalendarMonth] = useState(() => new Date());
   const [chartType, setChartType] = useState("bar");
@@ -91,6 +114,15 @@ const HabitPerformanceModal = ({ open, habit, onClose }) => {
       if (activeDateSet.has(getDateKey(d))) activeIn30 += 1;
     }
 
+    const weeklyLogs = Array.from({ length: 7 }).map((_, i) => {
+      const d = new Date();
+      d.setDate(d.getDate() - (6 - i));
+      const dateStr = getDateKey(d);
+      return activeDateSet.has(dateStr);
+    });
+    const weeklyTotal = weeklyLogs.filter(Boolean).length;
+    const weeklyProgress = (weeklyTotal / 7) * 100;
+
     return {
       activeDateSet,
       currentStreak,
@@ -100,6 +132,7 @@ const HabitPerformanceModal = ({ open, habit, onClose }) => {
       activeDays,
       lastDate,
       consistency30: Math.round((activeIn30 / 30) * 100),
+      weeklyProgress
     };
   }, [habit]);
 
@@ -167,7 +200,7 @@ const HabitPerformanceModal = ({ open, habit, onClose }) => {
                 {isBad ? "Negative streak" : "Current streak"}
               </p>
               <p className={`text-xl font-mono font-bold mt-1 ${isBad ? "text-danger" : "text-success"}`}>
-                {metrics.signedCurrentStreak}
+                <AnimatedNumber value={metrics.signedCurrentStreak} />
               </p>
             </div>
             <div className="rounded-xl border border-border-color bg-accent-dim p-3">
@@ -175,7 +208,7 @@ const HabitPerformanceModal = ({ open, habit, onClose }) => {
                 Longest streak
               </p>
               <p className="text-xl font-mono font-bold text-text-primary mt-1">
-                {metrics.longestStreak}
+                <AnimatedNumber value={metrics.longestStreak} />
               </p>
             </div>
             <div className="rounded-xl border border-border-color bg-accent-dim p-3">
@@ -183,7 +216,7 @@ const HabitPerformanceModal = ({ open, habit, onClose }) => {
                 Active days
               </p>
               <p className="text-xl font-mono font-bold text-text-primary mt-1">
-                {metrics.activeDays}
+                <AnimatedNumber value={metrics.activeDays} />
               </p>
             </div>
             <div className="rounded-xl border border-border-color bg-accent-dim p-3">
@@ -191,9 +224,23 @@ const HabitPerformanceModal = ({ open, habit, onClose }) => {
                 30d consistency
               </p>
               <p className="text-xl font-mono font-bold text-text-primary mt-1">
-                {metrics.consistency30}%
+                <AnimatedNumber value={metrics.consistency30} />%
               </p>
             </div>
+          </div>
+
+          {/* Weekly Streak Progress Bar */}
+          <div className="mb-6 space-y-2 relative z-10 w-full">
+             <div className="flex justify-between items-center text-[10px] font-black uppercase tracking-[0.25em] text-text-secondary">
+               <span>Weekly streak</span>
+               <span>{metrics.weeklyProgress.toFixed(0)}%</span>
+             </div>
+             <div className="w-full bg-border-color rounded-full h-3 overflow-hidden relative">
+               <div
+                  className={`h-full transition-[width] duration-1000 ease-out flex items-center justify-end pr-2 ${isBad ? "bg-danger" : "bg-success"}`}
+                  style={{ width: `${metrics.weeklyProgress}%` }}
+               />
+             </div>
           </div>
 
           {/* Analytics Chart */}

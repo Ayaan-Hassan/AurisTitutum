@@ -227,6 +227,7 @@ const Reminders = ({ reminders, setReminders }) => {
   const [editTarget, setEditTarget] = useState(null); // reminder object being edited
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [notifPermission, setNotifPermission] = useState("default");
+  const [featureLockOpen, setFeatureLockOpen] = useState(false);
 
   useEffect(() => {
     if (typeof Notification !== "undefined") setNotifPermission(Notification.permission);
@@ -255,40 +256,6 @@ const Reminders = ({ reminders, setReminders }) => {
     return cleanup;
   }, [reminders, notifPermission, user]);
 
-  if (!user) {
-    return (
-      <div className="page-fade space-y-6 pb-20">
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-          <div>
-            <h2 className="text-2xl font-bold tracking-tighter text-text-primary">Reminders</h2>
-            <p className="text-text-secondary text-xs mt-1">
-              Push notifications and exact scheduling require an account.
-            </p>
-          </div>
-        </div>
-        <Card className="p-8 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6 hover:translate-y-0 hover:shadow-none hover:border-border-color">
-          <div className="flex items-center gap-4">
-            <div className="w-12 h-12 rounded-xl bg-accent-dim border border-border-color flex items-center justify-center">
-              <Icon name="bell" size={24} className="text-accent" />
-            </div>
-            <div>
-              <h3 className="text-sm font-bold text-text-primary">Sign in to unlock Reminders</h3>
-              <p className="text-xs text-text-secondary mt-1 max-w-sm">
-                Schedule exact dates and times, create recurring alerts, and receive cross-device push notifications.
-              </p>
-            </div>
-          </div>
-          <Button
-            variant="primary"
-            className="w-full sm:w-auto"
-            onClick={() => { navigate('/login'); }}
-          >
-            Sign in to continue
-          </Button>
-        </Card>
-      </div>
-    );
-  }
 
   const handleAdd = async (data) => {
     const reminder = {
@@ -352,7 +319,15 @@ const Reminders = ({ reminders, setReminders }) => {
           <p className="text-text-secondary text-sm mt-1">Schedule time-based alerts and receive notifications when it matters.</p>
         </div>
         <button
-          onClick={() => { setShowAdd((v) => !v); setEditTarget(null); }}
+          onClick={() => {
+             if (showAdd) {
+                 setShowAdd(false); setEditTarget(null);
+             } else if (!user && reminders.length >= 2) {
+                 setFeatureLockOpen(true);
+             } else {
+                 setShowAdd(true); setEditTarget(null);
+             }
+          }}
           className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-accent text-bg-main text-[11px] font-black uppercase tracking-[0.25em] hover:opacity-90 hover:scale-105 active:scale-95 transition-all h-10"
         >
           <Icon name={showAdd ? "x" : "plus"} size={14} />
@@ -442,7 +417,13 @@ const Reminders = ({ reminders, setReminders }) => {
             Create a reminder and get notified at exactly the right time — inside the app and via your browser.
           </p>
           <button
-            onClick={() => setShowAdd(true)}
+            onClick={() => {
+               if (!user && reminders.length >= 2) {
+                   setFeatureLockOpen(true);
+               } else {
+                   setShowAdd(true);
+               }
+            }}
             className="px-6 py-2.5 rounded-xl bg-accent text-bg-main text-[10px] font-black uppercase tracking-[0.25em] hover:opacity-90 hover:scale-105 active:scale-95 transition-all"
           >
             Create First Reminder
@@ -459,6 +440,18 @@ const Reminders = ({ reminders, setReminders }) => {
         variant="danger"
         onConfirm={confirmDelete}
         onCancel={() => setDeleteTarget(null)}
+      />
+      <ConfirmModal
+        open={featureLockOpen}
+        title="Sign in required"
+        message="Sign in to create more than 2 reminders and unlock push notifications."
+        confirmLabel="Sign in"
+        variant="primary"
+        onConfirm={() => {
+          setFeatureLockOpen(false);
+          window.location.href = '/login';
+        }}
+        onCancel={() => setFeatureLockOpen(false)}
       />
     </div>
   );

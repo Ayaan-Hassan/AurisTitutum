@@ -287,21 +287,136 @@ const UploadControl = ({ habit, logActivity, onViewGallery }) => {
   );
 };
 
+const CompareView = ({ firstImg, latestImg, onClose }) => {
+  const [sliderPos, setSliderPos] = useState(50);
+  const containerRef = useRef(null);
+  const [width, setWidth] = useState(0);
+
+  useEffect(() => {
+    if (containerRef.current) setWidth(containerRef.current.offsetWidth);
+    const handleResize = () => {
+      if (containerRef.current) setWidth(containerRef.current.offsetWidth);
+    };
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
+
+  return (
+    <div className="fixed inset-0 z-[150] bg-black/95 backdrop-blur-3xl flex flex-col items-center justify-center p-4">
+      <div className="absolute top-6 left-1/2 -translate-x-1/2 bg-white/10 backdrop-blur-md px-6 py-3 rounded-full flex items-center gap-8 z-[160] shadow-2xl border border-white/20">
+         <span className="text-[10px] font-bold tracking-widest uppercase text-white/50">First Log</span>
+         <span className="text-[10px] font-bold tracking-widest uppercase text-accent">Latest Log</span>
+      </div>
+      <button
+        onClick={onClose}
+        className="absolute top-6 right-6 w-12 h-12 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center backdrop-blur-md transition-all z-[160]"
+      >
+        <Icon name="x" size={24} />
+      </button>
+
+      <div 
+         ref={containerRef}
+         className="w-full max-w-4xl aspect-video relative rounded-2xl overflow-hidden shadow-2xl bg-black select-none touch-none"
+         onMouseMove={(e) => {
+            if (e.buttons === 1 && containerRef.current) {
+               const rect = containerRef.current.getBoundingClientRect();
+               const x = Math.max(0, Math.min(e.clientX - rect.left, rect.width));
+               setSliderPos((x / rect.width) * 100);
+            }
+         }}
+         onTouchMove={(e) => {
+            if (containerRef.current) {
+               const rect = containerRef.current.getBoundingClientRect();
+               const touch = e.touches[0];
+               const x = Math.max(0, Math.min(touch.clientX - rect.left, rect.width));
+               setSliderPos((x / rect.width) * 100);
+            }
+         }}
+      >
+        <div className="absolute inset-0 bg-cover bg-center pointer-events-none" style={{ backgroundImage: `url(${latestImg})` }} />
+        
+        <div 
+          className="absolute inset-y-0 left-0 overflow-hidden pointer-events-none border-r-4 border-white shadow-[2px_0_20px_rgba(0,0,0,0.8)]"
+          style={{ width: `${sliderPos}%` }}
+        >
+          <div className="absolute inset-y-0 left-0 bg-cover bg-center" style={{ backgroundImage: `url(${firstImg})`, width: width ? `${width}px` : '100vw' }} />
+        </div>
+
+        <div 
+           className="absolute inset-y-0 flex items-center justify-center pointer-events-none -translate-x-1/2"
+           style={{ left: `${sliderPos}%` }}
+        >
+           <div className="w-8 h-8 bg-white rounded-full flex items-center justify-center shadow-lg text-black">
+             <Icon name="code" size={16} className="rotate-90" />
+           </div>
+        </div>
+      </div>
+      <p className="text-white/50 mt-6 text-xs uppercase tracking-widest animate-pulse">Drag or swipe to compare</p>
+    </div>
+  );
+};
+
+const SlideshowView = ({ photos, onClose }) => {
+  const [index, setIndex] = useState(0);
+
+  useEffect(() => {
+    if (photos.length <= 1) return;
+    const timer = setInterval(() => {
+      setIndex((prev) => (prev + 1) % photos.length);
+    }, 2500);
+    return () => clearInterval(timer);
+  }, [photos]);
+
+  return (
+    <div className="fixed inset-0 z-[150] bg-black/95 backdrop-blur-3xl flex flex-col items-center justify-center p-4">
+      <button
+        onClick={onClose}
+        className="absolute top-6 right-6 w-12 h-12 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center backdrop-blur-md transition-all z-[160]"
+      >
+        <Icon name="x" size={24} />
+      </button>
+
+      <div className="absolute top-6 left-6 z-[160]">
+        <p className="text-[10px] font-black tracking-[0.3em] uppercase text-white/50 mb-1">Slideshow</p>
+        <p className="text-white font-mono font-bold">{index + 1} / {photos.length}</p>
+        <p className="text-[10px] text-white/50">{photos[index].date}</p>
+      </div>
+
+      <img
+        key={index}
+        src={photos[index].img}
+        alt="Slideshow log"
+        className="max-w-full max-h-[85vh] rounded-xl object-contain shadow-2xl transition-all duration-500 animate-in zoom-in-95"
+      />
+      <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex items-center gap-2 z-[160]">
+         {photos.map((_, i) => (
+            <div key={i} className={`w-2 h-2 rounded-full transition-all duration-300 ${i === index ? 'bg-white scale-125' : 'bg-white/30'}`} />
+         ))}
+      </div>
+    </div>
+  );
+};
+
 // ─── Gallery Modal ────────────────────────────────────────────────────────────
 const GalleryModal = ({ open, habit, onClose, setHabits }) => {
   const [zoomedImg, setZoomedImg] = useState(null);
+  const [mode, setMode] = useState("grid"); // "grid", "slideshow", "compare"
 
   useEffect(() => {
-    if (!open) return;
+    if (!open) {
+      setMode("grid");
+      return;
+    }
     const onEsc = (e) => {
       if (e.key === "Escape") {
-        if (zoomedImg) setZoomedImg(null);
+        if (mode !== "grid") setMode("grid");
+        else if (zoomedImg) setZoomedImg(null);
         else onClose?.();
       }
     };
     document.addEventListener("keydown", onEsc);
     return () => document.removeEventListener("keydown", onEsc);
-  }, [open, onClose, zoomedImg]);
+  }, [open, onClose, zoomedImg, mode]);
 
   if (!open || !habit) return null;
 
@@ -310,6 +425,9 @@ const GalleryModal = ({ open, habit, onClose, setHabits }) => {
       .filter((e) => typeof e === "string" && e.startsWith("data:image"))
       .map((img) => ({ date: l.date, img }))
   ).reverse();
+
+  const latestImg = photoLogs[0]?.img;
+  const firstImg = photoLogs[photoLogs.length - 1]?.img;
 
   const handleDelete = (entryImg) => {
     setHabits?.((prev) => prev.map((h) => {
@@ -323,53 +441,90 @@ const GalleryModal = ({ open, habit, onClose, setHabits }) => {
     }));
   };
 
+  if (mode === "compare" && firstImg && latestImg) {
+    return <CompareView firstImg={firstImg} latestImg={latestImg} onClose={() => setMode("grid")} />;
+  }
+
+  if (mode === "slideshow" && photoLogs.length > 0) {
+    return <SlideshowView photos={[...photoLogs].reverse()} onClose={() => setMode("grid")} />;
+  }
+
   return (
     <>
       <div className="fixed inset-0 bg-black/70 backdrop-blur-md z-[130]" onClick={onClose} />
       <div className="fixed inset-0 z-[131] p-4 flex items-center justify-center">
         <div
-          className="w-full max-w-2xl max-h-[90vh] overflow-y-auto custom-scrollbar rounded-3xl border border-border-color bg-bg-main shadow-2xl p-6"
+          className="w-full max-w-4xl max-h-[90vh] flex flex-col overflow-hidden rounded-[2rem] border border-border-color bg-bg-main shadow-[0_32px_64px_-16px_rgba(0,0,0,0.6)] animate-in zoom-in-95 fade-in"
           onClick={(e) => e.stopPropagation()}
         >
-          <div className="flex items-center justify-between mb-6">
-            <div>
-              <p className="text-[10px] font-black uppercase tracking-[0.3em] text-text-secondary mb-1">Upload Gallery</p>
-              <h3 className="text-xl font-bold text-text-primary">{habit.name}</h3>
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-6 sm:p-8 bg-accent-dim border-b border-border-color relative">
+            <div className="absolute top-0 right-0 opacity-10 blur-3xl w-48 h-48 bg-accent rounded-full pointer-events-none" />
+            <div className="relative z-10 mb-4 sm:mb-0">
+              <p className="text-[10px] font-black uppercase tracking-[0.3em] text-accent flex items-center gap-2 mb-2"><Icon name="image" size={14}/> Upload Gallery</p>
+              <h3 className="text-2xl font-bold text-text-primary mb-1 tracking-tight">{habit.name}</h3>
+              <p className="text-xs text-text-secondary font-mono bg-bg-main/50 inline-block px-2 py-1 rounded-md">{photoLogs.length} Total Captured</p>
             </div>
-            <button onClick={onClose} className="w-9 h-9 rounded-xl border border-border-color flex items-center justify-center text-text-secondary hover:text-text-primary">
-              <Icon name="x" size={16} />
-            </button>
+            <div className="flex items-center gap-3 relative z-10 w-full sm:w-auto overflow-x-auto pb-2 sm:pb-0">
+               <Button
+                 disabled={photoLogs.length < 2}
+                 onClick={() => setMode("compare")}
+                 variant="outline"
+                 icon="sliders"
+                 className="whitespace-nowrap rounded-xl text-xs uppercase tracking-widest font-bold bg-bg-main/50"
+               >
+                 Compare First / Last
+               </Button>
+               <Button
+                 disabled={photoLogs.length < 1}
+                 onClick={() => setMode("slideshow")}
+                 variant="primary"
+                 icon="play"
+                 className="whitespace-nowrap rounded-xl text-xs uppercase tracking-widest font-bold shrink-0"
+               >
+                 Slideshow
+               </Button>
+               <button onClick={onClose} className="w-10 h-10 shrink-0 rounded-xl border border-white/10 bg-white/5 flex items-center justify-center text-text-secondary hover:text-text-primary hover:bg-white/10 transition-all ml-auto sm:ml-2">
+                 <Icon name="x" size={16} />
+               </button>
+            </div>
           </div>
-          {photoLogs.length === 0 ? (
-            <div className="text-center py-16 text-text-secondary text-sm">No photos uploaded yet.</div>
-          ) : (
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-              {photoLogs.map((entry, idx) => (
-                <div key={idx} className="group relative rounded-2xl overflow-hidden border border-border-color aspect-square bg-bg-sidebar cursor-pointer" onClick={() => setZoomedImg(entry.img)}>
-                  <img src={entry.img} alt={`Log ${idx + 1}`} className="w-full h-full object-cover transition-transform group-hover:scale-105" />
-                  <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-2 flex items-center justify-between">
-                    <p className="text-[9px] text-white/80 font-mono">{entry.date}</p>
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleDelete(entry.img);
-                      }}
-                      className="w-6 h-6 rounded-lg bg-red-500/80 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-500"
-                      title="Delete photo"
-                    >
-                      <Icon name="trash" size={11} className="text-white" />
-                    </button>
+
+          <div className="overflow-y-auto custom-scrollbar p-6 sm:p-8 flex-1">
+            {photoLogs.length === 0 ? (
+              <div className="text-center py-24 flex flex-col items-center justify-center">
+                 <Icon name="camera-off" size={48} className="text-text-secondary/30 mb-4" />
+                 <p className="text-sm font-medium text-text-secondary uppercase tracking-widest">No visual logs recorded yet</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                {photoLogs.map((entry, idx) => (
+                  <div key={idx} className="group relative rounded-2xl overflow-hidden border-2 border-border-color aspect-square bg-bg-sidebar cursor-pointer hover:border-accent transition-all hover:shadow-[0_8px_30px_rgba(255,255,255,0.1)] hover:-translate-y-1" onClick={() => setZoomedImg(entry.img)}>
+                    <img src={entry.img} alt={`Log ${idx + 1}`} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                    <div className="absolute inset-x-0 bottom-0 p-3 flex items-end justify-between translate-y-2 group-hover:translate-y-0 opacity-0 group-hover:opacity-100 transition-all duration-300">
+                      <p className="text-[10px] text-white font-mono font-bold tracking-wider">{entry.date}</p>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDelete(entry.img);
+                        }}
+                        className="w-8 h-8 rounded-xl bg-red-500/90 flex items-center justify-center transition-all hover:bg-red-500 hover:scale-110 text-white"
+                        title="Delete photo"
+                      >
+                        <Icon name="trash" size={14} />
+                      </button>
+                    </div>
                   </div>
-                </div>
-              ))}
-            </div>
-          )}
+                ))}
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
       {/* Fullscreen Image Zoom Overlay */}
       {zoomedImg && (
-        <div className="fixed inset-0 z-[150] bg-black/90 backdrop-blur-xl flex flex-col items-center justify-center p-4 animate-in fade-in duration-200" onClick={() => setZoomedImg(null)}>
+        <div className="fixed inset-0 z-[150] bg-black/95 backdrop-blur-3xl flex flex-col items-center justify-center p-4 animate-in fade-in duration-200" onClick={() => setZoomedImg(null)}>
           <button
             onClick={() => setZoomedImg(null)}
             className="absolute top-6 right-6 w-12 h-12 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center backdrop-blur-md transition-all z-[160]"
@@ -379,7 +534,7 @@ const GalleryModal = ({ open, habit, onClose, setHabits }) => {
           <img
             src={zoomedImg}
             alt="Zoomed log"
-            className="max-w-full max-h-[85vh] rounded-xl object-contain shadow-2xl transition-transform"
+            className="max-w-[95vw] max-h-[90vh] rounded-2xl object-contain shadow-2xl transition-transform"
             onClick={(e) => e.stopPropagation()}
           />
         </div>
@@ -418,13 +573,28 @@ const Habits = ({ habits, setHabits, logActivity }) => {
           const isCheckMode = h.mode === "check";
           const isGood = h.type === "Good";
 
+          const weeklyLogs = Array.from({ length: 7 }).map((_, i) => {
+            const d = new Date();
+            d.setDate(d.getDate() - (6 - i));
+            const dateStr = getLocalDateKey(d);
+            return (h.logs || []).some((l) => l.date === dateStr && l.count > 0);
+          });
+          const weeklyTotal = weeklyLogs.filter(Boolean).length;
+          const weeklyProgress = (weeklyTotal / 7) * 100;
+          const isFull = weeklyTotal === 7;
+
           return (
             <Card
               key={h.id}
               className="flex flex-col justify-between relative overflow-hidden"
             >
+              <div className={`absolute left-0 top-0 bottom-0 z-0 transition-[width] duration-1000 ease-out flex items-start overflow-hidden ${isGood ? "bg-success/5" : "bg-danger/5"}`} style={{ width: `${weeklyProgress}%` }}>
+                  {isFull && (
+                    <div className={`w-[200%] h-8 absolute top-[-10px] left-0 animate-wave rounded-[50%] ${isGood ? "bg-success/10" : "bg-danger/10"}`} />
+                  )}
+              </div>
               {/* Action buttons */}
-              <div className="absolute top-0 right-0 p-6 flex gap-2">
+              <div className="absolute top-0 right-0 p-6 flex gap-2 z-10">
                 <Button
                   onClick={() => setPerformanceTarget(h.id)}
                   variant="outline"
@@ -449,7 +619,7 @@ const Habits = ({ habits, setHabits, logActivity }) => {
               </div>
 
               {/* Habit Header */}
-              <div className="mb-8">
+              <div className="mb-8 relative z-10">
                 {/* Icon / Emoji Box */}
                 {h.emoji ? (
                   <div
@@ -518,7 +688,7 @@ const Habits = ({ habits, setHabits, logActivity }) => {
               </div>
 
               {/* Recent Activity — Last 7 Days */}
-              <div className="mb-8">
+              <div className="mb-8 relative z-10">
                 <p className="text-[9px] font-black text-text-secondary uppercase tracking-widest mb-3">
                   Recent Activity (Last 7 Days)
                 </p>
@@ -611,7 +781,7 @@ const Habits = ({ habits, setHabits, logActivity }) => {
               </div>
 
               {/* Log Action Controls */}
-              <div className="pt-6 border-t border-border-color flex items-center justify-between gap-2 flex-wrap">
+              <div className="pt-6 border-t border-border-color flex items-center justify-between gap-2 flex-wrap relative z-10">
                 {h.mode === "timer" ? (
                   <TimerControl habitId={h.id} logActivity={logActivity} />
                 ) : h.mode === "count" ? (

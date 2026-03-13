@@ -437,3 +437,13 @@ button:hover:not(:disabled),
 .node-grid-dot.active-bad {
   background: var(--text-secondary);
 }
+
+@keyframes wave-animation {
+  0% { transform: translateX(0); }
+  50% { transform: translateX(-25%); }
+  100% { transform: translateX(-50%); }
+}
+
+.animate-wave {
+  animation: wave-animation 3s infinite linear;
+}

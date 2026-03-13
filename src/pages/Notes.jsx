@@ -26,6 +26,7 @@ const Notes = ({ notes, setNotes }) => {
     const [newBody, setNewBody] = useState('');
     const [newColor, setNewColor] = useState('default');
     const [showAdd, setShowAdd] = useState(false);
+    const [featureLockOpen, setFeatureLockOpen] = useState(false);
 
     const [deleteTarget, setDeleteTarget] = useState(null);
     const [search, setSearch] = useState('');
@@ -104,40 +105,6 @@ const Notes = ({ notes, setNotes }) => {
         }
     };
 
-    if (!user) {
-        return (
-            <div className="page-fade space-y-6 pb-20">
-                <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-                    <div>
-                        <h2 className="text-2xl font-bold tracking-tighter text-text-primary">Notes</h2>
-                        <p className="text-text-secondary text-xs mt-1">
-                            Secure cloud storage required for encrypted notes.
-                        </p>
-                    </div>
-                </div>
-                <Card className="p-8 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6 hover:translate-y-0 hover:shadow-none hover:border-border-color">
-                    <div className="flex items-center gap-4">
-                        <div className="w-12 h-12 rounded-xl bg-accent-dim border border-border-color flex items-center justify-center">
-                            <Icon name="lock" size={24} className="text-accent" />
-                        </div>
-                        <div>
-                            <h3 className="text-sm font-bold text-text-primary">Sign in to unlock Notes</h3>
-                            <p className="text-xs text-text-secondary mt-1 max-w-sm">
-                                Capture thoughts, store private data, and sync seamlessly across your entire workspace network.
-                            </p>
-                        </div>
-                    </div>
-                    <Button
-                        variant="primary"
-                        className="w-full sm:w-auto"
-                        onClick={() => { window.location.href = '/login'; }}
-                    >
-                        Sign in to continue
-                    </Button>
-                </Card>
-            </div>
-        );
-    }
 
     return (
         <div className="page-fade space-y-6 pb-20">
@@ -167,7 +134,13 @@ const Notes = ({ notes, setNotes }) => {
                         <Icon name="search" size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-text-secondary" />
                     </div>
                     <Button
-                        onClick={() => setShowAdd(true)}
+                        onClick={() => {
+                            if (!user && notes.length >= 2) {
+                                setFeatureLockOpen(true);
+                            } else {
+                                setShowAdd(true);
+                            }
+                        }}
                         variant="primary"
                         icon="plus"
                     >
@@ -301,17 +274,23 @@ const Notes = ({ notes, setNotes }) => {
                     <div className="absolute -top-16 -right-16 w-48 h-48 rounded-full bg-accent/5 blur-[60px] pointer-events-none" />
                     <div className="flex flex-col items-center justify-center py-20 text-center relative z-10">
                         <div className="w-16 h-16 rounded-2xl bg-accent/8 border border-accent/20 flex items-center justify-center mb-5" style={{ backgroundColor: 'rgba(235,235,235,0.06)' }}>
-                            <Icon name="sticky-note" size={28} className="text-text-secondary opacity-60" />
+                            <Icon name={filterPinned ? "pin" : "sticky-note"} size={28} className="text-text-secondary opacity-60" />
                         </div>
                         <p className="text-base font-bold text-text-primary mb-2">
-                            {search ? 'No matching notes' : 'No notes yet'}
+                            {search ? 'No matching notes' : filterPinned ? 'No notes pinned' : 'No notes yet'}
                         </p>
                         <p className="text-xs text-text-secondary max-w-xs mx-auto leading-relaxed">
-                            {search ? 'Try a different search term.' : 'Capture thoughts, ideas, and reminders. Your first note is just a click away.'}
+                            {search ? 'Try a different search term.' : filterPinned ? 'You haven\'t pinned any notes yet.' : 'Capture thoughts, ideas, and reminders. Your first note is just a click away.'}
                         </p>
-                        {!search && (
+                        {!search && !filterPinned && (
                             <button
-                                onClick={() => setShowAdd(true)}
+                                onClick={() => {
+                                    if (!user && notes.length >= 2) {
+                                        setFeatureLockOpen(true);
+                                    } else {
+                                        setShowAdd(true);
+                                    }
+                                }}
                                 className="mt-6 px-5 py-2.5 bg-accent text-bg-main text-[10px] font-black uppercase tracking-[0.25em] rounded-xl hover:opacity-90 active:scale-95 transition-all"
                             >
                                 Write your first note
@@ -360,6 +339,19 @@ const Notes = ({ notes, setNotes }) => {
                     ))}
                 </div>
             )}
+
+            <ConfirmModal
+                open={featureLockOpen}
+                title="Sign in required"
+                message="Sign in to create more than 2 notes, unlock secure cloud storage, and sync seamlessly."
+                confirmLabel="Sign in"
+                variant="primary"
+                onConfirm={() => {
+                    setFeatureLockOpen(false);
+                    window.location.href = '/login';
+                }}
+                onCancel={() => setFeatureLockOpen(false)}
+            />
         </div>
     );
 };

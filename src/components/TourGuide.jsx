@@ -214,13 +214,13 @@ const TourGuide = () => {
 
             {/* Target Cutout (Highlights the actual element) */}
             <div
-                className="fixed z-[9991] pointer-events-none transition-all duration-500 ease-[cubic-bezier(0.34,1.56,0.64,1)] border-2 border-accent rounded-xl"
+                className="fixed z-[9991] pointer-events-none transition-all duration-500 ease-[cubic-bezier(0.34,1.56,0.64,1)] border-[3px] border-accent rounded-xl"
                 style={{
-                    top: targetRect.top - 6,
-                    left: targetRect.left - 6,
-                    width: targetRect.width + 12,
-                    height: targetRect.height + 12,
-                    boxShadow: '0 0 0 9999px rgba(0,0,0,0.6), 0 0 30px rgba(var(--accent-rgb), 0.5)'
+                    top: targetRect.top - 2,
+                    left: targetRect.left - 2,
+                    width: targetRect.width + 4,
+                    height: targetRect.height + 4,
+                    boxShadow: '0 0 0 9999px rgba(0,0,0,0.7), 0 0 30px rgba(255,255,255,0.1)'
                 }}
             />
 

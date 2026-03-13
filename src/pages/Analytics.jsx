@@ -160,41 +160,6 @@ const Analytics = ({ habits, selectedHabitId, setSelectedHabitId }) => {
         tooltipText: theme === 'dark' ? '#FAFAFA' : '#18181b'
     }), [theme]);
 
-    if (!user) {
-        return (
-            <div className="page-fade space-y-6 pb-20">
-                <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-                    <div>
-                        <h2 className="text-2xl font-bold tracking-tighter text-text-primary">Analytics</h2>
-                        <p className="text-text-secondary text-xs mt-1">
-                            Detailed analytics are available when you sign in.
-                        </p>
-                    </div>
-                </div>
-                <Card className="p-8 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6 hover:translate-y-0 hover:shadow-none hover:border-border-color">
-                    <div className="flex items-center gap-4">
-                        <div className="w-12 h-12 rounded-xl bg-accent-dim border border-border-color flex items-center justify-center">
-                            <Icon name="line-chart" size={24} className="text-accent" />
-                        </div>
-                        <div>
-                            <h3 className="text-sm font-bold text-text-primary">Sign in to unlock analytics</h3>
-                            <p className="text-xs text-text-secondary mt-1">
-                                Compare habits, view streak breakdowns, and explore long-range performance once you are logged in.
-                            </p>
-                        </div>
-                    </div>
-                    <Button
-                        variant="primary"
-                        className="w-full sm:w-auto"
-                        onClick={() => { window.location.href = '/login'; }}
-                    >
-                        Sign in for free
-                    </Button>
-                </Card>
-            </div>
-        );
-    }
-
     return (
         <div className="page-fade space-y-6">
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">

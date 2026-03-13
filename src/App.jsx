@@ -329,6 +329,7 @@ function AppContent() {
   const [userConfig, setUserConfig] = useState(initialState.userConfig);
 
   const [showAddModal, setShowAddModal] = useState(false);
+  const [addHabitStep, setAddHabitStep] = useState(1);
   const [newHabit, setNewHabit] = useState({
     name: "",
     type: "Good",
@@ -372,6 +373,7 @@ function AppContent() {
       setFeatureLockOpen(true);
       return;
     }
+    setAddHabitStep(1);
     setShowAddModal(true);
   }, [user, habits.length]);
 
@@ -528,6 +530,13 @@ function AppContent() {
   const logInProgressRef = useRef(false);
 
   const logActivity = useCallback((id, increment = true, amount = 1, unit = "", photoData = null) => {
+    if (id === "example-habit") {
+        const toastEvent = new CustomEvent("showToast", {
+            detail: { message: "Create your own habit to start tracking!", type: "info", id: Date.now() },
+        });
+        document.dispatchEvent(toastEvent);
+        return;
+    }
     // Guard against double-taps / concurrency
     if (logInProgressRef.current) return;
     logInProgressRef.current = true;
@@ -691,6 +700,18 @@ function AppContent() {
 
   const [dailyInsight] = useState(() => getDailyInsight());
 
+  const displayHabits = habits.length === 0 ? [{
+    id: "example-habit",
+    name: "Example: Read 10 pages",
+    type: "Good",
+    mode: "check",
+    unit: "",
+    emoji: "📖",
+    logs: [],
+    totalLogs: 0,
+    createdAt: new Date().toISOString()
+  }] : habits;
+
   // Curated aesthetic emoji list — only proper emoji, grayscale-filtered to match dark/gray theme
   const THEMED_EMOJIS = [
     // Activity & Fitness
@@ -736,7 +757,7 @@ function AppContent() {
       <TourGuide />
       <Routes>
         {/* Public Landing */}
-        <Route path="/" element={<Landing habits={habits} user={user} />} />
+        <Route path="/" element={<Landing habits={displayHabits} user={user} />} />
 
         {/* Auth Pages */}
         <Route path="/login" element={<Login />} />
@@ -749,7 +770,7 @@ function AppContent() {
             <Layout
               userConfig={userConfig}
               onAddHabit={handleAddHabitRequest}
-              habits={habits}
+              habits={displayHabits}
               notifications={notifications}
               onNotificationsRead={markAllRead}
             >
@@ -759,7 +780,7 @@ function AppContent() {
                   path=""
                   element={
                     <Dashboard
-                      habits={habits}
+                      habits={displayHabits}
                       setHabits={setHabits}
                       logActivity={logActivity}
                       insights={dailyInsight}
@@ -770,7 +791,7 @@ function AppContent() {
                   path="analytics"
                   element={
                     <Analytics
-                      habits={habits}
+                      habits={displayHabits}
                       selectedHabitId={selectedHabitId}
                       setSelectedHabitId={setSelectedHabitId}
                     />
@@ -780,7 +801,7 @@ function AppContent() {
                   path="habits"
                   element={
                     <Habits
-                      habits={habits}
+                      habits={displayHabits}
                       setHabits={setHabits}
                       logActivity={logActivity}
                     />
@@ -788,7 +809,7 @@ function AppContent() {
                 />
                 <Route
                   path="logs"
-                  element={<Logs habits={habits} setHabits={setHabits} />}
+                  element={<Logs habits={displayHabits} setHabits={setHabits} />}
                 />
                 <Route
                   path="notes"
@@ -830,20 +851,22 @@ function AppContent() {
             e.target === e.currentTarget && setShowAddModal(false)
           }
         >
-          <div className="glass-card modal-enter w-full max-w-md rounded-[2rem] shadow-[0_32px_64px_-16px_rgba(0,0,0,0.5)] border-white/10 relative overflow-hidden max-h-[92vh] flex flex-col">
+          <div className="glass-card modal-enter w-full max-w-md rounded-[2rem] shadow-[0_32px_64px_-16px_rgba(0,0,0,0.5)] border-white/10 relative overflow-hidden flex flex-col transition-all duration-300">
             {/* Background Glow */}
-            <div className="absolute -top-24 -right-24 w-48 h-48 bg-accent/10 rounded-full blur-[80px] pointer-events-none z-0" />
+            <div className="absolute -top-24 -right-24 w-48 h-48 bg-accent/5 rounded-full blur-[80px] pointer-events-none z-0" />
 
             {/* Scrollable inner content */}
-            <div className="overflow-y-auto custom-scrollbar p-10 flex-1 relative z-10">
+            <div className="p-8 sm:p-10 relative z-10 w-full">
               <div className="flex justify-between items-center mb-10">
                 <div>
                   <h3 className="text-2xl font-bold tracking-tighter text-text-primary uppercase">
                     Add Habit
                   </h3>
-                  <p className="text-[10px] text-text-secondary uppercase tracking-[0.2em] mt-1 font-mono">
-                    Initialize behavioral protocol
-                  </p>
+                  <div className="flex gap-1.5 mt-2">
+                    {[1, 2, 3, 4].map(s => (
+                      <div key={s} className={`h-1 rounded-full transition-all duration-300 ${addHabitStep === s ? "w-6 bg-accent" : addHabitStep > s ? "w-2 bg-accent/40" : "w-1 bg-white/10"}`} />
+                    ))}
+                  </div>
                 </div>
                 <button
                   onClick={() => setShowAddModal(false)}
@@ -853,24 +876,116 @@ function AppContent() {
                 </button>
               </div>
 
-              <div className="space-y-10 relative z-10">
-                <div className="space-y-3">
-                  <label className="text-[10px] font-black text-text-secondary uppercase tracking-[0.3em] ml-1">
-                    Habit Identifier
-                  </label>
+              {addHabitStep === 1 && (
+                <div className="animate-in slide-in-from-right fade-in duration-300 space-y-6">
+                  <p className="text-center text-[10px] font-black uppercase tracking-[0.3em] text-text-secondary mb-8">What kind of habit?</p>
+                  <div className="grid grid-cols-2 gap-4">
+                    <button
+                      onClick={() => { setNewHabit({ ...newHabit, type: "Good" }); setAddHabitStep(2); }}
+                      className="group py-8 rounded-2xl border transition-all flex flex-col items-center gap-4 bg-bg-main/50 border-white/10 text-white hover:border-[#4ade80] hover:bg-[#4ade80]/5 shadow-sm hover:shadow-[0_0_24px_rgba(74,222,128,0.15)]"
+                    >
+                      <div className="w-14 h-14 rounded-full border border-inherit flex items-center justify-center group-hover:bg-[#4ade80]/10 transition-colors">
+                        <Icon name="check" size={24} className="group-hover:text-[#4ade80] transition-colors" />
+                      </div>
+                      <span className="text-xs font-bold uppercase tracking-widest">Good Habit</span>
+                    </button>
+                    <button
+                      onClick={() => { setNewHabit({ ...newHabit, type: "Bad" }); setAddHabitStep(2); }}
+                      className="group py-8 rounded-2xl border transition-all flex flex-col items-center gap-4 bg-bg-main/50 border-white/10 text-white hover:border-[#ef4444] hover:bg-[#ef4444]/5 shadow-sm hover:shadow-[0_0_24px_rgba(239,68,68,0.15)]"
+                    >
+                      <div className="w-14 h-14 rounded-full border border-inherit flex items-center justify-center group-hover:bg-[#ef4444]/10 transition-colors">
+                        <Icon name="x" size={24} className="group-hover:text-[#ef4444] transition-colors" />
+                      </div>
+                      <span className="text-xs font-bold uppercase tracking-widest">Bad Habit</span>
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {addHabitStep === 2 && (
+                <div className="animate-in slide-in-from-right fade-in duration-300 space-y-8">
+                  <div className="flex items-center ml-1">
+                    <label className="text-[10px] font-black text-text-secondary uppercase tracking-[0.3em]">
+                        Habit Identifier
+                    </label>
+                    <div className="relative group inline-flex items-center ml-2">
+                      <Icon name="info" size={14} className="text-text-secondary cursor-pointer hover:text-text-primary transition-colors" />
+                      <div className="absolute left-full ml-3 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 pointer-events-none transition-[opacity,transform] duration-200 z-50 translate-x-[-10px] group-hover:translate-x-0">
+                        <div className="bg-bg-sidebar border border-border-color text-text-primary text-[10px] p-3 rounded-lg shadow-2xl w-56 relative box-border">
+                          <div className="absolute top-1/2 -left-1.5 -translate-y-1/2 w-3 h-3 bg-bg-sidebar border-l border-b border-border-color transform rotate-45" />
+                          <span className="relative z-10 block font-mono text-text-secondary">Keep it actionable and clear.</span>
+                          <span className="relative z-10 block font-mono font-bold mt-1 text-text-primary">Ex: Reading Books, Morning Run</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
                   <input
                     className="w-full bg-bg-main/50 border border-white/10 p-5 rounded-2xl outline-none focus:border-accent text-sm text-text-primary transition-all placeholder:text-text-secondary/30 focus:bg-bg-main"
-                    placeholder="Ex: Morning Meditation"
+                    placeholder="e.g. Read 20 pages"
                     value={newHabit.name}
-                    onChange={(e) =>
-                      setNewHabit({ ...newHabit, name: e.target.value })
-                    }
+                    onChange={(e) => setNewHabit({ ...newHabit, name: e.target.value })}
                     autoFocus
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' && newHabit.name.trim()) setAddHabitStep(3);
+                    }}
                   />
+                  <div className="flex justify-between mt-8 pt-4">
+                    <button onClick={() => setAddHabitStep(1)} className="px-5 py-3 rounded-xl border border-border-color text-xs font-bold uppercase tracking-widest text-text-secondary hover:text-text-primary active:scale-95 transition-all">Back</button>
+                    <button onClick={() => setAddHabitStep(3)} disabled={!newHabit.name.trim()} className="px-6 py-3 bg-accent text-bg-main rounded-xl border border-transparent text-xs font-bold uppercase tracking-widest disabled:opacity-30 active:scale-95 transition-all">Next</button>
+                  </div>
                 </div>
+              )}
 
-                {/* Emoji Picker — only themed emoji, no Unicode symbols */}
-                <div className="space-y-3">
+              {addHabitStep === 3 && (
+                <div className="animate-in slide-in-from-right fade-in duration-300 space-y-6">
+                  <div className="flex items-center ml-1 mb-4">
+                    <label className="text-[10px] font-black text-text-secondary uppercase tracking-[0.3em]">
+                        Tracking Mode
+                    </label>
+                    <div className="relative group inline-flex items-center ml-2">
+                      <Icon name="info" size={14} className="text-text-secondary cursor-pointer hover:text-text-primary transition-colors" />
+                      <div className="absolute left-full ml-3 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 pointer-events-none transition-[opacity,transform] duration-200 z-50 translate-x-[-10px] group-hover:translate-x-0">
+                        <div className="bg-bg-sidebar border border-border-color text-[10px] p-3 rounded-lg shadow-2xl w-[220px] relative">
+                          <div className="absolute top-1/2 -left-1.5 -translate-y-1/2 w-3 h-3 bg-bg-sidebar border-l border-b border-border-color transform rotate-45" />
+                          <span className="relative z-10 block font-mono text-text-secondary"><span className="text-text-primary font-bold">Tap:</span> Quick +/- counter<br/><span className="text-text-primary font-bold">Count:</span> Specify number & unit<br/><span className="text-text-primary font-bold">Check:</span> Once per day<br/><span className="text-text-primary font-bold">Timer:</span> Built-in stopwatch<br/><span className="text-text-primary font-bold">Rating:</span> 1-5 star scale<br/><span className="text-text-primary font-bold">Upload:</span> Photo/image logs</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div className="grid grid-cols-2 gap-3">
+                    {["quick", "count", "check", "timer", "rating", "upload"].map((m) => (
+                        <button
+                            key={m}
+                            onClick={() => setNewHabit({ ...newHabit, mode: m, unit: m === "count" ? newHabit.unit : m==="timer"?"min":"" })}
+                            className={`py-4 rounded-2xl text-[10px] font-bold uppercase tracking-[0.2em] border transition-all ${newHabit.mode === m ? "bg-accent text-bg-main border-accent scale-[1.02]" : "bg-bg-main/30 border-white/10 text-text-secondary hover:border-white/20 hover:scale-[1.02]"}`}
+                        >
+                            {m === "quick" ? "Tap" : m.charAt(0).toUpperCase() + m.slice(1)}
+                        </button>
+                    ))}
+                  </div>
+                  
+                  {newHabit.mode === "count" && (
+                    <div className="pt-2 animate-in fade-in zoom-in-95">
+                      <input
+                          type="text"
+                          placeholder="Unit (e.g. reps, hrs)"
+                          className="w-full bg-bg-main/50 border border-white/10 p-4 rounded-xl text-sm text-text-primary outline-none focus:border-accent"
+                          value={newHabit.unit}
+                          onChange={(e) => setNewHabit({ ...newHabit, unit: e.target.value })}
+                      />
+                    </div>
+                  )}
+
+                  <div className="flex justify-between mt-8 pt-4">
+                    <button onClick={() => setAddHabitStep(2)} className="px-5 py-3 rounded-xl border border-border-color text-xs font-bold uppercase tracking-widest text-text-secondary hover:text-text-primary active:scale-95 transition-all">Back</button>
+                    <button onClick={() => setAddHabitStep(4)} className="px-6 py-3 bg-accent text-bg-main rounded-xl border border-transparent text-xs font-bold uppercase tracking-widest disabled:opacity-30 active:scale-95 transition-all">Next</button>
+                  </div>
+                </div>
+              )}
+
+              {addHabitStep === 4 && (
+                <div className="animate-in slide-in-from-right fade-in duration-300 space-y-6">
                   <div className="flex items-center justify-between ml-1">
                     <label className="text-[10px] font-black text-text-secondary uppercase tracking-[0.3em]">
                       Habit Symbol
@@ -885,196 +1000,49 @@ function AppContent() {
                       </button>
                     )}
                   </div>
-                  <div className="rounded-2xl border border-white/10 bg-bg-main/30 p-3 max-h-40 overflow-y-auto custom-scrollbar">
-                    <div className="grid grid-cols-8 gap-2">
-                      {THEMED_EMOJIS.map((em, idx) => (
-                        <button
-                          key={idx}
-                          type="button"
-                          onClick={() =>
-                            setNewHabit({
-                              ...newHabit,
-                              emoji: em === newHabit.emoji ? "" : em,
-                            })
-                          }
-                          className={`w-full aspect-square rounded-lg flex items-center justify-center text-base transition-all hover:scale-110 active:scale-95 ${newHabit.emoji === em
-                            ? "bg-accent/20 border-2 border-accent/60 scale-105"
-                            : "hover:bg-white/10 border-2 border-transparent"
-                            }`}
-                          title={em}
-                        >
-                          <span
-                            style={{
-                              filter:
-                                "grayscale(1) saturate(0) brightness(1.15)",
-                              fontSize: "1rem",
-                            }}
-                          >
-                            {em}
-                          </span>
-                        </button>
-                      ))}
+                  <div className="rounded-2xl border border-white/10 bg-bg-main/30 p-3 max-h-[30vh] overflow-y-auto custom-scrollbar">
+                    <div className="grid grid-cols-6 sm:grid-cols-8 gap-2">
+                        {THEMED_EMOJIS.map((em, idx) => (
+                            <button
+                              key={idx}
+                              type="button"
+                              onClick={() => setNewHabit({ ...newHabit, emoji: em === newHabit.emoji ? "" : em })}
+                              className={`w-full aspect-square rounded-xl flex items-center justify-center text-base transition-all hover:scale-110 active:scale-95 ${newHabit.emoji === em ? "bg-accent/20 border-2 border-accent/60 scale-110 shadow-sm" : "hover:bg-white/5 border-2 border-transparent"}`}
+                              title={em}
+                            >
+                              <span style={{filter: "grayscale(1) saturate(0) brightness(1.2)", fontSize: "1.05rem"}}>{em}</span>
+                            </button>
+                        ))}
                     </div>
                   </div>
-                  {newHabit.emoji && (
-                    <p className="text-[10px] text-text-secondary ml-1">
-                      Selected:{" "}
-                      <span
-                        style={{
-                          filter: "grayscale(1) saturate(0) brightness(1.2)",
-                          fontSize: "1.1rem",
+                  
+                  <div className="flex justify-between mt-8 pt-4">
+                    <button onClick={() => setAddHabitStep(3)} className="px-5 py-3 rounded-xl border border-border-color text-xs font-bold uppercase tracking-widest text-text-secondary hover:text-text-primary active:scale-95 transition-all">Back</button>
+                    <button
+                        onClick={() => {
+                          if (!newHabit.name.trim()) return;
+                          setHabits([...habits, {
+                            id: Date.now().toString(),
+                            name: newHabit.name,
+                            type: newHabit.type,
+                            mode: newHabit.mode || "quick",
+                            unit: newHabit.mode === "count" ? newHabit.unit || "" : newHabit.mode === "timer" ? "sec" : "",
+                            emoji: newHabit.emoji || "",
+                            totalLogs: 0,
+                            logs: [],
+                          }]);
+                          setNewHabit({ name: "", type: "Good", mode: "quick", unit: "", emoji: "" });
+                          trackEvent("habit_created", { type: newHabit.type, mode: newHabit.mode });
+                          setShowAddModal(false);
                         }}
-                      >
-                        {newHabit.emoji}
-                      </span>{" "}
-                      — will appear on your habit card.
-                    </p>
-                  )}
-                </div>
-
-                <div className="space-y-3">
-                  <label className="text-[10px] font-black text-text-secondary uppercase tracking-[0.3em] ml-1">
-                    Behavioral Logic
-                  </label>
-                  <div className="grid grid-cols-2 gap-4">
-                    <button
-                      onClick={() => setNewHabit({ ...newHabit, type: "Good" })}
-                      className={`group py-5 rounded-2xl text-[10px] font-bold uppercase tracking-[0.2em] border transition-all flex flex-col items-center gap-2 ${newHabit.type === "Good"
-                        ? "bg-accent text-bg-main border-accent shadow-[0_0_20px_rgba(228,228,231,0.2)]"
-                        : "bg-white/5 border-white/10 text-text-secondary hover:border-white/20 hover:bg-white/10"
-                        }`}
+                        className="px-6 py-3 bg-accent text-bg-main rounded-xl border border-transparent text-xs font-bold uppercase tracking-widest hover:scale-[1.03] active:scale-[0.97] transition-all shadow-lg shadow-accent/20"
                     >
-                      <Icon
-                        name="check-circle"
-                        size={16}
-                        className={
-                          newHabit.type === "Good"
-                            ? "text-bg-main"
-                            : "text-text-secondary group-hover:text-text-primary"
-                        }
-                      />
-                      Constructive
-                    </button>
-                    <button
-                      onClick={() => setNewHabit({ ...newHabit, type: "Bad" })}
-                      className={`group py-5 rounded-2xl text-[10px] font-bold uppercase tracking-[0.2em] border transition-all flex flex-col items-center gap-2 ${newHabit.type === "Bad"
-                        ? "bg-accent text-bg-main border-accent shadow-[0_0_20px_rgba(228,228,231,0.2)]"
-                        : "bg-white/5 border-white/10 text-text-secondary hover:border-white/20 hover:bg-white/10"
-                        }`}
-                    >
-                      <Icon
-                        name="alert-circle"
-                        size={16}
-                        className={
-                          newHabit.type === "Bad"
-                            ? "text-bg-main"
-                            : "text-text-secondary group-hover:text-text-primary"
-                        }
-                      />
-                      Destructive
+                        Create
                     </button>
                   </div>
                 </div>
+              )}
 
-                <div className="space-y-3">
-                  <label className="text-[10px] font-black text-text-secondary uppercase tracking-[0.3em] ml-1">
-                    Mode
-                  </label>
-                  <div className="grid grid-cols-2 gap-3">
-                    <button
-                      onClick={() =>
-                        setNewHabit({ ...newHabit, mode: "quick" })
-                      }
-                      className={`py-4 rounded-2xl text-[10px] font-bold uppercase tracking-[0.2em] border transition-all ${newHabit.mode === "quick" ? "bg-accent text-bg-main border-accent" : "bg-white/5 border-white/10 text-text-secondary hover:border-white/20"}`}
-                    >
-                      Tap
-                    </button>
-                    <button
-                      onClick={() =>
-                        setNewHabit({ ...newHabit, mode: "count", unit: "" })
-                      }
-                      className={`py-4 rounded-2xl text-[10px] font-bold uppercase tracking-[0.2em] border transition-all ${newHabit.mode === "count" ? "bg-accent text-bg-main border-accent" : "bg-white/5 border-white/10 text-text-secondary hover:border-white/20"}`}
-                    >
-                      Count
-                    </button>
-                    <button
-                      onClick={() =>
-                        setNewHabit({ ...newHabit, mode: "check" })
-                      }
-                      className={`py-4 rounded-2xl text-[10px] font-bold uppercase tracking-[0.2em] border transition-all ${newHabit.mode === "check" ? "bg-accent text-bg-main border-accent" : "bg-white/5 border-white/10 text-text-secondary hover:border-white/20"}`}
-                    >
-                      Check
-                    </button>
-                    <button
-                      onClick={() =>
-                        setNewHabit({ ...newHabit, mode: "timer", unit: "min" })
-                      }
-                      className={`py-4 rounded-2xl text-[10px] font-bold uppercase tracking-[0.2em] border transition-all ${newHabit.mode === "timer" ? "bg-accent text-bg-main border-accent" : "bg-white/5 border-white/10 text-text-secondary hover:border-white/20"}`}
-                    >
-                      Timer
-                    </button>
-                    <button
-                      onClick={() =>
-                        setNewHabit({ ...newHabit, mode: "rating" })
-                      }
-                      className={`py-4 rounded-2xl text-[10px] font-bold uppercase tracking-[0.2em] border transition-all ${newHabit.mode === "rating" ? "bg-accent text-bg-main border-accent" : "bg-white/5 border-white/10 text-text-secondary hover:border-white/20"}`}
-                    >
-                      Rating
-                    </button>
-                    <button
-                      onClick={() =>
-                        setNewHabit({ ...newHabit, mode: "upload" })
-                      }
-                      className={`py-4 rounded-2xl text-[10px] font-bold uppercase tracking-[0.2em] border transition-all ${newHabit.mode === "upload" ? "bg-accent text-bg-main border-accent" : "bg-white/5 border-white/10 text-text-secondary hover:border-white/20"}`}
-                    >
-                      Upload
-                    </button>
-                  </div>
-                  {newHabit.mode === "count" && (
-                    <input
-                      type="text"
-                      placeholder="Unit (e.g. reps, min, hrs)"
-                      className="w-full bg-bg-main/50 border border-white/10 p-3 rounded-xl text-sm text-text-primary placeholder:text-text-secondary/50 outline-none focus:border-accent"
-                      value={newHabit.unit}
-                      onChange={(e) =>
-                        setNewHabit({ ...newHabit, unit: e.target.value })
-                      }
-                    />
-                  )}
-                </div>
-
-                <button
-                  onClick={() => {
-                    if (!newHabit.name.trim()) return;
-                    setHabits([
-                      ...habits,
-                      {
-                        id: Date.now().toString(),
-                        name: newHabit.name,
-                        type: newHabit.type,
-                        mode: newHabit.mode || "quick",
-                        unit: newHabit.mode === "count" ? newHabit.unit || "" : newHabit.mode === "timer" ? "sec" : "",
-                        emoji: newHabit.emoji || "",
-                        totalLogs: 0,
-                        logs: [],
-                      },
-                    ]);
-                    setNewHabit({
-                      name: "",
-                      type: "Good",
-                      mode: "quick",
-                      unit: "",
-                      emoji: "",
-                    });
-                    trackEvent("habit_created", { type: newHabit.type, mode: newHabit.mode });
-                    setShowAddModal(false);
-                  }}
-                  disabled={!newHabit.name.trim()}
-                  className="w-full py-5 bg-accent text-bg-main text-[11px] font-black uppercase tracking-[0.3em] rounded-2xl hover:scale-[1.02] active:scale-[0.98] transition-all shadow-lg disabled:opacity-30 disabled:hover:scale-100"
-                >
-                  Create Habit Node
-                </button>
-              </div>
             </div>
           </div>
         </div>
