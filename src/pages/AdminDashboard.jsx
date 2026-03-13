@@ -69,11 +69,13 @@ export default function AdminDashboard() {
             const habitsSnap = await getDocs(collection(db, "users", uid, "habits"));
             const notesSnap = await getDocs(collection(db, "users", uid, "notes"));
             const remindersSnap = await getDocs(collection(db, "users", uid, "reminders"));
+            const logsSnap = await getDocs(collection(db, "users", uid, "logs"));
 
             setUserData({
                 habits: habitsSnap.docs.map(d => ({ id: d.id, ...d.data() })),
                 notes: notesSnap.docs.map(d => ({ id: d.id, ...d.data() })),
-                reminders: remindersSnap.docs.map(d => ({ id: d.id, ...d.data() }))
+                reminders: remindersSnap.docs.map(d => ({ id: d.id, ...d.data() })),
+                logs: logsSnap.docs.map(d => ({ id: d.id, ...d.data() }))
             });
         } catch(err) {
             console.error("Error loading user data:", err);
@@ -173,181 +175,238 @@ export default function AdminDashboard() {
                     Aggregating nodes...
                 </div>
             ) : (
-                <div className="flex flex-col xl:flex-row gap-6 relative items-start">
-                    {/* Left Column (Main Data) */}
-                    <div className="flex-1 space-y-6 min-w-0 w-full">
-                        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-                            <MetricCard title="Total Users" value={stats.users} icon="users" />
-                            <MetricCard title="Habits Created" value={stats.habits} icon="activity" />
-                            <MetricCard title="Reminders" value={stats.reminders} icon="bell" />
-                            <MetricCard title="Notes" value={stats.notes} icon="file-text" />
+                <div className="flex flex-col lg:flex-row gap-6 relative items-start h-[calc(100vh-140px)]">
+                    {/* Left Sidebar (Users List) */}
+                    <div className="w-full lg:w-80 shrink-0 bg-card-bg border border-border-color rounded-[2rem] shadow-sm flex flex-col h-[700px] overflow-hidden">
+                        <div className="p-5 border-b border-border-color bg-accent-dim shrink-0 flex justify-between items-center">
+                            <h3 className="font-bold tracking-tighter text-sm">Registered Users</h3>
+                            <span className="text-[10px] font-mono font-bold bg-accent/20 text-accent px-2 py-1 rounded-lg uppercase">{usersList.length} Network Nodes</span>
                         </div>
-
-                        {/* Graph */}
-                        <div className="p-6 bg-card-bg border border-border-color rounded-[2rem] shadow-sm">
-                            <h3 className="text-[11px] font-black uppercase tracking-[0.2em] text-text-secondary mb-6"><Icon name="trending-up" className="inline-block mr-2" size={14} /> User Registration Growth (Last 30 Days)</h3>
-                            <div className="h-[250px] w-full">
-                                <ResponsiveContainer width="100%" height="100%">
-                                    <AreaChart data={graphData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                                        <defs>
-                                            <linearGradient id="colorUsers" x1="0" y1="0" x2="0" y2="1">
-                                                <stop offset="5%" stopColor="var(--accent)" stopOpacity={0.4}/>
-                                                <stop offset="95%" stopColor="var(--accent)" stopOpacity={0}/>
-                                            </linearGradient>
-                                        </defs>
-                                        <CartesianGrid strokeDasharray="3 3" stroke="var(--border-color)" vertical={false} />
-                                        <XAxis dataKey="name" stroke="var(--text-secondary)" fontSize={10} tickLine={false} axisLine={false} />
-                                        <YAxis stroke="var(--text-secondary)" fontSize={10} tickLine={false} axisLine={false} />
-                                        <Tooltip 
-                                            contentStyle={{ backgroundColor: 'var(--bg-main)', borderColor: 'var(--border-color)', borderRadius: '12px', fontSize: '12px' }}
-                                            itemStyle={{ color: 'var(--text-primary)' }}
-                                            labelStyle={{ color: 'var(--text-secondary)', marginBottom: '4px' }}
-                                        />
-                                        <Area type="monotone" dataKey="users" stroke="var(--accent)" strokeWidth={3} fillOpacity={1} fill="url(#colorUsers)" />
-                                    </AreaChart>
-                                </ResponsiveContainer>
-                            </div>
-                        </div>
-
-                        {/* Users Table */}
-                        <div className="bg-card-bg border border-border-color rounded-[2rem] overflow-hidden shadow-sm">
-                            <div className="p-6 border-b border-border-color flex justify-between items-center bg-accent-dim">
-                               <h3 className="text-lg font-bold font-mono tracking-tighter">Registered Users Intelligence</h3>
-                            </div>
-                            <div className="overflow-x-auto">
-                               <table className="w-full text-left text-sm whitespace-nowrap">
-                                  <thead className="bg-bg-main/50 text-text-secondary">
-                                     <tr>
-                                        <th className="px-6 py-4 font-bold tracking-widest uppercase text-[10px]">User ID</th>
-                                        <th className="px-6 py-4 font-bold tracking-widest uppercase text-[10px]">Name</th>
-                                        <th className="px-6 py-4 font-bold tracking-widest uppercase text-[10px]">Email</th>
-                                        <th className="px-6 py-4 font-bold tracking-widest uppercase text-[10px] text-right">Action</th>
-                                     </tr>
-                                  </thead>
-                                  <tbody className="divide-y divide-border-color">
-                                     {usersList.map(u => (
-                                        <tr key={u.id} className={`transition-colors ${selectedUser === u.id ? 'bg-accent/10' : 'hover:bg-accent-dim'}`}>
-                                           <td className="px-6 py-4 font-mono text-xs">{u.id}</td>
-                                           <td className="px-6 py-4 font-bold">{u.displayName || "Unknown User"}</td>
-                                           <td className="px-6 py-4 text-text-secondary">{u.email}</td>
-                                           <td className="px-6 py-4 text-right">
-                                               <Button size="sm" variant={selectedUser === u.id ? "primary" : "outline"} onClick={() => { loadUserData(u.id); setInspectorHabit(null); }} className="text-xs px-4 py-1.5 h-auto">
-                                                   {selectedUser === u.id ? "Inspecting" : "View Data"}
-                                               </Button>
-                                           </td>
-                                        </tr>
-                                     ))}
-                                  </tbody>
-                               </table>
-                            </div>
+                        <div className="overflow-y-auto flex-1 custom-scrollbar">
+                            {usersList.map(u => (
+                                <button 
+                                    onClick={() => { loadUserData(u.id); setInspectorHabit(null); }} 
+                                    key={u.id} 
+                                    className={`w-full text-left p-4 border-b border-border-color/50 transition-all ${selectedUser === u.id ? 'bg-accent/10 border-l-[3px] border-l-accent' : 'hover:bg-accent-dim border-l-[3px] border-l-transparent'}`}
+                                >
+                                    <p className="font-bold text-sm text-text-primary truncate">{u.displayName || "Unknown User"}</p>
+                                    <p className="text-[11px] text-text-secondary font-mono truncate">{u.email}</p>
+                                </button>
+                            ))}
                         </div>
                     </div>
 
-                    {/* Right Column (User Inspector) */}
-                    {selectedUser && (
-                        <div className="w-full xl:w-[450px] shrink-0 xl:sticky xl:top-[100px] bg-bg-main border border-border-color/50 rounded-[2rem] shadow-2xl overflow-hidden flex flex-col max-h-[calc(100vh-120px)] animate-in slideInRight">
-                            <div className="p-6 border-b border-border-color bg-gradient-to-b from-accent/5 to-transparent relative">
-                                <button onClick={() => setSelectedUser(null)} className="absolute top-6 right-6 w-8 h-8 rounded-lg bg-bg-main border border-border-color flex items-center justify-center hover:text-text-primary text-text-secondary transition-all shadow-sm">
-                                    <Icon name="x" size={14} />
-                                </button>
-                                <p className="text-[10px] font-black uppercase tracking-[0.3em] text-accent mb-2">Data Inspector</p>
-                                <h2 className="text-2xl font-bold tracking-tight text-text-primary mb-1">{usersList.find(u => u.id === selectedUser)?.displayName || "Unknown User"}</h2>
-                                <p className="text-xs text-text-secondary font-mono">{usersList.find(u => u.id === selectedUser)?.email}</p>
+                    {/* Right Main Screen Box */}
+                    <div className="flex-1 min-w-0 bg-card-bg border border-border-color rounded-[2rem] shadow-sm flex flex-col h-[700px] overflow-hidden relative">
+                        {!selectedUser ? (
+                            <div className="flex-1 overflow-y-auto custom-scrollbar p-6 sm:p-10 flex flex-col items-center">
+                                {/* Welcome / Empty State */}
+                                <div className="w-16 h-16 rounded-full bg-accent/10 flex items-center justify-center text-accent mb-6 mt-10">
+                                    <Icon name="search" size={24} />
+                                </div>
+                                <h3 className="text-xl font-bold text-text-primary mb-2 text-center tracking-tighter">User Data Inspector</h3>
+                                <p className="text-sm text-text-secondary max-w-sm text-center mb-10">
+                                    Select a user from the sidebar to inject into their precise telemetry, habit constructions, written notes, and raw log activity events.
+                                </p>
+
+                                {/* Global Platform Stats displayed while empty */}
+                                <div className="w-full max-w-3xl space-y-6">
+                                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                                        <MetricCard title="Total Users" value={stats.users} icon="users" />
+                                        <MetricCard title="Habits Created" value={stats.habits} icon="activity" />
+                                        <MetricCard title="Reminders" value={stats.reminders} icon="bell" />
+                                        <MetricCard title="Notes" value={stats.notes} icon="file-text" />
+                                    </div>
+
+                                    {/* Graph */}
+                                    <div className="p-6 bg-bg-sidebar border border-border-color rounded-3xl shadow-sm">
+                                        <h3 className="text-[11px] font-black uppercase tracking-[0.2em] text-text-secondary mb-6"><Icon name="trending-up" className="inline-block mr-2" size={14} /> User Registration Growth (Last 30 Days)</h3>
+                                        <div className="h-[200px] w-full">
+                                            <ResponsiveContainer width="100%" height="100%">
+                                                <AreaChart data={graphData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                                                    <defs>
+                                                        <linearGradient id="colorUsers" x1="0" y1="0" x2="0" y2="1">
+                                                            <stop offset="5%" stopColor="var(--accent)" stopOpacity={0.4}/>
+                                                            <stop offset="95%" stopColor="var(--accent)" stopOpacity={0}/>
+                                                        </linearGradient>
+                                                    </defs>
+                                                    <CartesianGrid strokeDasharray="3 3" stroke="var(--border-color)" vertical={false} />
+                                                    <XAxis dataKey="name" stroke="var(--text-secondary)" fontSize={10} tickLine={false} axisLine={false} />
+                                                    <YAxis stroke="var(--text-secondary)" fontSize={10} tickLine={false} axisLine={false} />
+                                                    <Tooltip 
+                                                        contentStyle={{ backgroundColor: 'var(--bg-main)', borderColor: 'var(--border-color)', borderRadius: '12px', fontSize: '12px' }}
+                                                        itemStyle={{ color: 'var(--text-primary)' }}
+                                                        labelStyle={{ color: 'var(--text-secondary)', marginBottom: '4px' }}
+                                                    />
+                                                    <Area type="monotone" dataKey="users" stroke="var(--accent)" strokeWidth={3} fillOpacity={1} fill="url(#colorUsers)" />
+                                                </AreaChart>
+                                            </ResponsiveContainer>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
-
-                            {userLoading || !userData || !userStats ? (
-                                <div className="p-16 flex flex-col items-center justify-center gap-4 text-text-secondary">
-                                    <Icon name="loader" className="animate-spin" size={32} />
-                                    <p className="text-xs tracking-widest uppercase font-bold">Querying Profile...</p>
+                        ) : userLoading || !userData || !userStats ? (
+                            <div className="flex-1 flex flex-col items-center justify-center gap-4 text-text-secondary animate-in fade-in">
+                                <Icon name="loader" className="animate-spin" size={32} />
+                                <p className="text-xs tracking-widest uppercase font-bold text-accent">Querying Profile infrastructure...</p>
+                            </div>
+                        ) : (
+                            <div className="flex-1 flex flex-col overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-500">
+                                {/* Inspector Header */}
+                                <div className="p-6 sm:p-8 border-b border-border-color bg-gradient-to-r from-accent/10 to-transparent shrink-0 relative">
+                                    <button onClick={() => setSelectedUser(null)} className="absolute top-6 right-6 w-8 h-8 rounded-lg bg-bg-main border border-border-color flex items-center justify-center hover:bg-white/10 text-text-secondary transition-all shadow-sm">
+                                        <Icon name="x" size={14} />
+                                    </button>
+                                    <div className="flex items-center gap-4 mb-2">
+                                        <div className="w-12 h-12 rounded-full bg-accent text-bg-main flex items-center justify-center font-bold text-xl uppercase shadow-lg shadow-accent/20">
+                                            {(usersList.find(u => u.id === selectedUser)?.displayName || "U").charAt(0)}
+                                        </div>
+                                        <div>
+                                            <p className="text-[10px] font-black uppercase tracking-[0.3em] text-accent mb-1">Target Identity Confirmed</p>
+                                            <h2 className="text-2xl font-bold tracking-tight text-text-primary leading-none">{usersList.find(u => u.id === selectedUser)?.displayName || "Unknown User"}</h2>
+                                        </div>
+                                    </div>
+                                    <p className="text-xs text-text-secondary font-mono mt-3 ml-16 flex items-center gap-2">
+                                        <Icon name="mail" size={12} /> {usersList.find(u => u.id === selectedUser)?.email}
+                                        <span className="opacity-50 mx-2">|</span>
+                                        <Icon name="hash" size={12} /> {selectedUser}
+                                    </p>
                                 </div>
-                            ) : (
-                                <div className="flex-1 overflow-y-auto custom-scrollbar p-6 space-y-8">
-                                    {/* Advanced Stats */}
-                                    <div className="grid grid-cols-2 gap-3">
-                                        <div className="bg-bg-sidebar border border-border-color rounded-xl p-4 shadow-sm">
-                                            <p className="text-[9px] font-black uppercase tracking-widest text-text-secondary mb-1">Total Time Spent</p>
-                                            <p className="text-xl font-mono font-bold text-text-primary">{userStats.timeSpent}</p>
+
+                                {/* Inspector Content */}
+                                <div className="flex-1 overflow-y-auto custom-scrollbar p-6 sm:p-8 space-y-8 bg-bg-main">
+                                    {/* Advanced Analytical Box */}
+                                    <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                                        <div className="bg-bg-sidebar border border-border-color rounded-2xl p-5 shadow-sm hover:border-accent/40 transition-colors">
+                                            <p className="text-[9px] font-black uppercase tracking-widest text-text-secondary mb-1 flex items-center gap-2"><Icon name="clock" size={12}/> Est. Time Spent</p>
+                                            <p className="text-2xl font-mono font-bold text-text-primary">{userStats.timeSpent}</p>
                                         </div>
-                                        <div className="bg-bg-sidebar border border-border-color rounded-xl p-4 shadow-sm">
-                                            <p className="text-[9px] font-black uppercase tracking-widest text-text-secondary mb-1">Consistency Rate</p>
-                                            <p className="text-xl font-mono font-bold text-success">{userStats.consistencyRate}%</p>
+                                        <div className="bg-bg-sidebar border border-border-color rounded-2xl p-5 shadow-sm hover:border-success/40 transition-colors">
+                                            <p className="text-[9px] font-black uppercase tracking-widest text-text-secondary mb-1 flex items-center gap-2"><Icon name="activity" size={12}/> Consistency</p>
+                                            <p className="text-2xl font-mono font-bold text-success">{userStats.consistencyRate}%</p>
                                         </div>
-                                        <div className="bg-bg-sidebar border border-border-color rounded-xl p-4 shadow-sm">
-                                            <p className="text-[9px] font-black uppercase tracking-widest text-text-secondary mb-1">Total Log Hits</p>
-                                            <p className="text-xl font-mono font-bold text-text-primary">{userStats.totalLogHits}</p>
+                                        <div className="bg-bg-sidebar border border-border-color rounded-2xl p-5 shadow-sm hover:border-accent/40 transition-colors">
+                                            <p className="text-[9px] font-black uppercase tracking-widest text-text-secondary mb-1 flex items-center gap-2"><Icon name="check-square" size={12}/> Raw Log Hits</p>
+                                            <p className="text-2xl font-mono font-bold text-text-primary">{userData.logs?.length || 0}</p>
                                         </div>
-                                        <div className="bg-bg-sidebar border border-border-color rounded-xl p-4 shadow-sm">
-                                            <p className="text-[9px] font-black uppercase tracking-widest text-text-secondary mb-1">Notes & Reminders</p>
-                                            <p className="text-xl font-mono font-bold text-text-primary">{userData.notes.length + userData.reminders.length}</p>
+                                        <div className="bg-bg-sidebar border border-border-color rounded-2xl p-5 shadow-sm hover:border-accent/40 transition-colors">
+                                            <p className="text-[9px] font-black uppercase tracking-widest text-text-secondary mb-1 flex items-center gap-2"><Icon name="grid" size={12}/> Habits Constructed</p>
+                                            <p className="text-2xl font-mono font-bold text-text-primary">{userData.habits?.length || 0}</p>
                                         </div>
                                     </div>
 
-                                    {/* Habits & Details */}
-                                    <div>
-                                        <h4 className="text-[11px] font-black uppercase tracking-[0.2em] text-text-secondary mb-4 border-b border-border-color pb-2">Established Habits ({userData.habits.length})</h4>
-                                        <div className="space-y-2">
-                                            {userData.habits.length > 0 ? userData.habits.map(h => (
-                                                <div key={h.id} className="border border-border-color rounded-xl bg-bg-main overflow-hidden shadow-sm">
-                                                    <button 
-                                                        onClick={() => setInspectorHabit(inspectorHabit === h.id ? null : h.id)} 
-                                                        className={`w-full text-left p-4 transition-all flex items-center justify-between ${inspectorHabit === h.id ? 'bg-accent/10 border-b border-accent/20' : 'hover:bg-accent-dim'}`}
-                                                    >
-                                                        <div>
-                                                            <p className="text-sm font-bold text-text-primary mb-1">{h.emoji} {h.name}</p>
-                                                            <div className="flex gap-2">
-                                                               <span className={`text-[9px] uppercase tracking-widest px-1.5 py-0.5 rounded ${h.type === 'Good' ? 'bg-success/20 text-success' : 'bg-danger/20 text-danger'}`}>{h.type}</span>
-                                                               <span className="text-[9px] font-mono text-text-secondary px-1.5 py-0.5 rounded bg-white/5 border border-white/10 uppercase">{h.mode}</span>
+                                    {/* Data Split View */}
+                                    <div className="grid lg:grid-cols-2 gap-6 items-start">
+                                        {/* Left Side: Habits & Logs Explorer */}
+                                        <div className="bg-card-bg border border-border-color rounded-3xl p-6 shadow-sm">
+                                            <h4 className="text-[11px] font-black uppercase tracking-[0.2em] text-text-secondary mb-4 border-b border-border-color pb-3 flex items-center justify-between">
+                                                <span>Habit Intelligence Inspector</span>
+                                            </h4>
+                                            <div className="space-y-3">
+                                                {userData.habits?.length > 0 ? userData.habits.map(h => (
+                                                    <div key={h.id} className={`border rounded-2xl overflow-hidden transition-all duration-300 ${inspectorHabit === h.id ? 'border-accent bg-accent-dim shadow-[0_0_15px_rgba(var(--accent-rgb),0.1)]' : 'border-border-color bg-bg-main hover:border-text-secondary/50'}`}>
+                                                        <button 
+                                                            onClick={() => setInspectorHabit(inspectorHabit === h.id ? null : h.id)} 
+                                                            className="w-full text-left p-4 flex items-center justify-between group"
+                                                        >
+                                                            <div>
+                                                                <p className="text-sm font-bold text-text-primary mb-1 group-hover:text-accent transition-colors">{h.emoji} {h.name}</p>
+                                                                <div className="flex gap-2">
+                                                                   <span className={`text-[9px] uppercase tracking-widest px-2 py-0.5 rounded-md ${h.type === 'Good' ? 'bg-success/20 text-success' : 'bg-danger/20 text-danger'}`}>{h.type}</span>
+                                                                   <span className="text-[9px] font-mono text-text-secondary px-2 py-0.5 rounded-md bg-white/5 border border-white/10 uppercase">{h.mode}</span>
+                                                                </div>
                                                             </div>
-                                                        </div>
-                                                        <Icon name={inspectorHabit === h.id ? "chevron-up" : "chevron-down"} size={16} className="text-text-secondary" />
-                                                    </button>
-                                                    {inspectorHabit === h.id && (
-                                                        <div className="p-3 bg-bg-sidebar">
-                                                            {(() => {
-                                                                const allHabitLogs = (h.logs || []).filter(l => l.entries && l.entries.length > 0)
-                                                                    .sort((a,b) => new Date(b.date) - new Date(a.date));
-                                                                
-                                                                if (allHabitLogs.length === 0) return <p className="text-xs text-text-secondary py-2 text-center">No logs recorded yet.</p>;
-                                                                
-                                                                return allHabitLogs.map((l, idx) => (
-                                                                    <div key={idx} className="mb-4 last:mb-0">
-                                                                        <p className="text-[10px] font-mono font-bold tracking-widest text-text-secondary mb-2 bg-black/20 px-2 py-1 rounded inline-block">{new Date(l.date).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })}</p>
-                                                                        <div className="space-y-1">
-                                                                            {l.entries.map((e, i) => {
-                                                                                const isPhoto = typeof e === "string" && e.startsWith("data:image");
-                                                                                const isCount = typeof e === "string" && e.includes("|") && !isPhoto;
-                                                                                let display = "Logged successfully";
-                                                                                let logTime = "";
-                                                                                if (isPhoto) {
-                                                                                    display = "📷 Visual capture attached";
-                                                                                } else if (isCount) {
-                                                                                    const parts = e.split("|");
-                                                                                    logTime = parts[0];
-                                                                                    display = `${parts[1]} ${parts[2] || ""}`.trim();
-                                                                                } else {
-                                                                                    logTime = e;
-                                                                                }
-                                                                                return (
-                                                                                    <div key={i} className="flex justify-between items-center text-xs p-2 rounded-lg bg-bg-main border border-border-color">
-                                                                                        <span className="text-text-primary font-medium">{display}</span>
-                                                                                        {logTime && <span className="text-[10px] text-text-secondary font-mono bg-black/30 px-1.5 py-0.5 rounded">{logTime}</span>}
+                                                            <Icon name={inspectorHabit === h.id ? "chevron-up" : "chevron-down"} size={16} className={`transition-all ${inspectorHabit === h.id ? 'text-accent' : 'text-text-secondary group-hover:text-text-primary'}`} />
+                                                        </button>
+                                                        
+                                                        {inspectorHabit === h.id && (
+                                                            <div className="p-4 bg-bg-sidebar animate-in slide-in-from-top-2 border-t border-border-color/50">
+                                                                {(() => {
+                                                                    const allHabitLogs = (h.logs || []).filter(l => l.entries && l.entries.length > 0)
+                                                                        .sort((a,b) => new Date(b.date) - new Date(a.date));
+                                                                    
+                                                                    if (allHabitLogs.length === 0) return <p className="text-xs text-text-secondary py-4 text-center border border-dashed border-border-color rounded-xl">No logs recorded yet.</p>;
+                                                                    
+                                                                    return (
+                                                                        <div className="space-y-4 max-h-[300px] overflow-y-auto custom-scrollbar pr-2">
+                                                                            {allHabitLogs.map((l, idx) => (
+                                                                                <div key={idx} className="relative pl-3 border-l-2 border-border-color">
+                                                                                    <div className="absolute w-2 h-2 rounded-full bg-border-color -left-[5px] top-[7px] ring-4 ring-bg-sidebar"></div>
+                                                                                    <p className="text-[10px] font-mono font-bold tracking-widest text-text-primary bg-bg-main px-2 py-1 rounded-md inline-block shadow-sm border border-border-color/50 mb-2">{new Date(l.date).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })}</p>
+                                                                                    <div className="space-y-1.5 mt-1">
+                                                                                        {l.entries.map((e, i) => {
+                                                                                            const isPhoto = typeof e === "string" && e.startsWith("data:image");
+                                                                                            const isCount = typeof e === "string" && e.includes("|") && !isPhoto;
+                                                                                            let display = "Logged successfully";
+                                                                                            let logTime = "";
+                                                                                            if (isPhoto) {
+                                                                                                display = "📷 Visual capture attached";
+                                                                                            } else if (isCount) {
+                                                                                                const parts = e.split("|");
+                                                                                                logTime = parts[0];
+                                                                                                display = `${parts[1]} ${parts[2] || ""}`.trim();
+                                                                                            } else {
+                                                                                                logTime = e;
+                                                                                            }
+                                                                                            return (
+                                                                                                <div key={i} className="flex justify-between items-center text-xs p-2.5 rounded-xl bg-bg-main border border-border-color/50 hover:border-accent/30 transition-colors">
+                                                                                                    <span className="text-text-primary font-medium">{display}</span>
+                                                                                                    {logTime && <span className="text-[10px] text-accent font-mono bg-accent/10 px-2 py-1 rounded-md">{logTime}</span>}
+                                                                                                </div>
+                                                                                            );
+                                                                                        })}
                                                                                     </div>
-                                                                                );
-                                                                            })}
+                                                                                </div>
+                                                                            ))}
                                                                         </div>
-                                                                    </div>
-                                                                ));
-                                                            })()}
+                                                                    );
+                                                                })()}
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                )) : <p className="text-xs text-text-secondary font-medium">No habits established.</p>}
+                                            </div>
+                                        </div>
+
+                                        {/* Right Side: Notes & Reminders */}
+                                        <div className="space-y-6">
+                                            {/* Notes */}
+                                            <div className="bg-card-bg border border-border-color rounded-3xl p-6 shadow-sm">
+                                                <h4 className="text-[11px] font-black uppercase tracking-[0.2em] text-text-secondary mb-4 border-b border-border-color pb-3">Written Notes ({userData.notes?.length || 0})</h4>
+                                                <div className="space-y-3 max-h-[250px] overflow-y-auto custom-scrollbar pr-2">
+                                                    {userData.notes?.length > 0 ? userData.notes.map(n => (
+                                                        <div key={n.id} className="p-4 bg-bg-sidebar rounded-2xl border border-border-color hover:border-text-secondary transition-colors group">
+                                                            <div className="flex items-start justify-between gap-2 mb-2">
+                                                                <p className="text-sm font-bold text-text-primary break-words">{n.title || "Untitled"}</p>
+                                                                {n.pinned && <Icon name="pin" size={12} className="text-accent shrink-0 mt-1" />}
+                                                            </div>
+                                                            <p className="text-xs text-text-secondary font-medium leading-relaxed whitespace-pre-wrap">{n.body || "No content"}</p>
                                                         </div>
-                                                    )}
+                                                    )) : <p className="text-xs text-text-secondary font-medium">No notes written.</p>}
                                                 </div>
-                                            )) : <p className="text-xs text-text-secondary font-medium">No habits established.</p>}
+                                            </div>
+                                            
+                                            {/* Reminders */}
+                                            <div className="bg-card-bg border border-border-color rounded-3xl p-6 shadow-sm">
+                                                <h4 className="text-[11px] font-black uppercase tracking-[0.2em] text-text-secondary mb-4 border-b border-border-color pb-3">Scheduled Reminders ({userData.reminders?.length || 0})</h4>
+                                                <div className="space-y-3 max-h-[250px] overflow-y-auto custom-scrollbar pr-2">
+                                                    {userData.reminders?.length > 0 ? userData.reminders.map(r => (
+                                                        <div key={r.id} className="p-4 bg-bg-sidebar rounded-2xl border border-border-color flex items-center justify-between hover:border-text-secondary transition-colors">
+                                                            <div>
+                                                               <p className="text-sm font-bold text-text-primary mb-1">{r.title}</p>
+                                                               {r.date && <p className="text-[10px] text-text-secondary font-mono tracking-widest uppercase">{new Date(r.date).toLocaleDateString()}</p>}
+                                                            </div>
+                                                            <span className="text-[10px] font-mono font-bold text-accent bg-accent/10 px-2.5 py-1.5 rounded-lg whitespace-nowrap shadow-sm shadow-accent/5">{r.time}</span>
+                                                        </div>
+                                                    )) : <p className="text-xs text-text-secondary font-medium">No reminders set.</p>}
+                                                </div>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
-                            )}
-                        </div>
-                    )}
+                            </div>
+                        )}
+                    </div>
                 </div>
             )}
         </div>
