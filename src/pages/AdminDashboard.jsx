@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
-import { collection, getDocs, collectionGroup, getCountFromServer } from "firebase/firestore";
+import { collection, getDocs, collectionGroup, getCountFromServer, onSnapshot, doc, deleteDoc } from "firebase/firestore";
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
 import { db } from "../firebase.config";
 import { useAuth } from "../contexts/AuthContext";
@@ -18,6 +18,7 @@ export default function AdminDashboard() {
     const [userData, setUserData] = useState(null);
     const [userLoading, setUserLoading] = useState(false);
     const [inspectorHabit, setInspectorHabit] = useState(null);
+    const [subUnsubscribes, setSubUnsubscribes] = useState([]);
 
     // NOTE: This assumes the user's UID has Firestore security rules giving them
     // permission to read entire collections/collectionGroups
@@ -34,53 +35,72 @@ export default function AdminDashboard() {
             const remindersSnapshot = await getCountFromServer(collectionGroup(db, "reminders"));
             const notesSnapshot = await getCountFromServer(collectionGroup(db, "notes"));
 
-            // Fetch actual users list
-            const usersQuery = await getDocs(collection(db, "users"));
-            const allUsers = [];
-            usersQuery.forEach(doc => {
-                 allUsers.push({ id: doc.id, ...doc.data() });
-            });
-            setUsersList(allUsers);
-
             setStats({
-                users: allUsers.length,
+                users: usersList.length,
                 habits: habitsSnapshot.data().count,
                 reminders: remindersSnapshot.data().count,
                 notes: notesSnapshot.data().count
             });
+            setLoading(false);
         } catch (err) {
             console.error(err);
             setError("Failed to fetch admin stats. Ensure Firestore security rules permit collectionGroup queries for you.");
-        } finally {
             setLoading(false);
         }
     };
 
     useEffect(() => {
-        if (isAdmin) {
-            fetchStats();
-        }
+        if (!isAdmin) return;
+        
+        const unsubUsers = onSnapshot(collection(db, "users"), (snapshot) => {
+            const allUsers = [];
+            snapshot.forEach(d => allUsers.push({ id: d.id, ...d.data() }));
+            setUsersList(allUsers);
+        });
+        
+        fetchStats();
+
+        return () => unsubUsers();
     }, [isAdmin]);
 
-    const loadUserData = async (uid) => {
+    // Cleanup user subs when component unmounts
+    useEffect(() => {
+        return () => subUnsubscribes.forEach(u => u());
+    }, [subUnsubscribes]);
+
+    const loadUserData = (uid) => {
         setUserLoading(true);
         setSelectedUser(uid);
-        try {
-            const habitsSnap = await getDocs(collection(db, "users", uid, "habits"));
-            const notesSnap = await getDocs(collection(db, "users", uid, "notes"));
-            const remindersSnap = await getDocs(collection(db, "users", uid, "reminders"));
-            const logsSnap = await getDocs(collection(db, "users", uid, "logs"));
+        
+        subUnsubscribes.forEach(unsub => unsub());
+        
+        let newSubs = [];
+        const attachListener = (collectionName, key) => {
+            const unsub = onSnapshot(collection(db, "users", uid, collectionName), (snapshot) => {
+                const data = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+                setUserData(prev => ({ ...prev, [key]: data }));
+                setUserLoading(false);
+            }, (err) => console.error(err));
+            newSubs.push(unsub);
+        };
 
-            setUserData({
-                habits: habitsSnap.docs.map(d => ({ id: d.id, ...d.data() })),
-                notes: notesSnap.docs.map(d => ({ id: d.id, ...d.data() })),
-                reminders: remindersSnap.docs.map(d => ({ id: d.id, ...d.data() })),
-                logs: logsSnap.docs.map(d => ({ id: d.id, ...d.data() }))
-            });
-        } catch(err) {
-            console.error("Error loading user data:", err);
+        setUserData({ habits: [], notes: [], reminders: [], logs: [] });
+        attachListener("habits", "habits");
+        attachListener("notes", "notes");
+        attachListener("reminders", "reminders");
+        attachListener("logs", "logs");
+        
+        setSubUnsubscribes(newSubs);
+    };
+
+    const deleteInspectorData = async (collectionName, id) => {
+        if (window.confirm("Admin Privileges: Are you sure you want to permanently delete this user data?")) {
+            try {
+                await deleteDoc(doc(db, "users", selectedUser, collectionName, id));
+            } catch(e) {
+                console.error("Failed to delete", e);
+            }
         }
-        setUserLoading(false);
     };
 
     const graphData = useMemo(() => {
@@ -120,12 +140,15 @@ export default function AdminDashboard() {
         
         const consistencyRate = Math.min(100, Math.round((activeDates.size / daysSince) * 100));
         
-        let exactMins = 0;
-        if (info && info.exactTimeSpent) {
-            exactMins = Math.floor(info.exactTimeSpent / 60);
+        let exactMins = Math.floor((info?.exactTimeSpent || 0) / 60);
+        const baseTimeMins = (userData.habits?.length * 15) + (totalLogHits * 2.5) + (userData.notes?.length * 5);
+        
+        // Prevent jarring resets if they just gained "exactTimeSpent" tracking by combining legacy estimate
+        if (exactMins < 5) {
+            exactMins += Math.floor(baseTimeMins);
         } else {
-            const baseTimeMins = (userData.habits?.length * 15) + (totalLogHits * 2.5) + (userData.notes?.length * 5);
-            exactMins = Math.floor(baseTimeMins);
+            // Over time, accurate tracking suppresses the legacy base estimator completely
+            exactMins = Math.max(exactMins, Math.floor(baseTimeMins));
         }
         
         const hours = Math.floor(exactMins / 60);
@@ -290,8 +313,10 @@ export default function AdminDashboard() {
                                             {(usersList.find(u => u.id === selectedUser)?.displayName || "U").charAt(0)}
                                         </div>
                                         <div>
-                                            <p className="text-[10px] font-black uppercase tracking-[0.3em] text-accent mb-1">Target Identity Confirmed</p>
-                                            <h2 className="text-2xl font-bold tracking-tight text-text-primary leading-none">{usersList.find(u => u.id === selectedUser)?.displayName || "Unknown User"}</h2>
+                                            <p className="text-[10px] font-black uppercase tracking-[0.3em] text-accent mb-1 flex items-center gap-2">Target Identity Confirmed {usersList.find(u => u.id === selectedUser)?.isOnline && <span className="w-2 h-2 rounded-full bg-success animate-pulse shadow-[0_0_8px_rgba(var(--success-rgb),0.8)]"></span>}</p>
+                                            <h2 className="text-2xl font-bold tracking-tight text-text-primary leading-none flex items-center gap-3">
+                                                {usersList.find(u => u.id === selectedUser)?.displayName || "Unknown User"}
+                                            </h2>
                                         </div>
                                     </div>
                                     <p className="text-xs text-text-secondary font-mono mt-3 ml-16 flex items-center gap-2">
@@ -344,7 +369,12 @@ export default function AdminDashboard() {
                                                                    <span className="text-[9px] font-mono text-text-secondary px-2 py-0.5 rounded-md bg-white/5 border border-white/10 uppercase">{h.mode}</span>
                                                                 </div>
                                                             </div>
-                                                            <Icon name={inspectorHabit === h.id ? "chevron-up" : "chevron-down"} size={16} className={`transition-all ${inspectorHabit === h.id ? 'text-accent' : 'text-text-secondary group-hover:text-text-primary'}`} />
+                                                            <div className="flex items-center gap-2">
+                                                                <button onClick={(e) => { e.stopPropagation(); deleteInspectorData("habits", h.id); }} className="p-1.5 rounded-lg border border-border-color/50 text-text-secondary hover:text-danger hover:border-danger/30 hover:bg-danger/10 transition-colors">
+                                                                    <Icon name="trash" size={14} />
+                                                                </button>
+                                                                <Icon name={inspectorHabit === h.id ? "chevron-up" : "chevron-down"} size={16} className={`transition-all ${inspectorHabit === h.id ? 'text-accent' : 'text-text-secondary group-hover:text-text-primary'}`} />
+                                                            </div>
                                                         </button>
                                                         
                                                         {inspectorHabit === h.id && (
@@ -374,10 +404,15 @@ export default function AdminDashboard() {
                                                                                                 display = `${e.amount} ${e.unit || ""}`.trim();
                                                                                             }
                                                                                             return (
-                                                                                                <div key={i} className="flex flex-col text-xs p-2.5 rounded-xl bg-bg-main border border-border-color/50 hover:border-accent/30 transition-colors gap-2 overflow-hidden w-full max-w-full">
+                                                                                                <div key={i} className="flex flex-col text-xs p-2.5 rounded-xl bg-bg-main border border-border-color/50 hover:border-accent/30 transition-colors gap-2 overflow-hidden w-full max-w-full group/log">
                                                                                                     <div className="flex justify-between items-center w-full min-w-0">
                                                                                                         <span className="text-text-primary font-medium truncate pr-2">{isPhoto ? "📷 Visual capture attached" : display}</span>
-                                                                                                        {(!isPhoto && e.time) && <span className="text-[10px] text-accent font-mono bg-accent/10 px-2 py-1 rounded-md shrink-0 max-w-[80px] truncate">{e.time}</span>}
+                                                                                                        <div className="flex items-center gap-2 shrink-0">
+                                                                                                            <button onClick={() => deleteInspectorData("logs", e.id || e.__id || e.id__ || l.id)} className="opacity-0 group-hover/log:opacity-100 text-text-secondary hover:text-danger transition-colors bg-bg-main">
+                                                                                                                <Icon name="trash" size={12} />
+                                                                                                            </button>
+                                                                                                            {(!isPhoto && e.time) && <span className="text-[10px] text-accent font-mono bg-accent/10 px-2 py-1 rounded-md max-w-[80px] truncate">{e.time}</span>}
+                                                                                                        </div>
                                                                                                     </div>
                                                                                                     {isPhoto && e.time && (
                                                                                                         <div className="w-full h-32 rounded-lg overflow-hidden border border-border-color/30 mt-1 max-w-full bg-black/20">
@@ -410,7 +445,12 @@ export default function AdminDashboard() {
                                                         <div key={n.id} className="p-4 bg-bg-sidebar rounded-2xl border border-border-color hover:border-text-secondary transition-colors group overflow-hidden w-full">
                                                             <div className="flex items-start justify-between gap-2 mb-2">
                                                                 <p className="text-sm font-bold text-text-primary break-words whitespace-normal min-w-0">{n.title || "Untitled"}</p>
-                                                                {n.pinned && <Icon name="pin" size={12} className="text-accent shrink-0 mt-1" />}
+                                                                <div className="flex items-center gap-2 shrink-0">
+                                                                    <button onClick={() => deleteInspectorData("notes", n.id)} className="opacity-0 group-hover:opacity-100 p-1 text-text-secondary hover:text-danger transition-all bg-bg-sidebar rounded">
+                                                                        <Icon name="trash" size={12} />
+                                                                    </button>
+                                                                    {n.pinned && <Icon name="pin" size={12} className="text-accent mt-0.5" />}
+                                                                </div>
                                                             </div>
                                                             <p className="text-xs text-text-secondary font-medium leading-relaxed whitespace-pre-wrap break-words">{n.body || "No content"}</p>
                                                         </div>
@@ -423,12 +463,17 @@ export default function AdminDashboard() {
                                                 <h4 className="text-[11px] font-black uppercase tracking-[0.2em] text-text-secondary mb-4 border-b border-border-color pb-3">Scheduled Reminders ({userData.reminders?.length || 0})</h4>
                                                 <div className="space-y-3 max-h-[250px] overflow-y-auto custom-scrollbar pr-2">
                                                     {userData.reminders?.length > 0 ? userData.reminders.map(r => (
-                                                        <div key={r.id} className="p-4 bg-bg-sidebar rounded-2xl border border-border-color flex items-center justify-between hover:border-text-secondary transition-colors overflow-hidden w-full">
+                                                        <div key={r.id} className="p-4 bg-bg-sidebar rounded-2xl border border-border-color flex items-center justify-between hover:border-text-secondary transition-colors overflow-hidden w-full group">
                                                             <div className="min-w-0 pr-3">
                                                                <p className="text-sm font-bold text-text-primary mb-1 break-words whitespace-normal">{r.title}</p>
                                                                {r.date && <p className="text-[10px] text-text-secondary font-mono tracking-widest uppercase">{new Date(r.date).toLocaleDateString()}</p>}
                                                             </div>
-                                                            <span className="text-[10px] font-mono font-bold text-accent bg-accent/10 px-2.5 py-1.5 rounded-lg whitespace-nowrap shadow-sm shadow-accent/5 shrink-0">{r.time}</span>
+                                                            <div className="flex items-center gap-2 shrink-0">
+                                                                <button onClick={() => deleteInspectorData("reminders", r.id)} className="opacity-0 group-hover:opacity-100 p-1 text-text-secondary hover:text-danger transition-all bg-bg-sidebar rounded">
+                                                                    <Icon name="trash" size={12} />
+                                                                </button>
+                                                                <span className="text-[10px] font-mono font-bold text-accent bg-accent/10 px-2.5 py-1.5 rounded-lg whitespace-nowrap shadow-sm shadow-accent/5">{r.time}</span>
+                                                            </div>
                                                         </div>
                                                     )) : <p className="text-xs text-text-secondary font-medium">No reminders set.</p>}
                                                 </div>
