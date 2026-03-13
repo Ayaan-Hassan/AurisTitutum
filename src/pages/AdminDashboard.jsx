@@ -369,16 +369,21 @@ export default function AdminDashboard() {
                                                                                     <div className="space-y-1.5 mt-1">
                                                                                         {grouped[dateStr].sort((a,b) => a.time?.localeCompare(b.time)).map((e, i) => {
                                                                                             let display = "Logged successfully";
-                                                                                            let logTime = e.time || "";
-                                                                                            if (e.amount > 1 && e.mode === "count") {
-                                                                                                display = `${e.amount} ${e.unit}`.trim();
-                                                                                            } else if (e.amount === null && e.mode === "photo") {
-                                                                                                display = "📷 Visual capture attached";
+                                                                                            const isPhoto = e.mode === "photo" || (e.time && e.time.startsWith("data:image"));
+                                                                                            if (e.mode === "count") {
+                                                                                                display = `${e.amount} ${e.unit || ""}`.trim();
                                                                                             }
                                                                                             return (
-                                                                                                <div key={i} className="flex justify-between items-center text-xs p-2.5 rounded-xl bg-bg-main border border-border-color/50 hover:border-accent/30 transition-colors">
-                                                                                                    <span className="text-text-primary font-medium">{display}</span>
-                                                                                                    {logTime && <span className="text-[10px] text-accent font-mono bg-accent/10 px-2 py-1 rounded-md">{logTime}</span>}
+                                                                                                <div key={i} className="flex flex-col text-xs p-2.5 rounded-xl bg-bg-main border border-border-color/50 hover:border-accent/30 transition-colors gap-2 overflow-hidden w-full max-w-full">
+                                                                                                    <div className="flex justify-between items-center w-full min-w-0">
+                                                                                                        <span className="text-text-primary font-medium truncate pr-2">{isPhoto ? "📷 Visual capture attached" : display}</span>
+                                                                                                        {(!isPhoto && e.time) && <span className="text-[10px] text-accent font-mono bg-accent/10 px-2 py-1 rounded-md shrink-0 max-w-[80px] truncate">{e.time}</span>}
+                                                                                                    </div>
+                                                                                                    {isPhoto && e.time && (
+                                                                                                        <div className="w-full h-32 rounded-lg overflow-hidden border border-border-color/30 mt-1 max-w-full bg-black/20">
+                                                                                                            <img src={e.time} alt="Log capture" className="w-full h-full object-cover" />
+                                                                                                        </div>
+                                                                                                    )}
                                                                                                 </div>
                                                                                             );
                                                                                         })}
@@ -402,12 +407,12 @@ export default function AdminDashboard() {
                                                 <h4 className="text-[11px] font-black uppercase tracking-[0.2em] text-text-secondary mb-4 border-b border-border-color pb-3">Written Notes ({userData.notes?.length || 0})</h4>
                                                 <div className="space-y-3 max-h-[250px] overflow-y-auto custom-scrollbar pr-2">
                                                     {userData.notes?.length > 0 ? userData.notes.map(n => (
-                                                        <div key={n.id} className="p-4 bg-bg-sidebar rounded-2xl border border-border-color hover:border-text-secondary transition-colors group">
+                                                        <div key={n.id} className="p-4 bg-bg-sidebar rounded-2xl border border-border-color hover:border-text-secondary transition-colors group overflow-hidden w-full">
                                                             <div className="flex items-start justify-between gap-2 mb-2">
-                                                                <p className="text-sm font-bold text-text-primary break-words">{n.title || "Untitled"}</p>
+                                                                <p className="text-sm font-bold text-text-primary break-words whitespace-normal min-w-0">{n.title || "Untitled"}</p>
                                                                 {n.pinned && <Icon name="pin" size={12} className="text-accent shrink-0 mt-1" />}
                                                             </div>
-                                                            <p className="text-xs text-text-secondary font-medium leading-relaxed whitespace-pre-wrap">{n.body || "No content"}</p>
+                                                            <p className="text-xs text-text-secondary font-medium leading-relaxed whitespace-pre-wrap break-words">{n.body || "No content"}</p>
                                                         </div>
                                                     )) : <p className="text-xs text-text-secondary font-medium">No notes written.</p>}
                                                 </div>
@@ -418,12 +423,12 @@ export default function AdminDashboard() {
                                                 <h4 className="text-[11px] font-black uppercase tracking-[0.2em] text-text-secondary mb-4 border-b border-border-color pb-3">Scheduled Reminders ({userData.reminders?.length || 0})</h4>
                                                 <div className="space-y-3 max-h-[250px] overflow-y-auto custom-scrollbar pr-2">
                                                     {userData.reminders?.length > 0 ? userData.reminders.map(r => (
-                                                        <div key={r.id} className="p-4 bg-bg-sidebar rounded-2xl border border-border-color flex items-center justify-between hover:border-text-secondary transition-colors">
-                                                            <div>
-                                                               <p className="text-sm font-bold text-text-primary mb-1">{r.title}</p>
+                                                        <div key={r.id} className="p-4 bg-bg-sidebar rounded-2xl border border-border-color flex items-center justify-between hover:border-text-secondary transition-colors overflow-hidden w-full">
+                                                            <div className="min-w-0 pr-3">
+                                                               <p className="text-sm font-bold text-text-primary mb-1 break-words whitespace-normal">{r.title}</p>
                                                                {r.date && <p className="text-[10px] text-text-secondary font-mono tracking-widest uppercase">{new Date(r.date).toLocaleDateString()}</p>}
                                                             </div>
-                                                            <span className="text-[10px] font-mono font-bold text-accent bg-accent/10 px-2.5 py-1.5 rounded-lg whitespace-nowrap shadow-sm shadow-accent/5">{r.time}</span>
+                                                            <span className="text-[10px] font-mono font-bold text-accent bg-accent/10 px-2.5 py-1.5 rounded-lg whitespace-nowrap shadow-sm shadow-accent/5 shrink-0">{r.time}</span>
                                                         </div>
                                                     )) : <p className="text-xs text-text-secondary font-medium">No reminders set.</p>}
                                                 </div>
