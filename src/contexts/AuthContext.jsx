@@ -26,6 +26,7 @@ import {
   subscribeToUserSubcollection,
   upsertUserSetting,
   getUserSetting,
+  updateUserPresence,
 } from "../services/firestoreService";
 import {
   aggregateHabitsFromDocs,
@@ -449,6 +450,42 @@ export const AuthProvider = ({ children }) => {
       unsubscribe();
     };
   }, []);
+
+  useEffect(() => {
+    if (!user || !user.uid) return;
+
+    updateUserPresence(user.uid, true, 0);
+
+    const handleVisibilityChange = () => {
+      const isVisible = document.visibilityState === 'visible';
+      updateUserPresence(user.uid, isVisible, 0);
+    };
+
+    const handleBeforeUnload = () => {
+      updateUserPresence(user.uid, false, 0);
+    };
+
+    let secondsPassed = 0;
+    const interval = setInterval(() => {
+       if (document.visibilityState === 'visible') {
+          secondsPassed++;
+          if (secondsPassed >= 60) {
+              updateUserPresence(user.uid, true, secondsPassed);
+              secondsPassed = 0;
+          }
+       }
+    }, 1000);
+
+    window.addEventListener("visibilitychange", handleVisibilityChange);
+    window.addEventListener("beforeunload", handleBeforeUnload);
+
+    return () => {
+      updateUserPresence(user.uid, false, secondsPassed);
+      window.removeEventListener("visibilitychange", handleVisibilityChange);
+      window.removeEventListener("beforeunload", handleBeforeUnload);
+      clearInterval(interval);
+    };
+  }, [user]);
 
   const login = async (email, password) => {
     if (!isFirebaseConfigured) {

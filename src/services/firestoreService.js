@@ -7,6 +7,7 @@ import {
   onSnapshot,
   setDoc,
   updateDoc,
+  increment,
   writeBatch,
 } from "firebase/firestore";
 import { db, isFirebaseConfigured } from "../firebase.config";
@@ -71,6 +72,17 @@ export const ensureUserDocument = async ({ uid, email, displayName }) => {
     },
     { merge: true },
   );
+};
+
+export const updateUserPresence = async (uid, isOnline, addSeconds = 0) => {
+  try {
+    if (!uid) return;
+    const updates = { isOnline, lastActive: new Date().toISOString() };
+    if (addSeconds > 0) {
+      updates.exactTimeSpent = increment(addSeconds);
+    }
+    await updateDoc(getUserDocRef(uid), updates);
+  } catch(e) { /* ignore */ }
 };
 
 export const getUserSetting = async (uid, settingId) => {
