@@ -14,6 +14,7 @@ import {
 } from "firebase/auth";
 import {
   auth,
+  db,
   authPersistenceReady,
   isFirebaseConfigured,
 } from "../firebase.config";

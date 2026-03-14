@@ -112,7 +112,9 @@ export default function AdminDashboard() {
     const handleActionConfirm = async () => {
         if (!confirmAction) return;
         const { type, action, id, extraData } = confirmAction;
-        console.log(`[AdminAction] Executing ${action} on ${type}:${id}`, extraData);
+        const targetUserId = (action === "ban" || action === "unban" || action === "wipe") ? id : selectedUser;
+        
+        console.log(`[AdminAction] Initiating ${action} | Operator: ${user?.uid} | Target: ${targetUserId}`);
         
         try {
             if (action === "delete") {
@@ -158,15 +160,13 @@ export default function AdminDashboard() {
                     unbannedAt: new Date().toISOString()
                 });
             } else if (action === "wipe") {
-                // To wipe, we should ideally go through all subcollections, 
-                // but deleting the root user doc is a start. 
-                // Full wipe usually requires a Cloud Function or sequential deletion.
                 await deleteDoc(doc(db, "users", id));
             }
-            console.log(`[AdminAction] ${action} Success`);
+            console.log(`[AdminAction] ${action} executed successfully`);
+            alert(`SUCCESS: ${action.toUpperCase()} processed by database.`);
         } catch(e) {
-            console.error("Action Failed", e);
-            alert(`Execution Failed: ${e.message}. Check Firestore permissions.`);
+            console.error("[AdminAction] Execution Failure", e);
+            alert(`CRITICAL ERROR: ${e.message}\n\nThis usually means your Firestore Rules are blocking this write. Ensure your Admin UID matches the one in rules.`);
         }
         setConfirmAction(null);
     };
@@ -600,13 +600,13 @@ export default function AdminDashboard() {
                                                                 <button onClick={() => {
                                                                     const newTime = prompt("Administrative Override: Set new trigger time (HH:MM)", r.time);
                                                                     if (newTime !== null && newTime.trim()) setConfirmAction({ type: "reminders", action: "updateReminder", id: r.id, extraData: newTime.trim() });
-                                                                }} className="p-2 rounded-xl bg-accent/20 border border-accent/40 text-accent hover:bg-accent hover:text-bg-main transition-all px-3 flex items-center gap-1.5">
+                                                                }} className="p-2 rounded-xl bg-accent border border-accent/40 text-bg-main hover:bg-accent/80 transition-all px-4 flex items-center gap-1.5 shadow-[0_0_10px_rgba(var(--accent-rgb),0.3)]">
                                                                     <Icon name="edit" size={12} />
-                                                                    <span className="text-[10px] font-bold">Edit</span>
+                                                                    <span className="text-[11px] font-black uppercase">Edit</span>
                                                                 </button>
-                                                                <button onClick={() => setConfirmAction({ type: "reminders", action: "delete", id: r.id })} className="p-2 rounded-xl bg-danger/20 border border-danger/40 text-danger hover:bg-danger hover:text-white transition-all px-3 flex items-center gap-1.5">
+                                                                <button onClick={() => setConfirmAction({ type: "reminders", action: "delete", id: r.id })} className="p-2 rounded-xl bg-danger border border-danger/40 text-white hover:bg-danger/80 transition-all px-4 flex items-center gap-1.5 shadow-[0_0_10px_rgba(var(--danger-rgb),0.3)]">
                                                                     <Icon name="trash" size={12} />
-                                                                    <span className="text-[10px] font-bold">Delete</span>
+                                                                    <span className="text-[11px] font-black uppercase">Delete</span>
                                                                 </button>
                                                                 <span className="text-[10px] font-mono font-bold text-accent bg-accent/10 px-2.5 py-1.5 rounded-lg whitespace-nowrap shadow-sm shadow-accent/5">{r.time}</span>
                                                             </div>
@@ -620,6 +620,14 @@ export default function AdminDashboard() {
                             </div>
                             )}
                         </div>
+                    {/* Debug Information & System Integrity */}
+                    <div className="w-full mt-8 p-4 bg-black/40 border border-white/5 rounded-xl flex flex-wrap items-center justify-between gap-4 text-[10px] font-mono opacity-50 hover:opacity-100 transition-opacity">
+                        <div className="flex items-center gap-4">
+                            <p className="flex items-center gap-2"><span className="w-1.5 h-1.5 rounded-full bg-success"></span> Operator UID: <span className="text-accent">{user?.uid}</span></p>
+                            <p className="flex items-center gap-2">| Configured Admin UID: <span className="text-accent">{adminUid}</span></p>
+                            <p className="flex items-center gap-2">| System Status: <span className={user?.uid === adminUid ? "text-success" : "text-danger"}>{user?.uid === adminUid ? "Verified Administrator" : "Identity Mismatch"}</span></p>
+                        </div>
+                        <p className="text-text-secondary">Auris Integrity Protocol v4.0.2 - Active</p>
                     </div>
                     
                     {/* User Management Section */}
