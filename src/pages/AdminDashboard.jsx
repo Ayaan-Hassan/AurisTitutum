@@ -620,8 +620,8 @@ export default function AdminDashboard() {
                         )}
                     </div>
                 </div>
-                    {/* Debug Information & System Integrity */}
-                    <div className="w-full mt-8 p-4 bg-black/40 border border-white/5 rounded-xl flex flex-wrap items-center justify-between gap-4 text-[10px] font-mono opacity-50 hover:opacity-100 transition-opacity">
+
+                <div className="w-full mt-8 p-4 bg-black/40 border border-white/5 rounded-xl flex flex-wrap items-center justify-between gap-4 text-[10px] font-mono opacity-50 hover:opacity-100 transition-opacity">
                         <div className="flex items-center gap-4">
                             <p className="flex items-center gap-2"><span className="w-1.5 h-1.5 rounded-full bg-success"></span> Operator UID: <span className="text-accent">{user?.uid}</span></p>
                             <p className="flex items-center gap-2">| Configured Admin UID: <span className="text-accent">{adminUid}</span></p>
