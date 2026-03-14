@@ -112,43 +112,80 @@ export default function AdminDashboard() {
     const handleActionConfirm = async () => {
         if (!confirmAction) return;
         const { type, action, id, extraData } = confirmAction;
+        console.log(`[AdminAction] Executing ${action} on ${type}:${id}`, extraData);
+        
         try {
             if (action === "delete") {
                 await deleteDoc(doc(db, "users", selectedUser, type, id));
             } else if (action === "updateHabit") {
-                await updateDoc(doc(db, "users", selectedUser, "habits", id), { name: extraData });
+                await updateDoc(doc(db, "users", selectedUser, "habits", id), { 
+                    name: extraData,
+                    adminModified: true,
+                    modifiedAt: new Date().toISOString()
+                });
             } else if (action === "updateNote") {
-                await updateDoc(doc(db, "users", selectedUser, "notes", id), { body: extraData });
+                await updateDoc(doc(db, "users", selectedUser, "notes", id), { 
+                    body: extraData,
+                    adminModified: true,
+                    modifiedAt: new Date().toISOString()
+                });
             } else if (action === "updateReminder") {
-                await updateDoc(doc(db, "users", selectedUser, "reminders", id), { time: extraData });
+                await updateDoc(doc(db, "users", selectedUser, "reminders", id), { 
+                    time: extraData,
+                    adminModified: true,
+                    modifiedAt: new Date().toISOString()
+                });
             } else if (action === "updateLogAmount") {
-                await updateDoc(doc(db, "users", selectedUser, "logs", id), { amount: extraData });
+                await updateDoc(doc(db, "users", selectedUser, "logs", id), { 
+                    amount: extraData,
+                    adminModified: true,
+                    modifiedAt: new Date().toISOString()
+                });
             } else if (action === "updateLogTime") {
-                await updateDoc(doc(db, "users", selectedUser, "logs", id), { time: extraData });
+                await updateDoc(doc(db, "users", selectedUser, "logs", id), { 
+                    time: extraData,
+                    adminModified: true,
+                    modifiedAt: new Date().toISOString()
+                });
             } else if (action === "ban") {
-                await updateDoc(doc(db, "users", id), { isBanned: true });
+                await updateDoc(doc(db, "users", id), { 
+                    isBanned: true,
+                    bannedAt: new Date().toISOString()
+                });
             } else if (action === "unban") {
-                await updateDoc(doc(db, "users", id), { isBanned: false });
+                await updateDoc(doc(db, "users", id), { 
+                    isBanned: false,
+                    unbannedAt: new Date().toISOString()
+                });
             } else if (action === "wipe") {
+                // To wipe, we should ideally go through all subcollections, 
+                // but deleting the root user doc is a start. 
+                // Full wipe usually requires a Cloud Function or sequential deletion.
                 await deleteDoc(doc(db, "users", id));
             }
+            console.log(`[AdminAction] ${action} Success`);
         } catch(e) {
             console.error("Action Failed", e);
+            alert(`Execution Failed: ${e.message}. Check Firestore permissions.`);
         }
         setConfirmAction(null);
     };
 
     const handleSysMessageSend = async (uid) => {
         if (!sysMessage.trim()) return;
+        console.log(`[AdminAction] Sending system message to ${uid}`);
         try {
             await addDoc(collection(db, "users", uid, "systemMessages"), {
                 message: sysMessage,
                 read: false,
+                level: "info",
                 createdAt: new Date().toISOString()
             });
             setSysMessage("");
+            alert("Message Injected Successfully");
         } catch (e) {
             console.error("Message send failed", e);
+            alert(`Message failed: ${e.message}`);
         }
     };
 
@@ -428,18 +465,20 @@ export default function AdminDashboard() {
                                                                    <span className="text-[9px] font-mono text-text-secondary px-2 py-0.5 rounded-md bg-white/5 border border-white/10 uppercase">{h.mode}</span>
                                                                 </div>
                                                             </div>
-                                                            <div className="flex items-center gap-2">
+                                                            <div className="flex items-center gap-3">
                                                                 <button onClick={(e) => { 
                                                                     e.stopPropagation(); 
-                                                                    const modified = prompt("Edit Habit Name:", h.name);
-                                                                    if (modified !== null) setConfirmAction({ type: "habits", action: "updateHabit", id: h.id, extraData: modified });
-                                                                }} className="p-1.5 rounded-lg border border-border-color/50 text-text-secondary hover:text-accent hover:border-accent/30 hover:bg-accent/10 transition-colors">
+                                                                    const modified = prompt("Overriding Habit: Enter new name below", h.name);
+                                                                    if (modified !== null && modified.trim()) setConfirmAction({ type: "habits", action: "updateHabit", id: h.id, extraData: modified.trim() });
+                                                                }} className="p-2 rounded-xl bg-accent/20 border border-accent/40 text-accent hover:bg-accent hover:text-bg-main transition-all shadow-md flex items-center gap-1.5 px-3">
                                                                     <Icon name="edit" size={14} />
+                                                                    <span className="text-[10px] font-bold uppercase tracking-tighter">Edit</span>
                                                                 </button>
-                                                                <button onClick={(e) => { e.stopPropagation(); setConfirmAction({ type: "habits", action: "delete", id: h.id }); }} className="p-1.5 rounded-lg border border-border-color/50 text-text-secondary hover:text-danger hover:border-danger/30 hover:bg-danger/10 transition-colors">
+                                                                <button onClick={(e) => { e.stopPropagation(); setConfirmAction({ type: "habits", action: "delete", id: h.id }); }} className="p-2 rounded-xl bg-danger/20 border border-danger/40 text-danger hover:bg-danger hover:text-white transition-all shadow-md flex items-center gap-1.5 px-3">
                                                                     <Icon name="trash" size={14} />
+                                                                    <span className="text-[10px] font-bold uppercase tracking-tighter">Delete</span>
                                                                 </button>
-                                                                <Icon name={inspectorHabit === h.id ? "chevron-up" : "chevron-down"} size={16} className={`transition-all ${inspectorHabit === h.id ? 'text-accent' : 'text-text-secondary group-hover:text-text-primary'}`} />
+                                                                <Icon name={inspectorHabit === h.id ? "chevron-up" : "chevron-down"} size={20} className={`transition-all ${inspectorHabit === h.id ? 'text-accent' : 'text-text-secondary group-hover:text-text-primary'}`} />
                                                             </div>
                                                         </button>
                                                         
@@ -476,19 +515,21 @@ export default function AdminDashboard() {
                                                                                                         <div className="flex items-center gap-2 shrink-0">
                                                                                                             <button onClick={() => {
                                                                                 if (e.mode === "count") {
-                                                                                    const val = prompt("Edit count amount:", e.amount);
+                                                                                    const val = prompt("Manual Override: Enter new frequency count", e.amount);
                                                                                     if (val !== null && !isNaN(val)) setConfirmAction({ type: "logs", action: "updateLogAmount", id: e.id, extraData: Number(val) });
                                                                                 } else if (e.mode === "time") {
-                                                                                    const val = prompt("Edit time logged (HH:MM):", e.time);
+                                                                                    const val = prompt("Manual Override: Enter new duration (HH:MM)", e.time);
                                                                                     if (val !== null) setConfirmAction({ type: "logs", action: "updateLogTime", id: e.id, extraData: val });
                                                                                 } else {
-                                                                                    alert("This specific log cannot be directly edited via the UI.");
+                                                                                    alert("Non-scalar log types cannot be modified via override interface.");
                                                                                 }
-                                                                            }} className="text-text-secondary hover:text-accent transition-colors bg-bg-main p-1 rounded-md hover:bg-accent/10">
+                                                                            }} className="text-accent bg-accent/10 p-2 rounded-xl hover:bg-accent hover:text-bg-main transition-all flex items-center gap-1">
                                                                                 <Icon name="edit" size={12} />
+                                                                                <span className="text-[9px] font-bold">EDIT</span>
                                                                             </button>
-                                                                            <button onClick={() => setConfirmAction({ type: "logs", action: "delete", id: e.id })} className="text-text-secondary hover:text-danger transition-colors bg-bg-main p-1 rounded-md hover:bg-danger/10">
+                                                                            <button onClick={() => setConfirmAction({ type: "logs", action: "delete", id: e.id })} className="text-danger bg-danger/10 p-2 rounded-xl hover:bg-danger hover:text-white transition-all flex items-center gap-1">
                                                                                 <Icon name="trash" size={12} />
+                                                                                <span className="text-[9px] font-bold">DEL</span>
                                                                             </button>
                                                                                                             {(!isPhoto && e.time) && <span className="text-[10px] text-accent font-mono bg-accent/10 px-2 py-1 rounded-md max-w-[80px] truncate">{e.time}</span>}
                                                                                                         </div>
@@ -526,13 +567,15 @@ export default function AdminDashboard() {
                                                                 <p className="text-sm font-bold text-text-primary break-words whitespace-normal min-w-0">{n.title || "Untitled"}</p>
                                                                 <div className="flex items-center gap-2 shrink-0">
                                                                     <button onClick={() => {
-                                                                        const newBody = prompt("Edit Note Body:", n.body);
-                                                                        if (newBody !== null) setConfirmAction({ type: "notes", action: "updateNote", id: n.id, extraData: newBody });
-                                                                    }} className="p-1 text-text-secondary hover:text-accent transition-all bg-bg-sidebar rounded">
+                                                                        const newBody = prompt("Administrative Override: Rewrite Note Body below", n.body);
+                                                                        if (newBody !== null && newBody.trim()) setConfirmAction({ type: "notes", action: "updateNote", id: n.id, extraData: newBody.trim() });
+                                                                    }} className="p-2 rounded-xl bg-accent/20 border border-accent/40 text-accent hover:bg-accent hover:text-bg-main transition-all px-3 flex items-center gap-1.5">
                                                                         <Icon name="edit" size={12} />
+                                                                        <span className="text-[10px] font-bold">Edit Content</span>
                                                                     </button>
-                                                                    <button onClick={() => setConfirmAction({ type: "notes", action: "delete", id: n.id })} className="p-1 text-text-secondary hover:text-danger transition-all bg-bg-sidebar rounded">
+                                                                    <button onClick={() => setConfirmAction({ type: "notes", action: "delete", id: n.id })} className="p-2 rounded-xl bg-danger/20 border border-danger/40 text-danger hover:bg-danger hover:text-white transition-all px-3 flex items-center gap-1.5">
                                                                         <Icon name="trash" size={12} />
+                                                                        <span className="text-[10px] font-bold">Delete</span>
                                                                     </button>
                                                                     {n.pinned && <Icon name="pin" size={12} className="text-accent mt-0.5" />}
                                                                 </div>
@@ -555,13 +598,15 @@ export default function AdminDashboard() {
                                                             </div>
                                                             <div className="flex items-center gap-2 shrink-0">
                                                                 <button onClick={() => {
-                                                                    const newTime = prompt("Edit Time (HH:MM):", r.time);
-                                                                    if (newTime !== null) setConfirmAction({ type: "reminders", action: "updateReminder", id: r.id, extraData: newTime });
-                                                                }} className="p-1 text-text-secondary hover:text-accent transition-all bg-bg-sidebar rounded">
+                                                                    const newTime = prompt("Administrative Override: Set new trigger time (HH:MM)", r.time);
+                                                                    if (newTime !== null && newTime.trim()) setConfirmAction({ type: "reminders", action: "updateReminder", id: r.id, extraData: newTime.trim() });
+                                                                }} className="p-2 rounded-xl bg-accent/20 border border-accent/40 text-accent hover:bg-accent hover:text-bg-main transition-all px-3 flex items-center gap-1.5">
                                                                     <Icon name="edit" size={12} />
+                                                                    <span className="text-[10px] font-bold">Edit</span>
                                                                 </button>
-                                                                <button onClick={() => setConfirmAction({ type: "reminders", action: "delete", id: r.id })} className="p-1 text-text-secondary hover:text-danger transition-all bg-bg-sidebar rounded">
+                                                                <button onClick={() => setConfirmAction({ type: "reminders", action: "delete", id: r.id })} className="p-2 rounded-xl bg-danger/20 border border-danger/40 text-danger hover:bg-danger hover:text-white transition-all px-3 flex items-center gap-1.5">
                                                                     <Icon name="trash" size={12} />
+                                                                    <span className="text-[10px] font-bold">Delete</span>
                                                                 </button>
                                                                 <span className="text-[10px] font-mono font-bold text-accent bg-accent/10 px-2.5 py-1.5 rounded-lg whitespace-nowrap shadow-sm shadow-accent/5">{r.time}</span>
                                                             </div>
@@ -637,14 +682,14 @@ export default function AdminDashboard() {
                         </div>
                         <h3 className="text-xl text-text-primary font-bold mb-2 tracking-tighter">Authorize Command</h3>
                         <p className="text-sm text-text-secondary mb-6 leading-relaxed">
-                            {confirmAction.action === "updateNote" || confirmAction.action === "updateReminder" ? (
-                                "Applying direct modification to this user's private data module. Are you absolutely certain you want to proceed?"
+                            {confirmAction.action === "updateNote" || confirmAction.action === "updateReminder" || confirmAction.action === "updateHabit" || confirmAction.action === "updateLogAmount" || confirmAction.action === "updateLogTime" ? (
+                                `This is an administrative override. You are about to directly rewrite this user's data to: "${confirmAction.extraData}". This modification is absolute and will be recorded.`
                             ) : confirmAction.action === "ban" ? (
-                                "You are about to permanently severe their connection. They will instantly crash out."
+                                "AUTHORIZED ENFORCEMENT: Severing the network connection for this user immediately. They will be evicted and blocked."
                             ) : confirmAction.action === "wipe" ? (
-                                "You are about to irreversibly purge all subcollections and root profile data under this UID."
+                                "CRITICAL PURGE: Erasing the root profile and all associated data clusters for this identity. This action is irreversible."
                             ) : (
-                                "Permanently deleting this inner record chunk. This data cannot be recovered."
+                                "DATA DELETION: You are permanently scrubbing this record from the user's intelligence profile. Proceed?"
                             )}
                         </p>
                         <div className="flex gap-3">
