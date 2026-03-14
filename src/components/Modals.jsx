@@ -26,12 +26,12 @@ export function ConfirmModal({ open, title, message, confirmLabel = 'Confirm', v
   );
 }
 
-export function RenameModal({ open, currentName, onConfirm, onCancel }) {
-  const [value, setValue] = useState(currentName || '');
+export function RenameModal({ open = true, initialValue = '', title = 'Rename Item', label = 'Name', onConfirm, onCancel }) {
+  const [value, setValue] = useState(initialValue || '');
 
   useEffect(() => {
-    if (open) setValue(currentName || '');
-  }, [open, currentName]);
+    if (open) setValue(initialValue || '');
+  }, [open, initialValue]);
 
   useEffect(() => {
     const handleEscape = (e) => { if (e.key === 'Escape') onCancel?.(); };
@@ -51,13 +51,14 @@ export function RenameModal({ open, currentName, onConfirm, onCancel }) {
     <>
       <div className="fixed inset-0 bg-black/50 z-[9998] animate-in fade-in duration-200" onClick={onCancel} aria-hidden="true" />
       <div className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-[9999] w-full max-w-sm rounded-2xl border border-border-color bg-bg-main shadow-xl p-6 animate-in zoom-in-95 duration-200" onClick={e => e.stopPropagation()}>
-        <h3 className="text-sm font-bold uppercase tracking-widest text-text-primary mb-2">Rename habit</h3>
+        <h3 className="text-sm font-bold uppercase tracking-widest text-text-primary mb-2 italic">{title}</h3>
         <form onSubmit={handleSubmit}>
+          <div className="text-[10px] font-black uppercase text-accent mb-2 px-1 tracking-widest">{label}</div>
           <Input
             value={value}
             onChange={e => setValue(e.target.value)}
-            placeholder="Habit name"
-            className="mb-4"
+            placeholder={label}
+            className="mb-4 bg-bg-sidebar/50"
             autoFocus
           />
           <div className="flex gap-3 justify-end">

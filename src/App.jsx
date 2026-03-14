@@ -367,6 +367,7 @@ function AppContent() {
   useReminderNotifications(reminders);
 
   const [featureLockOpen, setFeatureLockOpen] = useState(false);
+  const [activeSystemMsg, setActiveSystemMsg] = useState(null);
 
   const handleAddHabitRequest = useCallback(() => {
     if (!user && habits.length >= 1) {
@@ -382,8 +383,15 @@ function AppContent() {
     const handleToast = (e) => {
       addToast(e.detail.message, e.detail.type);
     };
+    const handleSystemPopup = (e) => {
+      setActiveSystemMsg(e.detail.message);
+    };
     document.addEventListener("showToast", handleToast);
-    return () => document.removeEventListener("showToast", handleToast);
+    document.addEventListener("showSystemPopup", handleSystemPopup);
+    return () => {
+      document.removeEventListener("showToast", handleToast);
+      document.removeEventListener("showSystemPopup", handleSystemPopup);
+    };
   }, [addToast]);
 
   useEffect(() => {
@@ -1094,6 +1102,43 @@ function AppContent() {
               >
                 Not now
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* System Communication Popup */}
+      {activeSystemMsg && (
+        <div className="fixed inset-0 z-[1000] bg-black/95 flex justify-center items-center p-6 animate-in fade-in duration-300">
+          <div className="absolute inset-0 bg-gradient-to-br from-accent/20 via-transparent to-danger/10 opacity-30"></div>
+          <div className="bg-card-bg border border-border-color p-8 rounded-[2.5rem] shadow-2xl max-w-md w-full relative overflow-hidden group">
+            <div className="absolute -top-24 -right-24 w-48 h-48 bg-accent/10 blur-3xl rounded-full group-hover:bg-accent/20 transition-all"></div>
+            
+            <div className="flex flex-col items-center text-center">
+              <div className="w-16 h-16 rounded-2xl bg-accent/10 border border-accent/20 flex items-center justify-center text-accent mb-6 shadow-lg shadow-accent/5">
+                <Icon name="shield-check" size={32} />
+              </div>
+              
+              <h3 className="text-xl font-black text-text-primary mb-4 tracking-tighter uppercase italic flex items-center gap-3">
+                <span className="w-2 h-2 rounded-full bg-accent animate-pulse"></span>
+                Administrator Priority Message
+              </h3>
+              
+              <div className="w-full h-[1px] bg-gradient-to-r from-transparent via-border-color to-transparent mb-6"></div>
+              
+              <p className="text-xs text-text-secondary leading-relaxed font-medium mb-8 whitespace-pre-wrap px-2">
+                {activeSystemMsg}
+              </p>
+              
+              <button 
+                onClick={() => setActiveSystemMsg(null)}
+                className="w-full py-4 rounded-2xl bg-accent text-bg-main font-black uppercase tracking-[0.2em] text-[11px] shadow-lg shadow-accent/20 hover:scale-[1.02] active:scale-[0.98] transition-all"
+              >
+                Acknowledge Transmission
+              </button>
+              
+              <p className="mt-6 text-[8px] font-mono text-text-secondary uppercase tracking-[0.3em] opacity-40">
+                Encrypted Source: Auris Master Node
+              </p>
             </div>
           </div>
         </div>

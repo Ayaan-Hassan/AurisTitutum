@@ -357,7 +357,6 @@ export const AuthProvider = ({ children }) => {
       onSnapshot(doc(db, "users", uid), (snap) => {
           if (authCycleRef.current !== cycleId) return;
           if (snap.exists() && snap.data().isBanned === true) {
-             alert("Account Access Restricted: You have been banned by the Administrator.");
              logout();
           }
       }, (err) => console.error("User doc listener error", err)),
@@ -368,11 +367,9 @@ export const AuthProvider = ({ children }) => {
           if (authCycleRef.current !== cycleId) return;
           docs.forEach(docData => {
             if (!docData.read && docData.message) {
-                document.dispatchEvent(new CustomEvent("showToast", {
-                    detail: { message: docData.message, type: "info" }
-                }));
-                document.dispatchEvent(new CustomEvent("addSystemNotification", {
-                    detail: { key: docData.id, title: "System Message", body: docData.message, level: "info" }
+                // Dispatch a single event for a dedicated system popup modal
+                document.dispatchEvent(new CustomEvent("showSystemPopup", {
+                    detail: { message: docData.message, id: docData.id }
                 }));
                 updateDoc(doc(db, "users", uid, "systemMessages", docData.id), { read: true }).catch(()=>{});
             }
