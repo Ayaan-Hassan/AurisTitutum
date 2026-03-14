@@ -154,7 +154,11 @@ export const useHabitNotifications = (habits, config) => {
     // Listen for custom system notifications (e.g., from Admin)
     const handleAddSystemNotification = (e) => {
         if (e.detail) {
-            addNotification(e.detail);
+            addNotification({
+                ...e.detail,
+                key: e.detail.key || Date.now().toString()
+            });
+            addToast(e.detail.body, e.detail.level || "info");
         }
     };
     document.addEventListener("addSystemNotification", handleAddSystemNotification);

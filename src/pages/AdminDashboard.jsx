@@ -23,6 +23,13 @@ export default function AdminDashboard() {
     const [confirmAction, setConfirmAction] = useState(null);
     const [sysMessage, setSysMessage] = useState("");
 
+    const isUserOnline = (u) => {
+        if (!u.isOnline) return false;
+        if (!u.lastActive) return false;
+        const diff = new Date() - new Date(u.lastActive);
+        return diff < 60000 * 5; // Consider online if active in last 5 minutes
+    };
+
     // NOTE: This assumes the user's UID has Firestore security rules giving them
     // permission to read entire collections/collectionGroups
     const adminUid = import.meta.env.VITE_ADMIN_UID;
@@ -102,6 +109,8 @@ export default function AdminDashboard() {
         try {
             if (action === "delete") {
                 await deleteDoc(doc(db, "users", selectedUser, type, id));
+            } else if (action === "updateHabit") {
+                await updateDoc(doc(db, "users", selectedUser, "habits", id), { name: extraData });
             } else if (action === "updateNote") {
                 await updateDoc(doc(db, "users", selectedUser, "notes", id), { body: extraData });
             } else if (action === "updateReminder") {
@@ -173,15 +182,11 @@ export default function AdminDashboard() {
         let exactSeconds = info?.exactTimeSpent || 0;
         const baseTimeMins = (userData.habits?.length * 15) + (totalLogHits * 2.5) + (userData.notes?.length * 5);
         
-        if (exactSeconds < 300) { // If less than 5 minutes recorded, use estimator for legacy
-            exactSeconds += Math.floor(baseTimeMins * 60);
-        } else {
-            exactSeconds = Math.max(exactSeconds, Math.floor(baseTimeMins * 60));
-        }
+        const totalSeconds = exactSeconds + Math.floor(baseTimeMins * 60);
         
-        const hours = Math.floor(exactSeconds / 3600);
-        const mins = Math.floor((exactSeconds % 3600) / 60);
-        const secs = Math.floor(exactSeconds % 60);
+        const hours = Math.floor(totalSeconds / 3600);
+        const mins = Math.floor((totalSeconds % 3600) / 60);
+        const secs = Math.floor(totalSeconds % 60);
         
         let timeSpent = secs + "s";
         if (mins > 0) timeSpent = `${mins}m ${secs}s`;
@@ -248,7 +253,7 @@ export default function AdminDashboard() {
                                 <div>
                                     <p className="text-[10px] font-black uppercase tracking-widest text-text-secondary mb-1">Online Users</p>
                                     <p className="text-3xl font-mono font-bold text-success flex items-center gap-2">
-                                        {usersList.filter(u => u.isOnline).length} 
+                                        {usersList.filter(u => isUserOnline(u)).length} 
                                         <span className="relative flex h-3 w-3">
                                           <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-success opacity-75"></span>
                                           <span className="relative inline-flex rounded-full h-3 w-3 bg-success"></span>
@@ -301,8 +306,8 @@ export default function AdminDashboard() {
                             </div>
                             <div className="overflow-y-auto flex-1 custom-scrollbar">
                                 {usersList
-                                    .filter(u => showOnlineOnly ? u.isOnline : true)
-                                    .sort((a,b) => (b.isOnline ? 1 : 0) - (a.isOnline ? 1 : 0))
+                                    .filter(u => showOnlineOnly ? isUserOnline(u) : true)
+                                    .sort((a,b) => (isUserOnline(b) ? 1 : 0) - (isUserOnline(a) ? 1 : 0))
                                     .map(u => (
                                     <button 
                                         onClick={() => { loadUserData(u.id); setInspectorHabit(null); }} 
@@ -313,7 +318,7 @@ export default function AdminDashboard() {
                                             <p className="font-bold text-sm text-text-primary truncate">{u.displayName || "Unknown User"}</p>
                                             <p className="text-[11px] text-text-secondary font-mono truncate">{u.email}</p>
                                         </div>
-                                        {u.isOnline && (
+                                        {isUserOnline(u) && (
                                             <div className="w-2.5 h-2.5 rounded-full bg-success flex-shrink-0 relative shadow-[0_0_8px_rgba(var(--success-rgb),0.6)]">
                                             </div>
                                         )}
@@ -352,7 +357,7 @@ export default function AdminDashboard() {
                                             {(usersList.find(u => u.id === selectedUser)?.displayName || "U").charAt(0)}
                                         </div>
                                         <div>
-                                            <p className="text-[10px] font-black uppercase tracking-[0.3em] text-accent mb-1 flex items-center gap-2">Target Identity Confirmed {usersList.find(u => u.id === selectedUser)?.isOnline && <span className="w-2 h-2 rounded-full bg-success animate-pulse shadow-[0_0_8px_rgba(var(--success-rgb),0.8)]"></span>}</p>
+                                            <p className="text-[10px] font-black uppercase tracking-[0.3em] text-accent mb-1 flex items-center gap-2">Target Identity Confirmed {isUserOnline(usersList.find(u => u.id === selectedUser)) && <span className="w-2 h-2 rounded-full bg-success animate-pulse shadow-[0_0_8px_rgba(var(--success-rgb),0.8)]"></span>}</p>
                                             <h2 className="text-2xl font-bold tracking-tight text-text-primary leading-none flex items-center gap-3">
                                                 {usersList.find(u => u.id === selectedUser)?.displayName || "Unknown User"}
                                             </h2>
@@ -409,6 +414,13 @@ export default function AdminDashboard() {
                                                                 </div>
                                                             </div>
                                                             <div className="flex items-center gap-2">
+                                                                <button onClick={(e) => { 
+                                                                    e.stopPropagation(); 
+                                                                    const modified = prompt("Edit Habit Name:", h.name);
+                                                                    if (modified !== null) setConfirmAction({ type: "habits", action: "updateHabit", id: h.id, extraData: modified });
+                                                                }} className="p-1.5 rounded-lg border border-border-color/50 text-text-secondary hover:text-accent hover:border-accent/30 hover:bg-accent/10 transition-colors">
+                                                                    <Icon name="edit" size={14} />
+                                                                </button>
                                                                 <button onClick={(e) => { e.stopPropagation(); setConfirmAction({ type: "habits", action: "delete", id: h.id }); }} className="p-1.5 rounded-lg border border-border-color/50 text-text-secondary hover:text-danger hover:border-danger/30 hover:bg-danger/10 transition-colors">
                                                                     <Icon name="trash" size={14} />
                                                                 </button>
@@ -539,35 +551,35 @@ export default function AdminDashboard() {
                     
                     {/* User Management Section */}
                     {selectedUser && (
-                        <div className="w-full bg-card-bg border border-border-color rounded-2xl p-6 sm:p-8 shadow-sm flex flex-col gap-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                        <div className="w-full bg-card-bg border border-border-color rounded-2xl p-6 sm:p-8 shadow-sm flex flex-col gap-6 animate-in fade-in slide-in-from-bottom-4 duration-500 mt-6">
                             <div>
-                                <h3 className="text-lg font-bold tracking-tighter text-text-primary mb-1">Administrative Privileges & User Management</h3>
-                                <p className="text-xs text-text-secondary">Execute definitive database sweeps, live protocol bans, and direct system injections on the actively scoped user.</p>
+                                <h3 className="text-lg font-bold tracking-tighter text-text-primary mb-1">User Actions</h3>
+                                <p className="text-xs text-text-secondary">Manage and enforce restrictions or send direct messages to this user.</p>
                             </div>
                             
                             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                                 {/* Direct System Message Delivery */}
                                 <div className="bg-bg-sidebar rounded-2xl p-5 border border-border-color flex flex-col gap-3">
-                                    <h4 className="text-[11px] font-black uppercase tracking-[0.2em] text-accent"><Icon name="message-square" className="inline-block mr-2" size={12} /> Direct System Delivery</h4>
-                                    <p className="text-[10px] text-text-secondary leading-relaxed">Send a high-priority system overlay toast that instantly renders on their device if live, or stores in their unread cache if offline.</p>
+                                    <h4 className="text-[11px] font-black uppercase tracking-[0.2em] text-accent"><Icon name="message-square" className="inline-block mr-2" size={12} /> Send Message</h4>
+                                    <p className="text-[10px] text-text-secondary leading-relaxed">Send a pop-up message that will show up on their screen immediately if they are online.</p>
                                     <textarea 
                                         className="w-full bg-bg-main border border-border-color rounded-xl p-3 text-xs resize-none h-20 placeholder:text-text-secondary/50 focus:border-accent/50 outline-none transition-colors"
-                                        placeholder="Type your system warning or message..."
+                                        placeholder="Type your message here..."
                                         value={sysMessage}
                                         onChange={(e) => setSysMessage(e.target.value)}
                                     ></textarea>
-                                    <Button onClick={() => handleSysMessageSend(selectedUser)} size="sm" className="w-full bg-accent text-bg-main font-bold">Inject Message</Button>
+                                    <Button onClick={() => handleSysMessageSend(selectedUser)} size="sm" className="w-full bg-accent text-bg-main font-bold">Send Message</Button>
                                 </div>
                                 
                                 {/* Access Restrictions */}
                                 <div className="bg-bg-sidebar rounded-2xl p-5 border border-border-color flex flex-col gap-3">
-                                    <h4 className="text-[11px] font-black uppercase tracking-[0.2em] text-danger"><Icon name="shield-off" className="inline-block mr-2" size={12} /> Restriction Interface</h4>
-                                    <p className="text-[10px] text-text-secondary leading-relaxed">Comprehensively block network access for this node. Will automatically execute live eviction from all active browser sessions.</p>
+                                    <h4 className="text-[11px] font-black uppercase tracking-[0.2em] text-danger"><Icon name="shield-off" className="inline-block mr-2" size={12} /> Ban User</h4>
+                                    <p className="text-[10px] text-text-secondary leading-relaxed">Block this user from accessing the website. It will kick them out instantly.</p>
                                     <div className="flex-1 flex items-end">
                                         {usersList.find(u => u.id === selectedUser)?.isBanned ? (
-                                            <Button onClick={() => setConfirmAction({ type: "user", action: "unban", id: selectedUser })} size="sm" variant="outline" className="w-full border-success text-success hover:bg-success/10">Revoke Ban</Button>
+                                            <Button onClick={() => setConfirmAction({ type: "user", action: "unban", id: selectedUser })} size="sm" variant="outline" className="w-full border-success text-success hover:bg-success/10">Unban User</Button>
                                         ) : (
-                                            <Button onClick={() => setConfirmAction({ type: "user", action: "ban", id: selectedUser })} size="sm" variant="outline" className="w-full border-danger text-danger hover:bg-danger/10">Enforce Network Ban</Button>
+                                            <Button onClick={() => setConfirmAction({ type: "user", action: "ban", id: selectedUser })} size="sm" variant="outline" className="w-full border-danger text-danger hover:bg-danger/10">Ban User</Button>
                                         )}
                                     </div>
                                 </div>
@@ -575,10 +587,10 @@ export default function AdminDashboard() {
                                 {/* Total Erasure Protocol */}
                                 <div className="bg-bg-sidebar rounded-2xl p-5 border border-danger/40 flex flex-col gap-3 relative overflow-hidden group hover:border-danger transition-colors">
                                     <div className="absolute top-0 right-0 w-32 h-32 bg-danger/10 blur-3xl rounded-full translate-x-1/2 -translate-y-1/2 group-hover:bg-danger/20 transition-all"></div>
-                                    <h4 className="text-[11px] font-black uppercase tracking-[0.2em] text-danger drop-shadow-[0_0_8px_rgba(var(--danger-rgb),0.5)]"><Icon name="alert-triangle" className="inline-block mr-2" size={12} /> Root Eradication</h4>
-                                    <p className="text-[10px] text-text-secondary leading-relaxed relative z-10">Permanently wipe the absolute root node of this identity across all clusters. This is an irreversible, high-destructive command.</p>
+                                    <h4 className="text-[11px] font-black uppercase tracking-[0.2em] text-danger drop-shadow-[0_0_8px_rgba(var(--danger-rgb),0.5)]"><Icon name="alert-triangle" className="inline-block mr-2" size={12} /> Delete User Completely</h4>
+                                    <p className="text-[10px] text-text-secondary leading-relaxed relative z-10">Permanently delete this user and all their data from the website. This cannot be undone.</p>
                                     <div className="flex-1 flex items-end relative z-10">
-                                        <Button onClick={() => setConfirmAction({ type: "user", action: "wipe", id: selectedUser })} size="sm" className="w-full bg-danger/20 text-danger border border-danger/50 hover:bg-danger hover:text-white transition-all">Execute Total Eradication</Button>
+                                        <Button onClick={() => setConfirmAction({ type: "user", action: "wipe", id: selectedUser })} size="sm" className="w-full bg-danger/20 text-danger border border-danger/50 hover:bg-danger hover:text-white transition-all">Delete User</Button>
                                     </div>
                                 </div>
                             </div>

@@ -356,10 +356,8 @@ export const AuthProvider = ({ children }) => {
       onSnapshot(doc(db, "users", uid), (snap) => {
           if (authCycleRef.current !== cycleId) return;
           if (snap.exists() && snap.data().isBanned === true) {
-             signOut(auth);
-             document.dispatchEvent(new CustomEvent("showToast", {
-                 detail: { message: "Your account has been restricted by the Administrator.", type: "danger" }
-             }));
+             alert("Account Access Restricted: You have been banned by the Administrator.");
+             logout();
           }
       }, (err) => console.error("User doc listener error", err)),
       subscribeToUserSubcollection(
