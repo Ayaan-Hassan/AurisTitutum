@@ -615,14 +615,15 @@ export default function AdminDashboard() {
                                                 </div>
                                             </div>
                                         </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    )}
-                </div>
-            </div>
-        </div>
+</div>
+</div>
+</div>
+</div>
+)}
+</div>
+</div>
+</div>
+
 
 
                 <div className="w-full mt-8 p-4 bg-black/40 border border-white/5 rounded-xl flex flex-wrap items-center justify-between gap-4 text-[10px] font-mono opacity-50 hover:opacity-100 transition-opacity">
