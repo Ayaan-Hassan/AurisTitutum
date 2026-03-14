@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
-import { collection, getDocs, collectionGroup, getCountFromServer, onSnapshot, doc, deleteDoc } from "firebase/firestore";
+import { collection, getDocs, collectionGroup, getCountFromServer, onSnapshot, doc, deleteDoc, updateDoc, addDoc } from "firebase/firestore";
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
 import { db } from "../firebase.config";
 import { useAuth } from "../contexts/AuthContext";
@@ -19,6 +19,9 @@ export default function AdminDashboard() {
     const [userLoading, setUserLoading] = useState(false);
     const [inspectorHabit, setInspectorHabit] = useState(null);
     const [subUnsubscribes, setSubUnsubscribes] = useState([]);
+    const [showOnlineOnly, setShowOnlineOnly] = useState(false);
+    const [confirmAction, setConfirmAction] = useState(null);
+    const [sysMessage, setSysMessage] = useState("");
 
     // NOTE: This assumes the user's UID has Firestore security rules giving them
     // permission to read entire collections/collectionGroups
@@ -93,13 +96,40 @@ export default function AdminDashboard() {
         setSubUnsubscribes(newSubs);
     };
 
-    const deleteInspectorData = async (collectionName, id) => {
-        if (window.confirm("Admin Privileges: Are you sure you want to permanently delete this user data?")) {
-            try {
-                await deleteDoc(doc(db, "users", selectedUser, collectionName, id));
-            } catch(e) {
-                console.error("Failed to delete", e);
+    const handleActionConfirm = async () => {
+        if (!confirmAction) return;
+        const { type, action, id, extraData } = confirmAction;
+        try {
+            if (action === "delete") {
+                await deleteDoc(doc(db, "users", selectedUser, type, id));
+            } else if (action === "updateNote") {
+                await updateDoc(doc(db, "users", selectedUser, "notes", id), { body: extraData });
+            } else if (action === "updateReminder") {
+                await updateDoc(doc(db, "users", selectedUser, "reminders", id), { time: extraData });
+            } else if (action === "ban") {
+                await updateDoc(doc(db, "users", id), { isBanned: true });
+            } else if (action === "unban") {
+                await updateDoc(doc(db, "users", id), { isBanned: false });
+            } else if (action === "wipe") {
+                await deleteDoc(doc(db, "users", id));
             }
+        } catch(e) {
+            console.error("Action Failed", e);
+        }
+        setConfirmAction(null);
+    };
+
+    const handleSysMessageSend = async (uid) => {
+        if (!sysMessage.trim()) return;
+        try {
+            await addDoc(collection(db, "users", uid, "systemMessages"), {
+                message: sysMessage,
+                read: false,
+                createdAt: new Date().toISOString()
+            });
+            setSysMessage("");
+        } catch (e) {
+            console.error("Message send failed", e);
         }
     };
 
@@ -140,23 +170,26 @@ export default function AdminDashboard() {
         
         const consistencyRate = Math.min(100, Math.round((activeDates.size / daysSince) * 100));
         
-        let exactMins = Math.floor((info?.exactTimeSpent || 0) / 60);
+        let exactSeconds = info?.exactTimeSpent || 0;
         const baseTimeMins = (userData.habits?.length * 15) + (totalLogHits * 2.5) + (userData.notes?.length * 5);
         
-        // Prevent jarring resets if they just gained "exactTimeSpent" tracking by combining legacy estimate
-        if (exactMins < 5) {
-            exactMins += Math.floor(baseTimeMins);
+        if (exactSeconds < 300) { // If less than 5 minutes recorded, use estimator for legacy
+            exactSeconds += Math.floor(baseTimeMins * 60);
         } else {
-            // Over time, accurate tracking suppresses the legacy base estimator completely
-            exactMins = Math.max(exactMins, Math.floor(baseTimeMins));
+            exactSeconds = Math.max(exactSeconds, Math.floor(baseTimeMins * 60));
         }
         
-        const hours = Math.floor(exactMins / 60);
-        const mins = Math.floor(exactMins % 60);
+        const hours = Math.floor(exactSeconds / 3600);
+        const mins = Math.floor((exactSeconds % 3600) / 60);
+        const secs = Math.floor(exactSeconds % 60);
         
+        let timeSpent = secs + "s";
+        if (mins > 0) timeSpent = `${mins}m ${secs}s`;
+        if (hours > 0) timeSpent = `${hours}h ${mins}m ${secs}s`;
+
         return {
            consistencyRate,
-           timeSpent: hours > 0 ? `${hours}h ${mins}m` : `${mins}m`,
+           timeSpent: timeSpent,
            activeDays: activeDates.size,
            totalLogHits
         };
@@ -207,8 +240,11 @@ export default function AdminDashboard() {
                     {/* TOP SECTION: Global Platform Stats */}
                     <div className="w-full space-y-6">
                         <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-                            <MetricCard title="Total Users" value={stats.users} icon="users" />
-                            <div className="bg-card-bg border border-border-color rounded-2xl p-5 flex items-center justify-between transition-transform hover:scale-[1.02] shadow-sm">
+                            <MetricCard title="Total Users" value={usersList.length} icon="users" />
+                            <div 
+                                onClick={() => setShowOnlineOnly(!showOnlineOnly)}
+                                className={`bg-card-bg border ${showOnlineOnly ? 'border-success shadow-[0_0_15px_rgba(var(--success-rgb),0.2)]' : 'border-border-color'} rounded-2xl p-5 flex items-center justify-between transition-all hover:scale-[1.02] shadow-sm cursor-pointer ring-1 ring-transparent hover:ring-success/30`}
+                            >
                                 <div>
                                     <p className="text-[10px] font-black uppercase tracking-widest text-text-secondary mb-1">Online Users</p>
                                     <p className="text-3xl font-mono font-bold text-success flex items-center gap-2">
@@ -229,7 +265,7 @@ export default function AdminDashboard() {
                         </div>
 
                         {/* Graph */}
-                        <div className="p-6 bg-card-bg border border-border-color rounded-3xl shadow-sm">
+                        <div className="p-6 bg-card-bg border border-border-color rounded-2xl shadow-sm">
                             <h3 className="text-[11px] font-black uppercase tracking-[0.2em] text-text-secondary mb-6"><Icon name="trending-up" className="inline-block mr-2" size={14} /> User Registration Growth (Last 30 Days)</h3>
                             <div className="h-[200px] w-full">
                                 <ResponsiveContainer width="100%" height="100%">
@@ -258,13 +294,16 @@ export default function AdminDashboard() {
                     {/* BOTTOM SECTION: Split Inspection view */}
                     <div className="flex flex-col lg:flex-row gap-6 w-full h-[700px]">
                         {/* Left Sidebar (Users List) */}
-                        <div className="w-full lg:w-80 shrink-0 bg-card-bg border border-border-color rounded-[2rem] shadow-sm flex flex-col h-full overflow-hidden">
+                        <div className="w-full lg:w-80 shrink-0 bg-card-bg border border-border-color rounded-2xl shadow-sm flex flex-col h-full overflow-hidden">
                             <div className="p-5 border-b border-border-color bg-accent-dim shrink-0 flex justify-between items-center">
                                 <h3 className="font-bold tracking-tighter text-sm">Registered Users</h3>
                                 <span className="text-[10px] font-mono font-bold bg-accent/20 text-accent px-2 py-1 rounded-lg uppercase">{usersList.length} Network Nodes</span>
                             </div>
                             <div className="overflow-y-auto flex-1 custom-scrollbar">
-                                {usersList.map(u => (
+                                {usersList
+                                    .filter(u => showOnlineOnly ? u.isOnline : true)
+                                    .sort((a,b) => (b.isOnline ? 1 : 0) - (a.isOnline ? 1 : 0))
+                                    .map(u => (
                                     <button 
                                         onClick={() => { loadUserData(u.id); setInspectorHabit(null); }} 
                                         key={u.id} 
@@ -351,7 +390,7 @@ export default function AdminDashboard() {
                                     {/* Data Split View */}
                                     <div className="grid lg:grid-cols-2 gap-6 items-start">
                                         {/* Left Side: Habits & Logs Explorer */}
-                                        <div className="bg-card-bg border border-border-color rounded-3xl p-6 shadow-sm">
+                                        <div className="bg-card-bg border border-border-color rounded-2xl p-6 shadow-sm">
                                             <h4 className="text-[11px] font-black uppercase tracking-[0.2em] text-text-secondary mb-4 border-b border-border-color pb-3 flex items-center justify-between">
                                                 <span>Habit Intelligence Inspector</span>
                                             </h4>
@@ -370,7 +409,7 @@ export default function AdminDashboard() {
                                                                 </div>
                                                             </div>
                                                             <div className="flex items-center gap-2">
-                                                                <button onClick={(e) => { e.stopPropagation(); deleteInspectorData("habits", h.id); }} className="p-1.5 rounded-lg border border-border-color/50 text-text-secondary hover:text-danger hover:border-danger/30 hover:bg-danger/10 transition-colors">
+                                                                <button onClick={(e) => { e.stopPropagation(); setConfirmAction({ type: "habits", action: "delete", id: h.id }); }} className="p-1.5 rounded-lg border border-border-color/50 text-text-secondary hover:text-danger hover:border-danger/30 hover:bg-danger/10 transition-colors">
                                                                     <Icon name="trash" size={14} />
                                                                 </button>
                                                                 <Icon name={inspectorHabit === h.id ? "chevron-up" : "chevron-down"} size={16} className={`transition-all ${inspectorHabit === h.id ? 'text-accent' : 'text-text-secondary group-hover:text-text-primary'}`} />
@@ -408,7 +447,7 @@ export default function AdminDashboard() {
                                                                                                     <div className="flex justify-between items-center w-full min-w-0">
                                                                                                         <span className="text-text-primary font-medium truncate pr-2">{isPhoto ? "📷 Visual capture attached" : display}</span>
                                                                                                         <div className="flex items-center gap-2 shrink-0">
-                                                                                                            <button onClick={() => deleteInspectorData("logs", e.id || e.__id || e.id__ || l.id)} className="opacity-0 group-hover/log:opacity-100 text-text-secondary hover:text-danger transition-colors bg-bg-main">
+                                                                                                            <button onClick={() => setConfirmAction({ type: "logs", action: "delete", id: e.id || e.__id || e.id__ || l.id })} className="opacity-0 group-hover/log:opacity-100 text-text-secondary hover:text-danger transition-colors bg-bg-main">
                                                                                                                 <Icon name="trash" size={12} />
                                                                                                             </button>
                                                                                                             {(!isPhoto && e.time) && <span className="text-[10px] text-accent font-mono bg-accent/10 px-2 py-1 rounded-md max-w-[80px] truncate">{e.time}</span>}
@@ -438,7 +477,7 @@ export default function AdminDashboard() {
                                         {/* Right Side: Notes & Reminders */}
                                         <div className="space-y-6">
                                             {/* Notes */}
-                                            <div className="bg-card-bg border border-border-color rounded-3xl p-6 shadow-sm">
+                                            <div className="bg-card-bg border border-border-color rounded-2xl p-6 shadow-sm">
                                                 <h4 className="text-[11px] font-black uppercase tracking-[0.2em] text-text-secondary mb-4 border-b border-border-color pb-3">Written Notes ({userData.notes?.length || 0})</h4>
                                                 <div className="space-y-3 max-h-[250px] overflow-y-auto custom-scrollbar pr-2">
                                                     {userData.notes?.length > 0 ? userData.notes.map(n => (
@@ -446,7 +485,13 @@ export default function AdminDashboard() {
                                                             <div className="flex items-start justify-between gap-2 mb-2">
                                                                 <p className="text-sm font-bold text-text-primary break-words whitespace-normal min-w-0">{n.title || "Untitled"}</p>
                                                                 <div className="flex items-center gap-2 shrink-0">
-                                                                    <button onClick={() => deleteInspectorData("notes", n.id)} className="opacity-0 group-hover:opacity-100 p-1 text-text-secondary hover:text-danger transition-all bg-bg-sidebar rounded">
+                                                                    <button onClick={() => {
+                                                                        const newBody = prompt("Edit Note Body:", n.body);
+                                                                        if (newBody !== null) setConfirmAction({ type: "notes", action: "updateNote", id: n.id, extraData: newBody });
+                                                                    }} className="opacity-0 group-hover:opacity-100 p-1 text-text-secondary hover:text-accent transition-all bg-bg-sidebar rounded">
+                                                                        <Icon name="edit" size={12} />
+                                                                    </button>
+                                                                    <button onClick={() => setConfirmAction({ type: "notes", action: "delete", id: n.id })} className="opacity-0 group-hover:opacity-100 p-1 text-text-secondary hover:text-danger transition-all bg-bg-sidebar rounded">
                                                                         <Icon name="trash" size={12} />
                                                                     </button>
                                                                     {n.pinned && <Icon name="pin" size={12} className="text-accent mt-0.5" />}
@@ -459,7 +504,7 @@ export default function AdminDashboard() {
                                             </div>
                                             
                                             {/* Reminders */}
-                                            <div className="bg-card-bg border border-border-color rounded-3xl p-6 shadow-sm">
+                                            <div className="bg-card-bg border border-border-color rounded-2xl p-6 shadow-sm">
                                                 <h4 className="text-[11px] font-black uppercase tracking-[0.2em] text-text-secondary mb-4 border-b border-border-color pb-3">Scheduled Reminders ({userData.reminders?.length || 0})</h4>
                                                 <div className="space-y-3 max-h-[250px] overflow-y-auto custom-scrollbar pr-2">
                                                     {userData.reminders?.length > 0 ? userData.reminders.map(r => (
@@ -469,7 +514,13 @@ export default function AdminDashboard() {
                                                                {r.date && <p className="text-[10px] text-text-secondary font-mono tracking-widest uppercase">{new Date(r.date).toLocaleDateString()}</p>}
                                                             </div>
                                                             <div className="flex items-center gap-2 shrink-0">
-                                                                <button onClick={() => deleteInspectorData("reminders", r.id)} className="opacity-0 group-hover:opacity-100 p-1 text-text-secondary hover:text-danger transition-all bg-bg-sidebar rounded">
+                                                                <button onClick={() => {
+                                                                    const newTime = prompt("Edit Time (HH:MM):", r.time);
+                                                                    if (newTime !== null) setConfirmAction({ type: "reminders", action: "updateReminder", id: r.id, extraData: newTime });
+                                                                }} className="opacity-0 group-hover:opacity-100 p-1 text-text-secondary hover:text-accent transition-all bg-bg-sidebar rounded">
+                                                                    <Icon name="edit" size={12} />
+                                                                </button>
+                                                                <button onClick={() => setConfirmAction({ type: "reminders", action: "delete", id: r.id })} className="opacity-0 group-hover:opacity-100 p-1 text-text-secondary hover:text-danger transition-all bg-bg-sidebar rounded">
                                                                     <Icon name="trash" size={12} />
                                                                 </button>
                                                                 <span className="text-[10px] font-mono font-bold text-accent bg-accent/10 px-2.5 py-1.5 rounded-lg whitespace-nowrap shadow-sm shadow-accent/5">{r.time}</span>
@@ -481,8 +532,84 @@ export default function AdminDashboard() {
                                         </div>
                                     </div>
                                 </div>
-                                </div>
+                            </div>
                             )}
+                        </div>
+                    </div>
+                    
+                    {/* User Management Section */}
+                    {selectedUser && (
+                        <div className="w-full bg-card-bg border border-border-color rounded-2xl p-6 sm:p-8 shadow-sm flex flex-col gap-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                            <div>
+                                <h3 className="text-lg font-bold tracking-tighter text-text-primary mb-1">Administrative Privileges & User Management</h3>
+                                <p className="text-xs text-text-secondary">Execute definitive database sweeps, live protocol bans, and direct system injections on the actively scoped user.</p>
+                            </div>
+                            
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                                {/* Direct System Message Delivery */}
+                                <div className="bg-bg-sidebar rounded-2xl p-5 border border-border-color flex flex-col gap-3">
+                                    <h4 className="text-[11px] font-black uppercase tracking-[0.2em] text-accent"><Icon name="message-square" className="inline-block mr-2" size={12} /> Direct System Delivery</h4>
+                                    <p className="text-[10px] text-text-secondary leading-relaxed">Send a high-priority system overlay toast that instantly renders on their device if live, or stores in their unread cache if offline.</p>
+                                    <textarea 
+                                        className="w-full bg-bg-main border border-border-color rounded-xl p-3 text-xs resize-none h-20 placeholder:text-text-secondary/50 focus:border-accent/50 outline-none transition-colors"
+                                        placeholder="Type your system warning or message..."
+                                        value={sysMessage}
+                                        onChange={(e) => setSysMessage(e.target.value)}
+                                    ></textarea>
+                                    <Button onClick={() => handleSysMessageSend(selectedUser)} size="sm" className="w-full bg-accent text-bg-main font-bold">Inject Message</Button>
+                                </div>
+                                
+                                {/* Access Restrictions */}
+                                <div className="bg-bg-sidebar rounded-2xl p-5 border border-border-color flex flex-col gap-3">
+                                    <h4 className="text-[11px] font-black uppercase tracking-[0.2em] text-danger"><Icon name="shield-off" className="inline-block mr-2" size={12} /> Restriction Interface</h4>
+                                    <p className="text-[10px] text-text-secondary leading-relaxed">Comprehensively block network access for this node. Will automatically execute live eviction from all active browser sessions.</p>
+                                    <div className="flex-1 flex items-end">
+                                        {usersList.find(u => u.id === selectedUser)?.isBanned ? (
+                                            <Button onClick={() => setConfirmAction({ type: "user", action: "unban", id: selectedUser })} size="sm" variant="outline" className="w-full border-success text-success hover:bg-success/10">Revoke Ban</Button>
+                                        ) : (
+                                            <Button onClick={() => setConfirmAction({ type: "user", action: "ban", id: selectedUser })} size="sm" variant="outline" className="w-full border-danger text-danger hover:bg-danger/10">Enforce Network Ban</Button>
+                                        )}
+                                    </div>
+                                </div>
+                                
+                                {/* Total Erasure Protocol */}
+                                <div className="bg-bg-sidebar rounded-2xl p-5 border border-danger/40 flex flex-col gap-3 relative overflow-hidden group hover:border-danger transition-colors">
+                                    <div className="absolute top-0 right-0 w-32 h-32 bg-danger/10 blur-3xl rounded-full translate-x-1/2 -translate-y-1/2 group-hover:bg-danger/20 transition-all"></div>
+                                    <h4 className="text-[11px] font-black uppercase tracking-[0.2em] text-danger drop-shadow-[0_0_8px_rgba(var(--danger-rgb),0.5)]"><Icon name="alert-triangle" className="inline-block mr-2" size={12} /> Root Eradication</h4>
+                                    <p className="text-[10px] text-text-secondary leading-relaxed relative z-10">Permanently wipe the absolute root node of this identity across all clusters. This is an irreversible, high-destructive command.</p>
+                                    <div className="flex-1 flex items-end relative z-10">
+                                        <Button onClick={() => setConfirmAction({ type: "user", action: "wipe", id: selectedUser })} size="sm" className="w-full bg-danger/20 text-danger border border-danger/50 hover:bg-danger hover:text-white transition-all">Execute Total Eradication</Button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                </div>
+            )}
+
+            {/* Confirmation Modal */}
+            {confirmAction && (
+                <div className="fixed inset-0 z-[999] bg-black/80 backdrop-blur-sm flex justify-center items-center p-4">
+                    <div className="bg-card-bg border border-border-color p-6 rounded-2xl shadow-2xl max-w-sm w-full animate-in zoom-in-95 duration-200">
+                        <div className="w-12 h-12 rounded-full bg-danger/20 text-danger flex items-center justify-center mb-4 border border-danger/30">
+                            <Icon name="alert-octagon" size={24} />
+                        </div>
+                        <h3 className="text-xl text-text-primary font-bold mb-2 tracking-tighter">Authorize Command</h3>
+                        <p className="text-sm text-text-secondary mb-6 leading-relaxed">
+                            {confirmAction.action === "updateNote" || confirmAction.action === "updateReminder" ? (
+                                "Applying direct modification to this user's private data module. Are you absolutely certain you want to proceed?"
+                            ) : confirmAction.action === "ban" ? (
+                                "You are about to permanently severe their connection. They will instantly crash out."
+                            ) : confirmAction.action === "wipe" ? (
+                                "You are about to irreversibly purge all subcollections and root profile data under this UID."
+                            ) : (
+                                "Permanently deleting this inner record chunk. This data cannot be recovered."
+                            )}
+                        </p>
+                        <div className="flex gap-3">
+                            <Button onClick={() => setConfirmAction(null)} size="sm" variant="outline" className="flex-1">Abort Callback</Button>
+                            <Button onClick={handleActionConfirm} size="sm" className="flex-1 bg-danger text-white hover:bg-red-600 border-none shadow-[0_0_15px_rgba(var(--danger-rgb),0.5)]">Authorize Process</Button>
                         </div>
                     </div>
                 </div>

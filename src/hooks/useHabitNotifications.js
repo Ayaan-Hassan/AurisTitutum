@@ -150,11 +150,21 @@ export const useHabitNotifications = (habits, config) => {
     const interval = setInterval(run, 60 * 60 * 1000);
     const onFocus = () => run();
     window.addEventListener("focus", onFocus);
+    
+    // Listen for custom system notifications (e.g., from Admin)
+    const handleAddSystemNotification = (e) => {
+        if (e.detail) {
+            addNotification(e.detail);
+        }
+    };
+    document.addEventListener("addSystemNotification", handleAddSystemNotification);
+
     return () => {
       clearInterval(interval);
       window.removeEventListener("focus", onFocus);
+      document.removeEventListener("addSystemNotification", handleAddSystemNotification);
     };
-  }, [checkHabits]);
+  }, [checkHabits, addNotification]);
 
   return { toasts, notifications, addToast, removeToast, markAllRead };
 };

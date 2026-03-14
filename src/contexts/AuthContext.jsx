@@ -1,4 +1,5 @@
 import { createContext, useContext, useState, useEffect, useMemo, useRef } from "react";
+import { onSnapshot, doc, updateDoc } from "firebase/firestore";
 import {
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
@@ -351,6 +352,34 @@ export const AuthProvider = ({ children }) => {
           markLoaded(USER_SUBCOLLECTIONS.settings);
         },
         (err) => onListenerError(USER_SUBCOLLECTIONS.settings, err),
+      ),
+      onSnapshot(doc(db, "users", uid), (snap) => {
+          if (authCycleRef.current !== cycleId) return;
+          if (snap.exists() && snap.data().isBanned === true) {
+             signOut(auth);
+             document.dispatchEvent(new CustomEvent("showToast", {
+                 detail: { message: "Your account has been restricted by the Administrator.", type: "danger" }
+             }));
+          }
+      }, (err) => console.error("User doc listener error", err)),
+      subscribeToUserSubcollection(
+        uid,
+        "systemMessages",
+        (docs) => {
+          if (authCycleRef.current !== cycleId) return;
+          docs.forEach(docData => {
+            if (!docData.read && docData.message) {
+                document.dispatchEvent(new CustomEvent("showToast", {
+                    detail: { message: docData.message, type: "info" }
+                }));
+                document.dispatchEvent(new CustomEvent("addSystemNotification", {
+                    detail: { key: docData.id, title: "System Message", body: docData.message, level: "info" }
+                }));
+                updateDoc(doc(db, "users", uid, "systemMessages", docData.id), { read: true }).catch(()=>{});
+            }
+          });
+        },
+        (err) => console.error(err)
       ),
     ];
 
