@@ -22,12 +22,18 @@ export default function AdminDashboard() {
     const [showOnlineOnly, setShowOnlineOnly] = useState(false);
     const [confirmAction, setConfirmAction] = useState(null);
     const [sysMessage, setSysMessage] = useState("");
+    const [liveTick, setLiveTick] = useState(0);
+
+    useEffect(() => {
+        const i = setInterval(() => setLiveTick(t => t + 1), 1000);
+        return () => clearInterval(i);
+    }, []);
 
     const isUserOnline = (u) => {
-        if (!u.isOnline) return false;
-        if (!u.lastActive) return false;
+        if (u.isOnline === false) return false;
+        if (u.isOnline && !u.lastActive) return true; // Fallback for old sessions without lastActive ping
         const diff = new Date() - new Date(u.lastActive);
-        return diff < 60000 * 5; // Consider online if active in last 5 minutes
+        return diff < 60000 * 2; // Consider online if active in last 2 minutes
     };
 
     // NOTE: This assumes the user's UID has Firestore security rules giving them
@@ -115,6 +121,10 @@ export default function AdminDashboard() {
                 await updateDoc(doc(db, "users", selectedUser, "notes", id), { body: extraData });
             } else if (action === "updateReminder") {
                 await updateDoc(doc(db, "users", selectedUser, "reminders", id), { time: extraData });
+            } else if (action === "updateLogAmount") {
+                await updateDoc(doc(db, "users", selectedUser, "logs", id), { amount: extraData });
+            } else if (action === "updateLogTime") {
+                await updateDoc(doc(db, "users", selectedUser, "logs", id), { time: extraData });
             } else if (action === "ban") {
                 await updateDoc(doc(db, "users", id), { isBanned: true });
             } else if (action === "unban") {
@@ -180,6 +190,11 @@ export default function AdminDashboard() {
         const consistencyRate = Math.min(100, Math.round((activeDates.size / daysSince) * 100));
         
         let exactSeconds = info?.exactTimeSpent || 0;
+        // Inject live local ticking tracking sync
+        if (isUserOnline(info) && info.lastActive) {
+            exactSeconds += Math.floor((new Date() - new Date(info.lastActive)) / 1000);
+        }
+        
         const baseTimeMins = (userData.habits?.length * 15) + (totalLogHits * 2.5) + (userData.notes?.length * 5);
         
         const totalSeconds = exactSeconds + Math.floor(baseTimeMins * 60);
@@ -198,7 +213,7 @@ export default function AdminDashboard() {
            activeDays: activeDates.size,
            totalLogHits
         };
-    }, [userData, usersList, selectedUser]);
+    }, [userData, usersList, selectedUser, liveTick]);
 
     if (!isAdmin) {
         return (
@@ -459,7 +474,20 @@ export default function AdminDashboard() {
                                                                                                     <div className="flex justify-between items-center w-full min-w-0">
                                                                                                         <span className="text-text-primary font-medium truncate pr-2">{isPhoto ? "📷 Visual capture attached" : display}</span>
                                                                                                         <div className="flex items-center gap-2 shrink-0">
-                                                                                                            <button onClick={() => setConfirmAction({ type: "logs", action: "delete", id: e.id || e.__id || e.id__ || l.id })} className="opacity-0 group-hover/log:opacity-100 text-text-secondary hover:text-danger transition-colors bg-bg-main">
+                                                                                                            <button onClick={() => {
+                                                                                                                if (e.mode === "count") {
+                                                                                                                    const val = prompt("Edit count amount:", e.amount);
+                                                                                                                    if (val !== null && !isNaN(val)) setConfirmAction({ type: "logs", action: "updateLogAmount", id: e.id, extraData: Number(val) });
+                                                                                                                } else if (e.mode === "time") {
+                                                                                                                    const val = prompt("Edit time logged (HH:MM):", e.time);
+                                                                                                                    if (val !== null) setConfirmAction({ type: "logs", action: "updateLogTime", id: e.id, extraData: val });
+                                                                                                                } else {
+                                                                                                                    alert("This specific log cannot be directly edited via the UI.");
+                                                                                                                }
+                                                                                                            }} className="opacity-0 group-hover/log:opacity-100 text-text-secondary hover:text-accent transition-colors bg-bg-main p-1 rounded-md hover:bg-accent/10">
+                                                                                                                <Icon name="edit" size={12} />
+                                                                                                            </button>
+                                                                                                            <button onClick={() => setConfirmAction({ type: "logs", action: "delete", id: e.id })} className="opacity-0 group-hover/log:opacity-100 text-text-secondary hover:text-danger transition-colors bg-bg-main p-1 rounded-md hover:bg-danger/10">
                                                                                                                 <Icon name="trash" size={12} />
                                                                                                             </button>
                                                                                                             {(!isPhoto && e.time) && <span className="text-[10px] text-accent font-mono bg-accent/10 px-2 py-1 rounded-md max-w-[80px] truncate">{e.time}</span>}
