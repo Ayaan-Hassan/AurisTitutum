@@ -475,21 +475,21 @@ export default function AdminDashboard() {
                                                                                                         <span className="text-text-primary font-medium truncate pr-2">{isPhoto ? "📷 Visual capture attached" : display}</span>
                                                                                                         <div className="flex items-center gap-2 shrink-0">
                                                                                                             <button onClick={() => {
-                                                                                                                if (e.mode === "count") {
-                                                                                                                    const val = prompt("Edit count amount:", e.amount);
-                                                                                                                    if (val !== null && !isNaN(val)) setConfirmAction({ type: "logs", action: "updateLogAmount", id: e.id, extraData: Number(val) });
-                                                                                                                } else if (e.mode === "time") {
-                                                                                                                    const val = prompt("Edit time logged (HH:MM):", e.time);
-                                                                                                                    if (val !== null) setConfirmAction({ type: "logs", action: "updateLogTime", id: e.id, extraData: val });
-                                                                                                                } else {
-                                                                                                                    alert("This specific log cannot be directly edited via the UI.");
-                                                                                                                }
-                                                                                                            }} className="opacity-0 group-hover/log:opacity-100 text-text-secondary hover:text-accent transition-colors bg-bg-main p-1 rounded-md hover:bg-accent/10">
-                                                                                                                <Icon name="edit" size={12} />
-                                                                                                            </button>
-                                                                                                            <button onClick={() => setConfirmAction({ type: "logs", action: "delete", id: e.id })} className="opacity-0 group-hover/log:opacity-100 text-text-secondary hover:text-danger transition-colors bg-bg-main p-1 rounded-md hover:bg-danger/10">
-                                                                                                                <Icon name="trash" size={12} />
-                                                                                                            </button>
+                                                                                if (e.mode === "count") {
+                                                                                    const val = prompt("Edit count amount:", e.amount);
+                                                                                    if (val !== null && !isNaN(val)) setConfirmAction({ type: "logs", action: "updateLogAmount", id: e.id, extraData: Number(val) });
+                                                                                } else if (e.mode === "time") {
+                                                                                    const val = prompt("Edit time logged (HH:MM):", e.time);
+                                                                                    if (val !== null) setConfirmAction({ type: "logs", action: "updateLogTime", id: e.id, extraData: val });
+                                                                                } else {
+                                                                                    alert("This specific log cannot be directly edited via the UI.");
+                                                                                }
+                                                                            }} className="text-text-secondary hover:text-accent transition-colors bg-bg-main p-1 rounded-md hover:bg-accent/10">
+                                                                                <Icon name="edit" size={12} />
+                                                                            </button>
+                                                                            <button onClick={() => setConfirmAction({ type: "logs", action: "delete", id: e.id })} className="text-text-secondary hover:text-danger transition-colors bg-bg-main p-1 rounded-md hover:bg-danger/10">
+                                                                                <Icon name="trash" size={12} />
+                                                                            </button>
                                                                                                             {(!isPhoto && e.time) && <span className="text-[10px] text-accent font-mono bg-accent/10 px-2 py-1 rounded-md max-w-[80px] truncate">{e.time}</span>}
                                                                                                         </div>
                                                                                                     </div>
@@ -528,10 +528,10 @@ export default function AdminDashboard() {
                                                                     <button onClick={() => {
                                                                         const newBody = prompt("Edit Note Body:", n.body);
                                                                         if (newBody !== null) setConfirmAction({ type: "notes", action: "updateNote", id: n.id, extraData: newBody });
-                                                                    }} className="opacity-0 group-hover:opacity-100 p-1 text-text-secondary hover:text-accent transition-all bg-bg-sidebar rounded">
+                                                                    }} className="p-1 text-text-secondary hover:text-accent transition-all bg-bg-sidebar rounded">
                                                                         <Icon name="edit" size={12} />
                                                                     </button>
-                                                                    <button onClick={() => setConfirmAction({ type: "notes", action: "delete", id: n.id })} className="opacity-0 group-hover:opacity-100 p-1 text-text-secondary hover:text-danger transition-all bg-bg-sidebar rounded">
+                                                                    <button onClick={() => setConfirmAction({ type: "notes", action: "delete", id: n.id })} className="p-1 text-text-secondary hover:text-danger transition-all bg-bg-sidebar rounded">
                                                                         <Icon name="trash" size={12} />
                                                                     </button>
                                                                     {n.pinned && <Icon name="pin" size={12} className="text-accent mt-0.5" />}
@@ -557,10 +557,10 @@ export default function AdminDashboard() {
                                                                 <button onClick={() => {
                                                                     const newTime = prompt("Edit Time (HH:MM):", r.time);
                                                                     if (newTime !== null) setConfirmAction({ type: "reminders", action: "updateReminder", id: r.id, extraData: newTime });
-                                                                }} className="opacity-0 group-hover:opacity-100 p-1 text-text-secondary hover:text-accent transition-all bg-bg-sidebar rounded">
+                                                                }} className="p-1 text-text-secondary hover:text-accent transition-all bg-bg-sidebar rounded">
                                                                     <Icon name="edit" size={12} />
                                                                 </button>
-                                                                <button onClick={() => setConfirmAction({ type: "reminders", action: "delete", id: r.id })} className="opacity-0 group-hover:opacity-100 p-1 text-text-secondary hover:text-danger transition-all bg-bg-sidebar rounded">
+                                                                <button onClick={() => setConfirmAction({ type: "reminders", action: "delete", id: r.id })} className="p-1 text-text-secondary hover:text-danger transition-all bg-bg-sidebar rounded">
                                                                     <Icon name="trash" size={12} />
                                                                 </button>
                                                                 <span className="text-[10px] font-mono font-bold text-accent bg-accent/10 px-2.5 py-1.5 rounded-lg whitespace-nowrap shadow-sm shadow-accent/5">{r.time}</span>
