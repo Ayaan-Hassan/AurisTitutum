@@ -267,6 +267,7 @@ export default function AdminDashboard() {
     }
 
     return (
+        <>
         <div className="space-y-6">
             <div className="flex items-center justify-between">
                 <div>
@@ -683,8 +684,6 @@ export default function AdminDashboard() {
                             </div>
                         </div>
                     )}
-                </div>
-            )}
 
             {/* Confirmation Modal */}
             {confirmAction && (
@@ -713,6 +712,7 @@ export default function AdminDashboard() {
                 </div>
             )}
         </div>
+        </>
     );
 }
 
