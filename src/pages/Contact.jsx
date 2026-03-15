@@ -29,7 +29,7 @@ const Contact = () => {
       // Direct Firestore submission for internal admin dashboard
       const { addDoc, collection } = await import("firebase/firestore");
       const { db } = await import("../firebase.config");
-      
+
       await addDoc(collection(db, "inquiries"), {
         name: form.name.trim() || "Anonymous",
         email: form.email.trim() || "No Email",

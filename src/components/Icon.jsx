@@ -45,7 +45,12 @@ import {
     RotateCcw,
     CheckSquare,
     Camera,
-    Image as ImageIcon
+    Image as ImageIcon,
+    UserX,
+    UserCheck,
+    Mail,
+    Search,
+    Send
 } from 'lucide-react';
 
 const Icon = ({ name, size = 18, className = "" }) => {
@@ -96,7 +101,12 @@ const Icon = ({ name, size = 18, className = "" }) => {
         'rotate-ccw': RotateCcw,
         'check-square': CheckSquare,
         'camera': Camera,
-        'image': ImageIcon
+        'image': ImageIcon,
+        'user-x': UserX,
+        'user-check': UserCheck,
+        'mail': Mail,
+        'search': Search,
+        'send': Send
     };
 
     const LucideIcon = icons[name];

@@ -141,7 +141,13 @@ export default function AdminDashboard() {
                 await updateDoc(doc(db, "users", id), { isBanned: false });
                 addToast("User access restored", "success");
             } else if (action === "delete") {
-                await deleteDoc(doc(db, "users", selectedUser, type, id));
+                const collMap = {
+                    "habits": "habits",
+                    "notes": "notes",
+                    "reminders": "reminders",
+                    "logs": "logs"
+                };
+                await deleteDoc(doc(db, "users", selectedUser, collMap[type] || type, id));
                 addToast("Entry deleted", "info");
             }
 
@@ -242,12 +248,7 @@ export default function AdminDashboard() {
                         >
                             Users
                         </button>
-                        <button 
-                            onClick={() => setActiveTab("inquiries")}
-                            className={`px-4 py-2 text-xs font-black uppercase tracking-widest rounded-lg transition-all ${activeTab === "inquiries" ? "bg-accent text-bg-main" : "text-text-secondary hover:text-text-primary"}`}
-                        >
-                            Inquiries {inquiries.filter(i => i.status === "pending").length > 0 && <span className="ml-1 text-[8px] bg-danger text-white px-1 rounded-full">{inquiries.filter(i => i.status === "pending").length}</span>}
-                        </button>
+
                     </div>
                     <Button onClick={fetchStats} variant="outline" size="sm" icon="rotate-ccw" className="border-accent/30 text-accent hover:bg-accent/10">Refresh Data</Button>
                 </div>
@@ -265,7 +266,7 @@ export default function AdminDashboard() {
             ) : (
                 <div className="flex flex-col gap-6 relative animate-in fade-in duration-700">
                     <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
-                        <MetricCard title="Total Users" value={usersList.length} icon="users" />
+                        <MetricCard title="Total Users" value={usersList.length} icon="user" />
                         <div 
                             onClick={() => setShowOnlineOnly(!showOnlineOnly)}
                             className={`bg-card-bg border ${showOnlineOnly ? 'border-success shadow-[0_0_20px_rgba(var(--success-rgb),0.2)]' : 'border-border-color'} rounded-2xl p-5 flex items-center justify-between transition-all hover:scale-[1.02] shadow-sm cursor-pointer group`}
@@ -281,12 +282,13 @@ export default function AdminDashboard() {
                                 </p>
                             </div>
                             <div className={`w-10 h-10 rounded-full ${showOnlineOnly ? 'bg-success text-white' : 'bg-success/10 text-success'} flex items-center justify-center transition-colors`}>
-                                <Icon name="radio" size={20} />
+                                <Icon name="filter" size={20} />
                             </div>
                         </div>
                         <MetricCard title="Habits Created" value={stats.habits} icon="activity" />
                         <MetricCard title="Reminders Set" value={stats.reminders} icon="bell" />
                         <MetricCard title="Total Notes" value={stats.notes} icon="file-text" />
+                    </div>
                     </div>
 
                     {activeTab === "users" ? (
@@ -354,28 +356,7 @@ export default function AdminDashboard() {
                         <div className="flex-1 min-w-0 bg-card-bg border border-border-color rounded-3xl shadow-sm flex flex-col h-full overflow-hidden relative">
                             {!selectedUser ? (
                                 <div className="flex-1 flex flex-col p-8 overflow-hidden">
-                                     <div className="h-64 mb-8">
-                                        <h3 className="text-sm font-bold uppercase tracking-widest text-text-secondary mb-4">User Growth (Last 30 Days)</h3>
-                                        <ResponsiveContainer width="100%" height="100%">
-                                            <AreaChart data={graphData}>
-                                                <defs>
-                                                    <linearGradient id="colorUsers" x1="0" y1="0" x2="0" y2="1">
-                                                        <stop offset="5%" stopColor="var(--accent)" stopOpacity={0.3}/>
-                                                        <stop offset="95%" stopColor="var(--accent)" stopOpacity={0}/>
-                                                    </linearGradient>
-                                                </defs>
-                                                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--border-color)" opacity={0.2} />
-                                                <XAxis dataKey="name" stroke="var(--text-secondary)" fontSize={10} tickLine={false} axisLine={false} />
-                                                <YAxis stroke="var(--text-secondary)" fontSize={10} tickLine={false} axisLine={false} />
-                                                <Tooltip 
-                                                    contentStyle={{ backgroundColor: 'var(--card-bg)', borderColor: 'var(--border-color)', borderRadius: '12px' }}
-                                                    itemStyle={{ color: 'var(--accent)', fontSize: '12px', fontWeight: 'bold' }}
-                                                />
-                                                <Area type="monotone" dataKey="users" stroke="var(--accent)" fillOpacity={1} fill="url(#colorUsers)" strokeWidth={3} />
-                                            </AreaChart>
-                                        </ResponsiveContainer>
-                                    </div>
-                                    <div className="flex-1 flex flex-col items-center justify-center text-center opacity-30 select-none border-t border-border-color pt-8">
+                                     <div className="flex-1 flex flex-col items-center justify-center text-center opacity-30 select-none">
                                         <Icon name="search" size={48} className="mb-4 text-accent" />
                                         <h3 className="text-xl font-bold tracking-tight mb-2">Select a User</h3>
                                         <p className="text-xs">Choose a person from the list on the left to see their details.</p>
@@ -436,8 +417,8 @@ export default function AdminDashboard() {
                                                                     </div>
                                                                 </div>
                                                                 <div className="flex items-center gap-2">
-                                                                    <button onClick={() => setEditModal({ type: "habits", action: "updateHabit", id: h.id, initialValue: h.name, label: "Edit Habit Name" })} className="p-2 rounded-lg bg-accent/10 text-accent hover:bg-accent hover:text-bg-main transition-all"><Icon name="edit" size={14} /></button>
-                                                                    <button onClick={() => setConfirmAction({ type: "habits", action: "delete", id: h.id })} className="p-2 rounded-lg bg-danger/10 text-danger hover:bg-danger hover:text-white transition-all"><Icon name="trash" size={14} /></button>
+                                                                    <button onClick={() => setEditModal({ type: "habits", action: "updateHabit", id: h.id, initialValue: h.name, label: "Edit Habit Name" })} className="p-2 rounded-lg bg-accent/10 text-accent hover:bg-accent border border-accent/20 hover:text-bg-main transition-all"><Icon name="edit" size={14} /></button>
+                                                                    <button onClick={(e) => { e.stopPropagation(); setConfirmAction({ type: "habits", action: "delete", id: h.id }); }} className="p-2 rounded-lg bg-danger/10 text-danger hover:bg-danger border border-danger/20 hover:text-white transition-all"><Icon name="trash" size={14} /></button>
                                                                     <div onClick={() => setInspectorHabit(inspectorHabit === h.id ? null : h.id)} className="cursor-pointer ml-1">
                                                                         <Icon name={inspectorHabit === h.id ? "chevron-up" : "chevron-down"} size={16} className="text-text-secondary" />
                                                                     </div>
@@ -526,56 +507,80 @@ export default function AdminDashboard() {
                             )}
                         </div>
                     </div>
-                    ) : (
-                        <div className="space-y-6 animate-in slide-in-from-bottom-2 duration-300">
-                             <div className="grid grid-cols-1 gap-4">
-                                {inquiries.length > 0 ? inquiries.map(inq => (
-                                    <div key={inq.id} className="bg-card-bg border border-border-color p-6 rounded-[2rem] shadow-sm flex flex-col md:flex-row gap-6 relative group">
-                                        <div className="shrink-0 flex flex-col gap-2">
-                                            <div className="flex items-center gap-2">
-                                                <span className={`text-[10px] font-black uppercase px-2 py-1 rounded-lg ${inq.priority === 'High' ? 'bg-danger/20 text-danger' : inq.priority === 'Normal' ? 'bg-accent/20 text-accent' : 'bg-success/20 text-success'}`}>{inq.priority}</span>
-                                                <span className="text-[10px] font-black uppercase px-2 py-1 bg-white/5 text-text-secondary rounded-lg">{inq.topic}</span>
-                                            </div>
-                                            <p className="text-xs font-bold text-text-primary mt-1">{inq.name}</p>
-                                            <p className="text-[10px] text-text-secondary font-mono">{inq.email}</p>
-                                        </div>
-                                        <div className="flex-1">
-                                            <h4 className="font-bold text-sm text-text-primary mb-2">{inq.subject}</h4>
-                                            <p className="text-xs text-text-secondary leading-relaxed bg-bg-main/50 p-4 rounded-2xl border border-border-color/50">{inq.message}</p>
-                                            <div className="mt-4 flex items-center justify-between">
-                                                <p className="text-[10px] text-text-secondary opacity-50 flex items-center gap-2"><Icon name="clock" size={10}/> {new Date(inq.createdAt).toLocaleString()}</p>
-                                                <div className="flex gap-2">
-                                                    <button 
-                                                        onClick={async () => {
-                                                            await updateDoc(doc(db, "inquiries", inq.id), { status: inq.status === 'pending' ? 'resolved' : 'pending' });
-                                                        }}
-                                                        className={`px-4 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${inq.status === 'resolved' ? 'bg-success text-white' : 'bg-white/5 text-text-secondary hover:bg-white/10'}`}
-                                                    >
-                                                        {inq.status === 'resolved' ? 'Resolved' : 'Mark Resolved'}
-                                                    </button>
-                                                    <button 
-                                                        onClick={async () => {
-                                                            if (confirm("Delete this inquiry permanentely?")) {
-                                                                await deleteDoc(doc(db, "inquiries", inq.id));
-                                                            }
-                                                        }}
-                                                        className="w-10 h-10 rounded-xl bg-danger/10 text-danger hover:bg-danger hover:text-white flex items-center justify-center transition-all"
-                                                    >
-                                                        <Icon name="trash" size={14} />
-                                                    </button>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                )) : (
-                                    <div className="py-20 flex flex-col items-center justify-center opacity-30">
-                                        <Icon name="mail" size={48} className="mb-4 text-accent" />
-                                        <p className="font-bold uppercase tracking-widest text-xs">No pending inquiries.</p>
-                                    </div>
-                                )}
-                             </div>
+                    ) : null }
+
+                    <div className="h-64 bg-card-bg border border-border-color rounded-3xl p-8 shadow-sm">
+                        <h3 className="text-sm font-bold uppercase tracking-widest text-text-secondary mb-4">User Growth (Last 30 Days)</h3>
+                        <ResponsiveContainer width="100%" height="100%">
+                            <AreaChart data={graphData}>
+                                <defs>
+                                    <linearGradient id="colorUsers" x1="0" y1="0" x2="0" y2="1">
+                                        <stop offset="5%" stopColor="var(--accent)" stopOpacity={0.3}/>
+                                        <stop offset="95%" stopColor="var(--accent)" stopOpacity={0}/>
+                                    </linearGradient>
+                                </defs>
+                                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--border-color)" opacity={0.2} />
+                                <XAxis dataKey="name" stroke="var(--text-secondary)" fontSize={10} tickLine={false} axisLine={false} />
+                                <YAxis stroke="var(--text-secondary)" fontSize={10} tickLine={false} axisLine={false} />
+                                <Tooltip 
+                                    contentStyle={{ backgroundColor: 'var(--card-bg)', borderColor: 'var(--border-color)', borderRadius: '12px' }}
+                                    itemStyle={{ color: 'var(--accent)', fontSize: '12px', fontWeight: 'bold' }}
+                                />
+                                <Area type="monotone" dataKey="users" stroke="var(--accent)" fillOpacity={1} fill="url(#colorUsers)" strokeWidth={3} />
+                            </AreaChart>
+                        </ResponsiveContainer>
+                    </div>
+
+                    <div className="space-y-6 animate-in slide-in-from-bottom-2 duration-300">
+                        <div className="flex items-center justify-between border-b border-border-color pb-4">
+                            <h3 className="text-lg font-bold tracking-tight text-text-primary">System Inquiries</h3>
+                            <div className="px-3 py-1 bg-accent/10 border border-accent/20 rounded-full text-[10px] font-black text-accent uppercase tracking-widest">
+                                {inquiries.filter(i => i.status === "pending").length} Pending Requests
+                            </div>
                         </div>
-                    )}
+                         <div className="grid grid-cols-1 gap-4">
+                            {inquiries.length > 0 ? inquiries.map(inq => (
+                                <div key={inq.id} className="bg-card-bg border border-border-color p-6 rounded-[2rem] shadow-sm flex flex-col md:flex-row gap-6 relative group">
+                                    <div className="shrink-0 flex flex-col gap-2">
+                                        <div className="flex items-center gap-2">
+                                            <span className={`text-[10px] font-black uppercase px-2 py-1 rounded-lg ${inq.priority === 'High' ? 'bg-danger/20 text-danger' : inq.priority === 'Normal' ? 'bg-accent/20 text-accent' : 'bg-success/20 text-success'}`}>{inq.priority}</span>
+                                            <span className="text-[10px] font-black uppercase px-2 py-1 bg-white/5 text-text-secondary rounded-lg">{inq.topic}</span>
+                                        </div>
+                                        <p className="text-xs font-bold text-text-primary mt-1">{inq.name}</p>
+                                        <p className="text-[10px] text-text-secondary font-mono">{inq.email}</p>
+                                    </div>
+                                    <div className="flex-1">
+                                        <h4 className="font-bold text-sm text-text-primary mb-2">{inq.subject}</h4>
+                                        <p className="text-xs text-text-secondary leading-relaxed bg-bg-main/50 p-4 rounded-2xl border border-border-color/50">{inq.message}</p>
+                                        <div className="mt-4 flex items-center justify-between">
+                                            <p className="text-[10px] text-text-secondary opacity-50 flex items-center gap-2"><Icon name="clock" size={10}/> {new Date(inq.createdAt).toLocaleString()}</p>
+                                            <div className="flex gap-2">
+                                                <button 
+                                                    onClick={async () => {
+                                                        await updateDoc(doc(db, "inquiries", inq.id), { status: inq.status === 'pending' ? 'resolved' : 'pending' });
+                                                    }}
+                                                    className={`px-4 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${inq.status === 'resolved' ? 'bg-success text-white' : 'bg-white/5 text-text-secondary hover:bg-white/10'}`}
+                                                >
+                                                    {inq.status === 'resolved' ? 'Resolved' : 'Mark Resolved'}
+                                                </button>
+                                                <button 
+                                                    onClick={() => setConfirmAction({ type: "inquiry", action: "delete", id: inq.id })}
+                                                    className="w-10 h-10 rounded-xl bg-danger/10 text-danger hover:bg-danger hover:text-white flex items-center justify-center transition-all border border-danger/20"
+                                                >
+                                                    <Icon name="trash" size={14} />
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            )) : (
+                                <div className="py-20 flex flex-col items-center justify-center opacity-30">
+                                    <Icon name="mail" size={48} className="mb-4 text-accent" />
+                                    <p className="font-bold uppercase tracking-widest text-xs">No pending inquiries.</p>
+                                </div>
+                            )}
+                         </div>
+                    </div>
                 </div>
 
             )}

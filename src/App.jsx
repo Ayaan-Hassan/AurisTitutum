@@ -1118,9 +1118,9 @@ function AppContent() {
                 <Icon name="shield-check" size={32} />
               </div>
               
-              <h3 className="text-xl font-black text-text-primary mb-4 tracking-tighter uppercase italic flex items-center gap-3">
+              <h3 className="text-xl font-bold text-text-primary mb-4 tracking-tight flex items-center gap-3">
                 <span className="w-2 h-2 rounded-full bg-accent animate-pulse"></span>
-                Administrator Priority Message
+                System Message
               </h3>
               
               <div className="w-full h-[1px] bg-gradient-to-r from-transparent via-border-color to-transparent mb-6"></div>
@@ -1131,9 +1131,9 @@ function AppContent() {
               
               <button 
                 onClick={() => setActiveSystemMsg(null)}
-                className="w-full py-4 rounded-2xl bg-accent text-bg-main font-black uppercase tracking-[0.2em] text-[11px] shadow-lg shadow-accent/20 hover:scale-[1.02] active:scale-[0.98] transition-all"
+                className="w-full py-4 rounded-2xl bg-accent text-bg-main font-bold uppercase tracking-[0.1em] text-[11px] shadow-lg shadow-accent/20 hover:scale-[1.02] active:scale-[0.98] transition-all"
               >
-                Acknowledge Transmission
+                Close
               </button>
               
               <p className="mt-6 text-[8px] font-mono text-text-secondary uppercase tracking-[0.3em] opacity-40">
