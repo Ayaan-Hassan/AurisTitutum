@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
-import { collection, getDocs, collectionGroup, getCountFromServer, onSnapshot, doc, deleteDoc, updateDoc, addDoc } from "firebase/firestore";
+import { collection, getDocs, collectionGroup, getCountFromServer, onSnapshot, doc, deleteDoc, updateDoc, addDoc, query } from "firebase/firestore";
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
 import { db } from "../firebase.config";
 import { useAuth } from "../contexts/AuthContext";
@@ -141,14 +141,20 @@ export default function AdminDashboard() {
                 await updateDoc(doc(db, "users", id), { isBanned: false });
                 addToast("User access restored", "success");
             } else if (action === "delete") {
-                const collMap = {
-                    "habits": "habits",
-                    "notes": "notes",
-                    "reminders": "reminders",
-                    "logs": "logs"
-                };
-                await deleteDoc(doc(db, "users", selectedUser, collMap[type] || type, id));
-                addToast("Entry deleted", "info");
+                if (type === "inquiry") {
+                    await deleteDoc(doc(db, "inquiries", id));
+                } else if (type === "user") {
+                    await deleteDoc(doc(db, "users", id));
+                } else {
+                    const collMap = {
+                        "habits": "habits",
+                        "notes": "notes",
+                        "reminders": "reminders",
+                        "logs": "logs"
+                    };
+                    await deleteDoc(doc(db, "users", selectedUser, collMap[type] || type, id));
+                }
+                addToast(`${type.charAt(0).toUpperCase() + type.slice(1)} deleted`, "info");
             }
 
             setConfirmAction(null);
@@ -241,15 +247,6 @@ export default function AdminDashboard() {
                     <p className="text-text-secondary text-[10px] uppercase font-bold tracking-widest mt-1 opacity-60">Control Center / Version 4.1.0</p>
                 </div>
                 <div className="flex items-center gap-3">
-                    <div className="flex bg-card-bg border border-border-color p-1 rounded-xl">
-                        <button 
-                            onClick={() => setActiveTab("users")}
-                            className={`px-4 py-2 text-xs font-black uppercase tracking-widest rounded-lg transition-all ${activeTab === "users" ? "bg-accent text-bg-main" : "text-text-secondary hover:text-text-primary"}`}
-                        >
-                            Users
-                        </button>
-
-                    </div>
                     <Button onClick={fetchStats} variant="outline" size="sm" icon="rotate-ccw" className="border-accent/30 text-accent hover:bg-accent/10">Refresh Data</Button>
                 </div>
             </div>
@@ -268,8 +265,7 @@ export default function AdminDashboard() {
                     <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
                         <MetricCard title="Total Users" value={usersList.length} icon="user" />
                         <div 
-                            onClick={() => setShowOnlineOnly(!showOnlineOnly)}
-                            className={`bg-card-bg border ${showOnlineOnly ? 'border-success shadow-[0_0_20px_rgba(var(--success-rgb),0.2)]' : 'border-border-color'} rounded-2xl p-5 flex items-center justify-between transition-all hover:scale-[1.02] shadow-sm cursor-pointer group`}
+                            className={`bg-card-bg border border-border-color rounded-2xl p-5 flex items-center justify-between transition-all shadow-sm group`}
                         >
                             <div>
                                 <p className="text-[10px] font-black uppercase tracking-widest text-text-secondary mb-1">Online Now</p>
@@ -281,8 +277,8 @@ export default function AdminDashboard() {
                                     </span>
                                 </p>
                             </div>
-                            <div className={`w-10 h-10 rounded-full ${showOnlineOnly ? 'bg-success text-white' : 'bg-success/10 text-success'} flex items-center justify-center transition-colors`}>
-                                <Icon name="filter" size={20} />
+                            <div className={`w-10 h-10 rounded-full bg-success/10 text-success flex items-center justify-center`}>
+                                <Icon name="activity" size={20} />
                             </div>
                         </div>
                         <MetricCard title="Habits Created" value={stats.habits} icon="activity" />
@@ -294,12 +290,21 @@ export default function AdminDashboard() {
                     <div className="flex flex-col lg:flex-row gap-6 h-[720px]">
                         <div className="w-full lg:w-80 shrink-0 bg-card-bg border border-border-color rounded-3xl shadow-sm flex flex-col h-full overflow-hidden">
                             <div className="p-5 border-b border-border-color bg-accent-dim shrink-0">
-                                <h3 className="font-bold tracking-tight text-sm uppercase mb-3">User Directory</h3>
+                                <div className="flex items-center justify-between mb-3">
+                                    <h3 className="font-bold tracking-tight text-sm uppercase">User Directory</h3>
+                                    <button 
+                                        onClick={() => setShowOnlineOnly(!showOnlineOnly)}
+                                        className={`p-2 rounded-lg border transition-all ${showOnlineOnly ? 'bg-success text-white border-success' : 'bg-white/5 text-text-secondary border-border-color hover:border-accent/40'}`}
+                                        title="Toggle Online Only"
+                                    >
+                                        <Icon name="filter" size={14} />
+                                    </button>
+                                </div>
                                 <div className="relative">
                                     <Icon name="search" size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-text-secondary opacity-50" />
                                     <input 
                                         type="text" 
-                                        placeholder="Search name or email..."
+                                        placeholder="Search..."
                                         value={searchQuery}
                                         onChange={(e) => setSearchQuery(e.target.value)}
                                         className="w-full bg-bg-main border border-border-color pl-9 pr-4 py-2 rounded-xl text-xs outline-none focus:border-accent transition-all"
@@ -343,7 +348,7 @@ export default function AdminDashboard() {
                                                 ) : (
                                                     <button onClick={(e) => { e.stopPropagation(); setConfirmAction({ type: "user", action: "ban", id: u.id }); }} title="Ban" className="w-7 h-7 rounded-lg bg-danger/10 text-danger hover:bg-danger hover:text-white flex items-center justify-center transition-all border border-danger/20"><Icon name="user-x" size={12}/></button>
                                                 )}
-                                                <button onClick={(e) => { e.stopPropagation(); setEditModal({ type: "msg", action: "sendMsg", id: u.id, initialValue: "", label: "Message Content" }); }} title="Message" className="w-7 h-7 rounded-lg bg-accent/10 text-accent hover:bg-accent hover:text-bg-main flex items-center justify-center transition-all border border-accent/20"><Icon name="mail" size={12}/></button>
+                                                <button onClick={(e) => { e.stopPropagation(); setEditModal({ type: "msg", action: "sendMsg", id: u.id, initialValue: "", label: "Message", confirmLabel: "Send" }); }} title="Message" className="w-7 h-7 rounded-lg bg-accent/10 text-accent hover:bg-accent hover:text-bg-main flex items-center justify-center transition-all border border-accent/20"><Icon name="mail" size={12}/></button>
                                             </div>
                                             {isUserOnline(u) && <div className="w-2 h-2 rounded-full bg-success shadow-[0_0_8px_rgba(var(--success-rgb),0.6)]"></div>}
                                         </div>
@@ -605,7 +610,8 @@ export default function AdminDashboard() {
             {editModal && (
                 <RenameModal 
                     title={editModal.label}
-                    label={editModal.label}
+                    label={editModal.type === "msg" ? null : editModal.label}
+                    confirmLabel={editModal.confirmLabel || "Save"}
                     initialValue={editModal.initialValue}
                     onConfirm={async (val) => {
                         const { type, action, id } = editModal;

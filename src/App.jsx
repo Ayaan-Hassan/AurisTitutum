@@ -1108,36 +1108,36 @@ function AppContent() {
       )}
       {/* System Communication Popup */}
       {activeSystemMsg && (
-        <div className="fixed inset-0 z-[1000] bg-black/95 flex justify-center items-center p-6 animate-in fade-in duration-300">
-          <div className="absolute inset-0 bg-gradient-to-br from-accent/20 via-transparent to-danger/10 opacity-30"></div>
-          <div className="bg-card-bg border border-border-color p-8 rounded-[2.5rem] shadow-2xl max-w-md w-full relative overflow-hidden group">
-            <div className="absolute -top-24 -right-24 w-48 h-48 bg-accent/10 blur-3xl rounded-full group-hover:bg-accent/20 transition-all"></div>
+        <div className="fixed inset-0 z-[1000] bg-black/90 backdrop-blur-sm flex justify-center items-center p-6 animate-in fade-in duration-500">
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_var(--accent-dim)_0%,_transparent_70%)] opacity-20"></div>
+          <div className="bg-card-bg border border-border-color p-8 rounded-[2rem] shadow-[0_0_50px_rgba(0,0,0,0.5)] max-w-md w-full relative overflow-hidden group border-t-accent">
+            <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-accent to-transparent"></div>
             
             <div className="flex flex-col items-center text-center">
-              <div className="w-16 h-16 rounded-2xl bg-accent/10 border border-accent/20 flex items-center justify-center text-accent mb-6 shadow-lg shadow-accent/5">
-                <Icon name="shield-check" size={32} />
+              <div className="w-14 h-14 rounded-xl bg-accent/10 border border-accent/20 flex items-center justify-center text-accent mb-6 shadow-xl shadow-accent/5">
+                <Icon name="mail" size={28} />
               </div>
               
-              <h3 className="text-xl font-bold text-text-primary mb-4 tracking-tight flex items-center gap-3">
-                <span className="w-2 h-2 rounded-full bg-accent animate-pulse"></span>
-                System Message
+              <h3 className="text-xl font-bold text-text-primary mb-2 tracking-tight flex items-center gap-2">
+                Admin Message
               </h3>
+              <p className="text-[10px] font-black uppercase tracking-[0.3em] text-accent mb-6 opacity-60">Priority Transmission</p>
               
-              <div className="w-full h-[1px] bg-gradient-to-r from-transparent via-border-color to-transparent mb-6"></div>
-              
-              <p className="text-xs text-text-secondary leading-relaxed font-medium mb-8 whitespace-pre-wrap px-2">
-                {activeSystemMsg}
-              </p>
+              <div className="w-full p-6 bg-bg-main/50 rounded-2xl border border-border-color/50 mb-8 max-h-[300px] overflow-y-auto custom-scrollbar">
+                <p className="text-sm text-text-primary leading-relaxed font-medium whitespace-pre-wrap text-left">
+                  {activeSystemMsg.message || activeSystemMsg}
+                </p>
+              </div>
               
               <button 
                 onClick={() => setActiveSystemMsg(null)}
                 className="w-full py-4 rounded-2xl bg-accent text-bg-main font-bold uppercase tracking-[0.1em] text-[11px] shadow-lg shadow-accent/20 hover:scale-[1.02] active:scale-[0.98] transition-all"
               >
-                Close
+                Close Message
               </button>
               
-              <p className="mt-6 text-[8px] font-mono text-text-secondary uppercase tracking-[0.3em] opacity-40">
-                Encrypted Source: Auris Master Node
+              <p className="mt-6 text-[8px] font-mono text-text-secondary uppercase tracking-[0.3em] opacity-30">
+                Official Correspondence • Auris Dashboard
               </p>
             </div>
           </div>

@@ -26,7 +26,7 @@ export function ConfirmModal({ open, title, message, confirmLabel = 'Confirm', v
   );
 }
 
-export function RenameModal({ open = true, initialValue = '', title = 'Rename Item', label = 'Name', onConfirm, onCancel }) {
+export function RenameModal({ open = true, initialValue = '', title = 'Rename Item', label = 'Name', confirmLabel = 'Save', onConfirm, onCancel }) {
   const [value, setValue] = useState(initialValue || '');
 
   useEffect(() => {
@@ -53,17 +53,17 @@ export function RenameModal({ open = true, initialValue = '', title = 'Rename It
       <div className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-[9999] w-full max-w-sm rounded-2xl border border-border-color bg-bg-main shadow-xl p-6 animate-in zoom-in-95 duration-200" onClick={e => e.stopPropagation()}>
         <h3 className="text-sm font-bold uppercase tracking-widest text-text-primary mb-2 italic">{title}</h3>
         <form onSubmit={handleSubmit}>
-          <div className="text-[10px] font-black uppercase text-accent mb-2 px-1 tracking-widest">{label}</div>
+          {label && <div className="text-[10px] font-black uppercase text-accent mb-2 px-1 tracking-widest">{label}</div>}
           <Input
             value={value}
             onChange={e => setValue(e.target.value)}
-            placeholder={label}
+            placeholder={label || title}
             className="mb-4 bg-bg-sidebar/50"
             autoFocus
           />
           <div className="flex gap-3 justify-end">
             <Button type="button" variant="outline" onClick={onCancel}>Cancel</Button>
-            <Button type="submit" variant="primary">Save</Button>
+            <Button type="submit" variant="primary">{confirmLabel}</Button>
           </div>
         </form>
       </div>
