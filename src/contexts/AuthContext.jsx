@@ -103,11 +103,12 @@ const normalizeReminder = (reminder = {}) => {
   const now = new Date().toISOString();
   return {
     id: String(reminder?.id || `${Date.now()}_${Math.random().toString(36).slice(2, 8)}`),
-    title: reminder?.title || "",
+    title: reminder?.title || "Untitled",
     notes: reminder?.notes || "",
-    date: reminder?.date || "",
+    date: reminder?.date || now.split('T')[0],
     time: reminder?.time || "09:00",
     repeat: reminder?.repeat || "none",
+    color: reminder?.color || "white", // Default to white for better visibility
     createdAt: reminder?.createdAt || now,
     updatedAt: reminder?.updatedAt || now,
   };
@@ -362,15 +363,17 @@ export const AuthProvider = ({ children }) => {
       onSnapshot(doc(db, "users", uid), (snap) => {
           if (authCycleRef.current !== cycleId) return;
           if (snap.exists() && snap.data().isBanned === true) {
-              document.dispatchEvent(new CustomEvent("showBanStatus", {
-                  detail: { banned: true, reason: "Your account has been strictly revoked." }
-              }));
+              if (lastBannedState.current === false) {
+                  document.dispatchEvent(new CustomEvent("showBanStatus", {
+                      detail: { banned: true, reason: snap.data().banReason || "Your account is temporarily banned due to system protocol violations." }
+                  }));
+              }
           } else if (snap.exists() && snap.data().isBanned === false && lastBannedState.current === true) {
               document.dispatchEvent(new CustomEvent("showBanStatus", {
-                detail: { banned: false, reason: "Access restored." }
+                detail: { banned: false, reason: "Access restored. You can now access all features normally." }
             }));
           }
-          lastBannedState.current = snap.exists() ? snap.data().isBanned : false;
+          lastBannedState.current = snap.exists() ? (snap.data().isBanned === true) : false;
       }, (err) => console.error("User doc listener error", err)),
       subscribeToUserSubcollection(
         uid,
@@ -533,7 +536,7 @@ export const AuthProvider = ({ children }) => {
     let secondsPassed = 0;
     const interval = setInterval(() => {
         secondsPassed++;
-        if (secondsPassed >= 30) {
+        if (secondsPassed >= 20) { // Update every 20s for better accuracy
             if (user?.uid) {
                 updateUserPresence(user.uid, true, secondsPassed);
             } else if (document.visibilityState === 'visible') {

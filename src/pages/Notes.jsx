@@ -13,6 +13,7 @@ const NOTE_COLORS = [
     { id: 'amber', colorClass: 'rgba(245, 158, 11, 0.2)' },
     { id: 'rose', colorClass: 'rgba(244, 63, 94, 0.2)' },
     { id: 'purple', colorClass: 'rgba(168, 85, 247, 0.2)' },
+    { id: 'white', colorClass: 'rgba(255, 255, 255, 0.15)' },
 ];
 
 const Notes = ({ notes, setNotes }) => {

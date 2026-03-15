@@ -1117,29 +1117,51 @@ function AppContent() {
         </div>
       )}
       {confirmAction?.type === "ban_notice" && (
-        <div className="fixed inset-0 bg-black/80 backdrop-blur-xl flex items-center justify-center z-[200] p-4">
-            <div className="glass-card w-full max-w-sm p-8 rounded-[2.5rem] border-white/10 text-center relative overflow-hidden">
-                <div className={`absolute -top-20 -right-20 w-40 h-40 ${confirmAction.banned ? 'bg-danger/20' : 'bg-success/20'} rounded-full blur-[60px]`} />
-                <div className={`w-20 h-20 mx-auto rounded-3xl ${confirmAction.banned ? 'bg-danger/10 text-danger' : 'bg-success/10 text-success'} flex items-center justify-center mb-6`}>
-                    <Icon name={confirmAction.banned ? "shield-alert" : "shield-check"} size={40} />
+        <div className="fixed inset-0 bg-black/90 backdrop-blur-2xl flex items-center justify-center z-[200] p-4 text-center">
+            <div className="glass-card w-full max-w-sm p-8 rounded-[3rem] border-white/10 relative overflow-hidden shadow-2xl">
+                <div className={`absolute -top-24 -right-24 w-48 h-48 ${confirmAction.banned ? 'bg-danger/20' : 'bg-success/20'} rounded-full blur-[80px]`} />
+                <div className={`w-24 h-24 mx-auto rounded-[2rem] ${confirmAction.banned ? 'bg-danger/10 text-danger' : 'bg-success/10 text-success'} flex items-center justify-center mb-8 border border-white/5`}>
+                    <Icon name={confirmAction.banned ? "shield-alert" : "shield-check"} size={48} />
                 </div>
-                <h3 className="text-xl font-bold tracking-tight text-text-primary mb-2">
-                    {confirmAction.banned ? "Access Revoked" : "Access Restored"}
+                <h3 className="text-2xl font-bold tracking-tight text-text-primary mb-3">
+                    {confirmAction.banned ? "Account Suspended" : "Access Restored"}
                 </h3>
-                <p className="text-xs text-text-secondary mb-8 leading-relaxed">
-                    {confirmAction.reason}
+                <p className="text-sm text-text-secondary mb-10 leading-relaxed px-2">
+                    {confirmAction.banned 
+                        ? (confirmAction.reason || "Your account is temporarily banned. If you think this was a mistake, please send us an enquiry.") 
+                        : "Your access has been restored. You can now continue using all features of the website."}
                 </p>
-                <button
-                    onClick={() => {
-                        if (confirmAction.banned) {
-                            authContext.logout();
-                        }
-                        setConfirmAction(null);
-                    }}
-                    className={`w-full py-4 rounded-2xl ${confirmAction.banned ? 'bg-danger' : 'bg-accent'} text-bg-main text-[11px] font-black uppercase tracking-[0.3em] transition-all hover:scale-[1.02] active:scale-[0.98] shadow-lg`}
-                >
-                    {confirmAction.banned ? "Acknowledge" : "Continue to App"}
-                </button>
+                <div className="flex flex-col gap-3">
+                    {confirmAction.banned ? (
+                        <>
+                            <button
+                                onClick={() => {
+                                    setConfirmAction(null);
+                                    window.location.href = "/app/contact";
+                                }}
+                                className="w-full py-4 rounded-2xl bg-accent text-bg-main text-xs font-black uppercase tracking-[0.2em] transition-all hover:scale-[1.02] active:scale-[0.98] shadow-lg shadow-white/10"
+                            >
+                                Send Enquiry
+                            </button>
+                            <button
+                                onClick={() => {
+                                    authContext.logout();
+                                    setConfirmAction(null);
+                                }}
+                                className="w-full py-4 rounded-2xl bg-white/5 text-text-secondary text-xs font-black uppercase tracking-[0.2em] transition-all hover:bg-white/10"
+                            >
+                                Leave Website
+                            </button>
+                        </>
+                    ) : (
+                        <button
+                            onClick={() => setConfirmAction(null)}
+                            className="w-full py-4 rounded-2xl bg-accent text-bg-main text-xs font-black uppercase tracking-[0.2em] transition-all hover:scale-[1.02] active:scale-[0.98]"
+                        >
+                            Continue to App
+                        </button>
+                    )}
+                </div>
             </div>
         </div>
       )}

@@ -101,7 +101,7 @@ export default function AdminDashboard() {
         });
         const unsubGuests = onSnapshot(collection(db, "guest_presence"), (snapshot) => {
             let count = 0;
-            const threshold = 75000;
+            const threshold = 90000; // 90 seconds threshold
             const now = new Date();
             snapshot.forEach(d => {
                 const lastActive = d.data().lastActive;
@@ -157,7 +157,7 @@ export default function AdminDashboard() {
             } else if (action === "ban") {
                 await updateDoc(doc(db, "users", id), { isBanned: true });
                 await addDoc(collection(db, "users", id, "systemMessages"), {
-                    message: "PROTOCOL VIOLATION: Your access has been strictly revoked by the Administrator. You will be logged out momentarily.",
+                    message: "PROTOCOL SUSPENSION: Your account has been temporarily suspended. If you believe this is an error, please use the enquiry system to appeal.",
                     type: "admin",
                     createdAt: new Date().toISOString(),
                     read: false
@@ -316,7 +316,7 @@ export default function AdminDashboard() {
                             value={usersList.filter(u => isUserOnline(u)).length + guestOnlineCount} 
                             icon="activity" 
                             color="text-success"
-                            subtitle={`${usersList.filter(u => isUserOnline(u)).length} signed-in, ${guestOnlineCount} guests`}
+                            subtitle="Click to filter signed-in users"
                             indicator={<span className="relative flex h-2 w-2"><span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-success opacity-75"></span><span className="relative inline-flex rounded-full h-2 w-2 bg-success"></span></span>}
                             onClick={() => { setShowOnlineOnly(!showOnlineOnly); if (!showOnlineOnly) setShowBannedOnly(false); setActiveTab("users"); }}
                         />
@@ -341,7 +341,7 @@ export default function AdminDashboard() {
                                         </button>
                                         <button 
                                             onClick={() => { setShowBannedOnly(!showBannedOnly); if (!showBannedOnly) setShowOnlineOnly(false); }}
-                                            className={`p-2 rounded-lg border transition-all ${showBannedOnly ? 'bg-danger text-white border-danger' : 'bg-white/5 text-text-secondary border-border-color hover:border-accent/40'}`}
+                                            className={`p-2 rounded-lg border transition-all ${showBannedOnly ? 'bg-danger text-white border-danger shadow-lg shadow-danger/20' : 'bg-white/5 text-danger border-border-color hover:border-danger/40'}`}
                                             title="Banned Users"
                                         >
                                             <Icon name="user-x" size={14} />
@@ -386,7 +386,7 @@ export default function AdminDashboard() {
                                         <div className="min-w-0 pr-2">
                                             <p className="font-bold text-sm text-text-primary truncate flex items-center gap-2">
                                                 {u.displayName || "Unknown Identity"}
-                                                {u.isBanned && <span className="text-[8px] bg-danger text-white px-1 rounded-sm uppercase font-black">Banned</span>}
+                                                {u.isBanned && <span className="text-[9px] text-danger border border-danger/30 px-1.5 rounded-md uppercase font-black bg-danger/5">Banned</span>}
                                                 {pinnedUsers.includes(u.id) && <Icon name="pin" size={10} className="text-accent" />}
                                             </p>
                                             <p className="text-[10px] text-text-secondary font-mono truncate opacity-60">{u.email}</p>
@@ -444,14 +444,14 @@ export default function AdminDashboard() {
                                                 <span className="flex items-center gap-1.5 font-bold text-accent"><Icon name="hash" size={10} /> {selectedUser}</span>
                                             </div>
                                             <div className="flex items-center gap-2 mt-2">
-                                                <button onClick={() => setConfirmAction({ type: "user", action: "wipe", id: selectedUser })} title="Wipe Data" className="h-8 px-3 rounded-lg bg-accent/10 text-accent hover:bg-accent hover:text-bg-main flex items-center gap-2 transition-all border border-accent/20 text-[10px] font-bold uppercase"><Icon name="eraser" size={12}/> Wipe</button>
-                                                <button onClick={() => setConfirmAction({ type: "user", action: "delete", id: selectedUser })} title="Delete Account" className="h-8 px-3 rounded-lg bg-danger/10 text-danger hover:bg-danger hover:text-white flex items-center gap-2 transition-all border border-danger/20 text-[10px] font-bold uppercase"><Icon name="trash" size={12}/> Delete</button>
+                                                <button onClick={() => setConfirmAction({ type: "user", action: "wipe", id: selectedUser })} title="Wipe Data" className="h-8 px-3 rounded-lg bg-accent/10 text-accent hover:bg-accent hover:text-bg-main hover:scale-105 active:scale-95 flex items-center gap-2 transition-all border border-accent/20 text-[10px] font-bold uppercase"><Icon name="eraser" size={12}/> Wipe</button>
+                                                <button onClick={() => setConfirmAction({ type: "user", action: "delete", id: selectedUser })} title="Delete Account" className="h-8 px-3 rounded-lg bg-danger/10 text-danger hover:bg-danger hover:text-white hover:scale-105 active:scale-95 flex items-center gap-2 transition-all border border-danger/20 text-[10px] font-bold uppercase"><Icon name="trash" size={12}/> Delete</button>
                                                 {usersList.find(u => u.id === selectedUser)?.isBanned ? (
-                                                    <button onClick={() => setConfirmAction({ type: "user", action: "unban", id: selectedUser })} title="Unban" className="h-8 px-3 rounded-lg bg-success/10 text-success hover:bg-success hover:text-white flex items-center gap-2 transition-all border border-success/20 text-[10px] font-bold uppercase"><Icon name="user-check" size={12}/> Unban</button>
+                                                    <button onClick={() => setConfirmAction({ type: "user", action: "unban", id: selectedUser })} title="Unban" className="h-8 px-3 rounded-lg bg-success/10 text-success hover:bg-success hover:text-white hover:scale-105 active:scale-95 flex items-center gap-2 transition-all border border-success/20 text-[10px] font-bold uppercase"><Icon name="user-check" size={12}/> Unban</button>
                                                 ) : (
-                                                    <button onClick={() => setConfirmAction({ type: "user", action: "ban", id: selectedUser })} title="Ban" className="h-8 px-3 rounded-lg bg-danger/10 text-danger hover:bg-danger hover:text-white flex items-center gap-2 transition-all border border-danger/20 text-[10px] font-bold uppercase"><Icon name="user-x" size={12}/> Ban</button>
+                                                    <button onClick={() => setConfirmAction({ type: "user", action: "ban", id: selectedUser })} title="Ban" className="h-8 px-3 rounded-lg bg-danger/10 text-danger hover:bg-danger hover:text-white hover:scale-105 active:scale-95 flex items-center gap-2 transition-all border border-danger/20 text-[10px] font-bold uppercase"><Icon name="user-x" size={12}/> Ban</button>
                                                 )}
-                                                <button onClick={() => setEditModal({ type: "msg", action: "sendMsg", id: selectedUser, initialValue: "", label: "Message Content", confirmLabel: "Send" })} title="Message" className="h-8 px-3 rounded-lg bg-accent/10 text-accent hover:bg-accent hover:text-bg-main flex items-center gap-2 transition-all border border-accent/20 text-[10px] font-bold uppercase"><Icon name="mail" size={12}/> Message</button>
+                                                <button onClick={() => setEditModal({ type: "msg", action: "sendMsg", id: selectedUser, initialValue: "", label: "Message Content", confirmLabel: "Send" })} title="Message" className="h-8 px-3 rounded-lg bg-accent/10 text-accent hover:bg-accent hover:text-bg-main hover:scale-105 active:scale-95 flex items-center gap-2 transition-all border border-accent/20 text-[10px] font-bold uppercase"><Icon name="mail" size={12}/> Message</button>
                                             </div>
                                         </div>
                                     </div>
@@ -769,7 +769,7 @@ export default function AdminDashboard() {
                                 await addDoc(collection(db, "users", selectedUser, "notes"), { 
                                     title: "Admin Note", 
                                     body: val, 
-                                    color: "default", // White in the system palette
+                                    color: "white", // Direct white color for visibility
                                     createdAt: new Date().toISOString(), 
                                     adminCreated: true 
                                 });
