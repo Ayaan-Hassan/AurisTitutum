@@ -29,6 +29,7 @@ import {
   upsertUserSetting,
   getUserSetting,
   updateUserPresence,
+  updateGuestPresence,
 } from "../services/firestoreService";
 import {
   aggregateHabitsFromDocs,
@@ -357,8 +358,15 @@ export const AuthProvider = ({ children }) => {
       onSnapshot(doc(db, "users", uid), (snap) => {
           if (authCycleRef.current !== cycleId) return;
           if (snap.exists() && snap.data().isBanned === true) {
-             logout();
+              document.dispatchEvent(new CustomEvent("showBanStatus", {
+                  detail: { banned: true, reason: "Your account has been strictly revoked." }
+              }));
+          } else if (snap.exists() && snap.data().isBanned === false && lastBannedState.current === true) {
+              document.dispatchEvent(new CustomEvent("showBanStatus", {
+                detail: { banned: false, reason: "Access restored." }
+            }));
           }
+          lastBannedState.current = snap.exists() ? snap.data().isBanned : false;
       }, (err) => console.error("User doc listener error", err)),
       subscribeToUserSubcollection(
         uid,
@@ -367,10 +375,16 @@ export const AuthProvider = ({ children }) => {
           if (authCycleRef.current !== cycleId) return;
           docs.forEach(docData => {
             if (!docData.read && docData.message) {
-                // Dispatch a single event for a dedicated system popup modal
-                document.dispatchEvent(new CustomEvent("showSystemPopup", {
-                    detail: { message: docData.message, id: docData.id }
-                }));
+                const isOnlineMsg = docData.createdAt ? new Date(docData.createdAt) > sessionStartTime.current : true;
+                if (isOnlineMsg) {
+                    document.dispatchEvent(new CustomEvent("showSystemPopup", {
+                        detail: { message: docData.message, id: docData.id }
+                    }));
+                } else {
+                    document.dispatchEvent(new CustomEvent("addSystemNotification", {
+                        detail: { title: "New Message", body: docData.message, level: "info" }
+                    }));
+                }
                 updateDoc(doc(db, "users", uid, "systemMessages", docData.id), { read: true }).catch(()=>{});
             }
           });
@@ -476,26 +490,52 @@ export const AuthProvider = ({ children }) => {
     };
   }, []);
 
-  useEffect(() => {
-    if (!user || !user.uid) return;
+  const sessionStartTime = useRef(new Date());
+  const lastBannedState = useRef(false);
+  const guestSessionId = useMemo(() => {
+    let id = localStorage.getItem("auris_guest_sid");
+    if (!id) {
+       id = `gst_${Math.random().toString(36).slice(2, 10)}`;
+       localStorage.setItem("auris_guest_sid", id);
+    }
+    return id;
+  }, []);
 
-    updateUserPresence(user.uid, true, 0);
+  useEffect(() => {
+    const isVisible = document.visibilityState === 'visible';
+    
+    if (user?.uid) {
+        updateUserPresence(user.uid, isVisible, 0);
+    } else {
+        updateGuestPresence(guestSessionId, isVisible);
+    }
 
     const handleVisibilityChange = () => {
-      if (document.visibilityState === 'visible') {
-        updateUserPresence(user.uid, true, 0);
+      const active = document.visibilityState === 'visible';
+      if (user?.uid) {
+        updateUserPresence(user.uid, active, 0);
+      } else {
+        updateGuestPresence(guestSessionId, active);
       }
     };
 
     const handleBeforeUnload = () => {
-      updateUserPresence(user.uid, false, 0);
+      if (user?.uid) {
+        updateUserPresence(user.uid, false, 0);
+      } else {
+        updateGuestPresence(guestSessionId, false);
+      }
     };
 
     let secondsPassed = 0;
     const interval = setInterval(() => {
         secondsPassed++;
         if (secondsPassed >= 30) {
-            updateUserPresence(user.uid, true, secondsPassed);
+            if (user?.uid) {
+                updateUserPresence(user.uid, true, secondsPassed);
+            } else if (document.visibilityState === 'visible') {
+                updateGuestPresence(guestSessionId, true);
+            }
             secondsPassed = 0;
         }
     }, 1000);
@@ -504,12 +544,16 @@ export const AuthProvider = ({ children }) => {
     window.addEventListener("beforeunload", handleBeforeUnload);
 
     return () => {
-      updateUserPresence(user.uid, false, secondsPassed);
+      if (user?.uid) {
+        updateUserPresence(user.uid, false, secondsPassed);
+      } else {
+        updateGuestPresence(guestSessionId, false);
+      }
       window.removeEventListener("visibilitychange", handleVisibilityChange);
       window.removeEventListener("beforeunload", handleBeforeUnload);
       clearInterval(interval);
     };
-  }, [user]);
+  }, [user, guestSessionId]);
 
   const login = async (email, password) => {
     if (!isFirebaseConfigured) {

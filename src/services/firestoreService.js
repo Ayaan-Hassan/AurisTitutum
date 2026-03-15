@@ -85,6 +85,18 @@ export const updateUserPresence = async (uid, isOnline, addSeconds = 0) => {
   } catch(e) { /* ignore */ }
 };
 
+export const updateGuestPresence = async (sessionId, isOnline) => {
+  try {
+    if (!sessionId) return;
+    const ref = doc(db, "guest_presence", sessionId);
+    if (!isOnline) {
+      await deleteDoc(ref).catch(()=>{});
+    } else {
+      await setDoc(ref, { lastActive: new Date().toISOString() }, { merge: true });
+    }
+  } catch(e) { /* ignore */ }
+};
+
 export const getUserSetting = async (uid, settingId) => {
   const settingRef = getUserSubDocRef(uid, USER_SUBCOLLECTIONS.settings, settingId);
   const snap = await getDoc(settingRef);

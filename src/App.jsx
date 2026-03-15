@@ -384,19 +384,22 @@ function AppContent() {
       addToast(e.detail.message, e.detail.type);
     };
     const handleSystemPopup = (e) => {
-      document.dispatchEvent(new CustomEvent("addSystemNotification", {
-          detail: { 
-              title: "Admin Message", 
-              body: e.detail.message, 
-              level: "info" 
-          }
-      }));
+      setActiveSystemMsg(e.detail.message);
+    };
+    const handleBanStatus = (e) => {
+        setConfirmAction({
+            type: "ban_notice",
+            banned: e.detail.banned,
+            reason: e.detail.reason
+        });
     };
     document.addEventListener("showToast", handleToast);
     document.addEventListener("showSystemPopup", handleSystemPopup);
+    document.addEventListener("showBanStatus", handleBanStatus);
     return () => {
       document.removeEventListener("showToast", handleToast);
       document.removeEventListener("showSystemPopup", handleSystemPopup);
+      document.removeEventListener("showBanStatus", handleBanStatus);
     };
   }, [addToast]);
 
@@ -1110,6 +1113,59 @@ function AppContent() {
               </button>
             </div>
           </div>
+        </div>
+      )}
+      {confirmAction?.type === "ban_notice" && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-xl flex items-center justify-center z-[200] p-4">
+            <div className="glass-card w-full max-w-sm p-8 rounded-[2.5rem] border-white/10 text-center relative overflow-hidden">
+                <div className={`absolute -top-20 -right-20 w-40 h-40 ${confirmAction.banned ? 'bg-danger/20' : 'bg-success/20'} rounded-full blur-[60px]`} />
+                <div className={`w-20 h-20 mx-auto rounded-3xl ${confirmAction.banned ? 'bg-danger/10 text-danger' : 'bg-success/10 text-success'} flex items-center justify-center mb-6`}>
+                    <Icon name={confirmAction.banned ? "shield-alert" : "shield-check"} size={40} />
+                </div>
+                <h3 className="text-xl font-bold tracking-tight text-text-primary mb-2">
+                    {confirmAction.banned ? "Access Revoked" : "Access Restored"}
+                </h3>
+                <p className="text-xs text-text-secondary mb-8 leading-relaxed">
+                    {confirmAction.reason}
+                </p>
+                <button
+                    onClick={() => {
+                        if (confirmAction.banned) {
+                            authContext.logout();
+                        }
+                        setConfirmAction(null);
+                    }}
+                    className={`w-full py-4 rounded-2xl ${confirmAction.banned ? 'bg-danger' : 'bg-accent'} text-bg-main text-[11px] font-black uppercase tracking-[0.3em] transition-all hover:scale-[1.02] active:scale-[0.98] shadow-lg`}
+                >
+                    {confirmAction.banned ? "Acknowledge" : "Continue to App"}
+                </button>
+            </div>
+        </div>
+      )}
+
+      {activeSystemMsg && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-md flex items-center justify-center z-[150] p-4">
+            <div className="glass-card w-full max-w-md p-8 rounded-[2.5rem] border-white/10 relative overflow-hidden">
+                <div className="absolute top-0 right-0 w-32 h-32 bg-accent/10 blur-[50px] pointer-events-none" />
+                <div className="flex items-center gap-4 mb-6">
+                    <div className="w-12 h-12 rounded-2xl bg-accent/10 text-accent flex items-center justify-center">
+                        <Icon name="mail" size={24} />
+                    </div>
+                    <div>
+                        <h3 className="text-lg font-bold text-text-primary">Admin Message</h3>
+                        <p className="text-[10px] text-accent font-black uppercase tracking-widest">Protocol Intelligence</p>
+                    </div>
+                </div>
+                <div className="p-5 bg-white/5 rounded-2xl border border-white/5 mb-8">
+                    <p className="text-sm text-text-primary leading-relaxed whitespace-pre-wrap">{activeSystemMsg}</p>
+                </div>
+                <button
+                    onClick={() => setActiveSystemMsg(null)}
+                    className="w-full py-4 bg-accent text-bg-main rounded-2xl text-[11px] font-black uppercase tracking-[0.3em] hover:opacity-90 transition-all"
+                >
+                    Confirm Transmission
+                </button>
+            </div>
         </div>
       )}
     </>

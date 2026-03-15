@@ -40,7 +40,10 @@ export default function AdminDashboard() {
 
     const [graphRange, setGraphRange] = useState("30d");
     const [graphType, setGraphType] = useState("area");
+    const [showRangeDropdown, setShowRangeDropdown] = useState(false);
+    const [showTypeDropdown, setShowTypeDropdown] = useState(false);
     const [createComplex, setCreateComplex] = useState(null);
+    const [guestOnlineCount, setGuestOnlineCount] = useState(0);
 
     useEffect(() => {
         localStorage.setItem("admin_pinned_users", JSON.stringify(pinnedUsers));
@@ -96,9 +99,21 @@ export default function AdminDashboard() {
             snapshot.forEach(d => all.push({ id: d.id, ...d.data() }));
             setInquiries(all.sort((a,b) => new Date(b.createdAt) - new Date(a.createdAt)));
         });
+        const unsubGuests = onSnapshot(collection(db, "guest_presence"), (snapshot) => {
+            let count = 0;
+            const threshold = 75000;
+            const now = new Date();
+            snapshot.forEach(d => {
+                const lastActive = d.data().lastActive;
+                if (lastActive && (now - new Date(lastActive)) < threshold) {
+                    count++;
+                }
+            });
+            setGuestOnlineCount(count);
+        });
 
         fetchStats();
-        return () => { unsubUsers(); unsubInquiries(); };
+        return () => { unsubUsers(); unsubInquiries(); unsubGuests(); };
     }, [isAdmin]);
 
     useEffect(() => {
@@ -298,10 +313,12 @@ export default function AdminDashboard() {
                         <MetricCard title="Total Users" value={usersList.length} icon="user" />
                         <MetricCard 
                             title="Online Now" 
-                            value={usersList.filter(u => isUserOnline(u)).length} 
+                            value={usersList.filter(u => isUserOnline(u)).length + guestOnlineCount} 
                             icon="activity" 
                             color="text-success"
+                            subtitle={`${usersList.filter(u => isUserOnline(u)).length} signed-in, ${guestOnlineCount} guests`}
                             indicator={<span className="relative flex h-2 w-2"><span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-success opacity-75"></span><span className="relative inline-flex rounded-full h-2 w-2 bg-success"></span></span>}
+                            onClick={() => { setShowOnlineOnly(!showOnlineOnly); if (!showOnlineOnly) setShowBannedOnly(false); setActiveTab("users"); }}
                         />
                         <MetricCard title="Habits Created" value={stats.habits} icon="activity" />
                         <MetricCard title="Reminders Set" value={stats.reminders} icon="bell" />
@@ -377,14 +394,7 @@ export default function AdminDashboard() {
                                         <div className="flex items-center gap-2">
                                              <div className="hidden group-hover/row:flex items-center gap-1.5 animate-in slide-in-from-right-2 duration-200">
                                                  <button onClick={(e) => { e.stopPropagation(); setPinnedUsers(prev => prev.includes(u.id) ? prev.filter(id => id !== u.id) : [...prev, u.id]); }} title="Pin User" className={`w-7 h-7 rounded-lg flex items-center justify-center transition-all border ${pinnedUsers.includes(u.id) ? 'bg-accent/20 text-accent border-accent/40' : 'bg-white/5 text-text-secondary border-border-color hover:border-accent/40'} hover:scale-110 active:scale-90`}><Icon name="pin" size={12}/></button>
-                                                 <button onClick={(e) => { e.stopPropagation(); setConfirmAction({ type: "user", action: "wipe", id: u.id }); }} title="Wipe Data" className="w-7 h-7 rounded-lg bg-accent/10 text-accent hover:bg-accent hover:text-bg-main flex items-center justify-center transition-all border border-accent/20 hover:scale-110 active:scale-90"><Icon name="eraser" size={12}/></button>
-                                                 <button onClick={(e) => { e.stopPropagation(); setConfirmAction({ type: "user", action: "delete", id: u.id }); }} title="Delete Account" className="w-7 h-7 rounded-lg bg-danger/10 text-danger hover:bg-danger hover:text-white flex items-center justify-center transition-all border border-danger/20 hover:scale-110 active:scale-90"><Icon name="trash" size={12}/></button>
-                                                 {u.isBanned ? (
-                                                    <button onClick={(e) => { e.stopPropagation(); setConfirmAction({ type: "user", action: "unban", id: u.id }); }} title="Unban" className="w-7 h-7 rounded-lg bg-success/10 text-success hover:bg-success hover:text-white flex items-center justify-center transition-all border border-success/20 hover:scale-110 active:scale-90"><Icon name="user-check" size={12}/></button>
-                                                ) : (
-                                                    <button onClick={(e) => { e.stopPropagation(); setConfirmAction({ type: "user", action: "ban", id: u.id }); }} title="Ban" className="w-7 h-7 rounded-lg bg-danger/10 text-danger hover:bg-danger hover:text-white flex items-center justify-center transition-all border border-danger/20 hover:scale-110 active:scale-90"><Icon name="user-x" size={12}/></button>
-                                                )}
-                                                <button onClick={(e) => { e.stopPropagation(); setEditModal({ type: "msg", action: "sendMsg", id: u.id, initialValue: "", label: "Message Content", confirmLabel: "Send" }); }} title="Message" className="w-7 h-7 rounded-lg bg-accent/10 text-accent hover:bg-accent hover:text-bg-main flex items-center justify-center transition-all border border-accent/20 hover:scale-110 active:scale-90"><Icon name="mail" size={12}/></button>
+
                                             </div>
                                             {isUserOnline(u) && <div className="w-2 h-2 rounded-full bg-success shadow-[0_0_8px_rgba(var(--success-rgb),0.6)]"></div>}
                                         </div>
@@ -427,10 +437,22 @@ export default function AdminDashboard() {
                                                 <Icon name="x" size={16} />
                                             </button>
                                         </div>
-                                        <div className="flex flex-wrap gap-4 text-[10px] font-mono text-text-secondary ml-1 mt-2">
-                                            <span className="flex items-center gap-1.5"><Icon name="mail" size={10} /> {usersList.find(u => u.id === selectedUser)?.email}</span>
-                                            <span className="opacity-30">|</span>
-                                            <span className="flex items-center gap-1.5 font-bold text-accent"><Icon name="hash" size={10} /> {selectedUser}</span>
+                                        <div className="flex items-center justify-between">
+                                            <div className="flex flex-wrap gap-4 text-[10px] font-mono text-text-secondary ml-1 mt-2">
+                                                <span className="flex items-center gap-1.5"><Icon name="mail" size={10} /> {usersList.find(u => u.id === selectedUser)?.email}</span>
+                                                <span className="opacity-30">|</span>
+                                                <span className="flex items-center gap-1.5 font-bold text-accent"><Icon name="hash" size={10} /> {selectedUser}</span>
+                                            </div>
+                                            <div className="flex items-center gap-2 mt-2">
+                                                <button onClick={() => setConfirmAction({ type: "user", action: "wipe", id: selectedUser })} title="Wipe Data" className="h-8 px-3 rounded-lg bg-accent/10 text-accent hover:bg-accent hover:text-bg-main flex items-center gap-2 transition-all border border-accent/20 text-[10px] font-bold uppercase"><Icon name="eraser" size={12}/> Wipe</button>
+                                                <button onClick={() => setConfirmAction({ type: "user", action: "delete", id: selectedUser })} title="Delete Account" className="h-8 px-3 rounded-lg bg-danger/10 text-danger hover:bg-danger hover:text-white flex items-center gap-2 transition-all border border-danger/20 text-[10px] font-bold uppercase"><Icon name="trash" size={12}/> Delete</button>
+                                                {usersList.find(u => u.id === selectedUser)?.isBanned ? (
+                                                    <button onClick={() => setConfirmAction({ type: "user", action: "unban", id: selectedUser })} title="Unban" className="h-8 px-3 rounded-lg bg-success/10 text-success hover:bg-success hover:text-white flex items-center gap-2 transition-all border border-success/20 text-[10px] font-bold uppercase"><Icon name="user-check" size={12}/> Unban</button>
+                                                ) : (
+                                                    <button onClick={() => setConfirmAction({ type: "user", action: "ban", id: selectedUser })} title="Ban" className="h-8 px-3 rounded-lg bg-danger/10 text-danger hover:bg-danger hover:text-white flex items-center gap-2 transition-all border border-danger/20 text-[10px] font-bold uppercase"><Icon name="user-x" size={12}/> Ban</button>
+                                                )}
+                                                <button onClick={() => setEditModal({ type: "msg", action: "sendMsg", id: selectedUser, initialValue: "", label: "Message Content", confirmLabel: "Send" })} title="Message" className="h-8 px-3 rounded-lg bg-accent/10 text-accent hover:bg-accent hover:text-bg-main flex items-center gap-2 transition-all border border-accent/20 text-[10px] font-bold uppercase"><Icon name="mail" size={12}/> Message</button>
+                                            </div>
                                         </div>
                                     </div>
 
@@ -559,26 +581,54 @@ export default function AdminDashboard() {
                                 <h3 className="text-sm font-bold uppercase tracking-widest text-text-secondary">Growth Analytics</h3>
                                 <p className="text-[10px] text-accent font-mono uppercase mt-1">Real-time user density index</p>
                             </div>
-                            <div className="flex flex-wrap items-center gap-3 bg-bg-main/50 p-2 rounded-2xl border border-border-color/50">
-                                <select 
-                                    value={graphRange} 
-                                    onChange={(e) => setGraphRange(e.target.value)}
-                                    className="bg-accent/10 text-accent text-[10px] font-black uppercase tracking-widest border border-accent/20 px-3 py-1.5 rounded-xl outline-none transition-all hover:bg-accent/20 cursor-pointer appearance-none text-center"
-                                >
-                                    <option value="24h">Range: 24h</option>
-                                    <option value="7d">Range: 7d</option>
-                                    <option value="30d">Range: 30d</option>
-                                    <option value="90d">Range: 90d</option>
-                                </select>
-                                <select 
-                                    value={graphType} 
-                                    onChange={(e) => setGraphType(e.target.value)}
-                                    className="bg-white/5 text-text-secondary text-[10px] font-black uppercase tracking-widest border border-border-color px-3 py-1.5 rounded-xl outline-none transition-all hover:bg-white/10 cursor-pointer appearance-none text-center"
-                                >
-                                    <option value="area">Chart: Area</option>
-                                    <option value="bar">Chart: Bar</option>
-                                    <option value="line">Chart: Line</option>
-                                </select>
+                            <div className="flex flex-wrap items-center gap-3 relative">
+                                {/* Range Dropdown */}
+                                <div className="relative">
+                                    <button 
+                                        onClick={() => setShowRangeDropdown(!showRangeDropdown)}
+                                        className="h-9 px-4 rounded-xl bg-bg-main border border-border-color flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-text-secondary hover:text-accent hover:border-accent/40 transition-all select-none"
+                                    >
+                                        Range: {graphRange}
+                                        <Icon name="chevron-down" size={12} className={`transition-transform duration-300 ${showRangeDropdown ? 'rotate-180' : ''}`} />
+                                    </button>
+                                    {showRangeDropdown && (
+                                        <div className="absolute top-full mt-2 left-0 w-32 bg-card-bg border border-border-color rounded-xl shadow-2xl z-[50] overflow-hidden animate-in slide-in-from-top-2">
+                                            {['24h', '7d', '30d', '90d'].map(r => (
+                                                <button 
+                                                    key={r}
+                                                    onClick={() => { setGraphRange(r); setShowRangeDropdown(false); }}
+                                                    className={`w-full px-4 py-2.5 text-[10px] font-bold uppercase tracking-widest text-left transition-all ${graphRange === r ? 'bg-accent/10 text-accent' : 'text-text-secondary hover:bg-white/5 hover:text-text-primary'}`}
+                                                >
+                                                    {r}
+                                                </button>
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
+
+                                {/* Type Dropdown */}
+                                <div className="relative">
+                                    <button 
+                                        onClick={() => setShowTypeDropdown(!showTypeDropdown)}
+                                        className="h-9 px-4 rounded-xl bg-bg-main border border-border-color flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-text-secondary hover:text-accent hover:border-accent/40 transition-all select-none"
+                                    >
+                                        Chart: {graphType}
+                                        <Icon name="chevron-down" size={12} className={`transition-transform duration-300 ${showTypeDropdown ? 'rotate-180' : ''}`} />
+                                    </button>
+                                    {showTypeDropdown && (
+                                        <div className="absolute top-full mt-2 left-0 w-32 bg-card-bg border border-border-color rounded-xl shadow-2xl z-[50] overflow-hidden animate-in slide-in-from-top-2">
+                                            {['area', 'bar', 'line'].map(t => (
+                                                <button 
+                                                    key={t}
+                                                    onClick={() => { setGraphType(t); setShowTypeDropdown(false); }}
+                                                    className={`w-full px-4 py-2.5 text-[10px] font-bold uppercase tracking-widest text-left transition-all ${graphType === t ? 'bg-accent/10 text-accent' : 'text-text-secondary hover:bg-white/5 hover:text-text-primary'}`}
+                                                >
+                                                    {t}
+                                                </button>
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
                             </div>
                         </div>
                         <div className="h-64 mt-4">
@@ -905,8 +955,11 @@ export default function AdminDashboard() {
     );
 }
 
-const MetricCard = ({ title, value, icon, indicator, color = "text-text-primary" }) => (
-    <Card className="p-5 flex items-center justify-between hover:scale-[1.02] transition-all bg-card-bg border-border-color shadow-sm cursor-default group overflow-hidden relative">
+const MetricCard = ({ title, value, icon, indicator, subtitle, onClick, color = "text-text-primary" }) => (
+    <Card 
+        onClick={onClick}
+        className={`p-5 flex items-center justify-between hover:scale-[1.02] transition-all bg-card-bg border-border-color shadow-sm ${onClick ? 'cursor-pointer active:scale-95' : 'cursor-default'} group overflow-hidden relative`}
+    >
         <div className="absolute top-0 right-0 w-24 h-24 bg-accent/5 blur-3xl pointer-events-none group-hover:bg-accent/10 transition-colors" />
         <div className="relative z-10">
             <p className="text-[10px] font-black uppercase tracking-widest text-text-secondary mb-1 opacity-70 group-hover:opacity-100 transition-opacity">{title}</p>
@@ -914,6 +967,7 @@ const MetricCard = ({ title, value, icon, indicator, color = "text-text-primary"
                 {value}
                 {indicator}
             </p>
+            {subtitle && <p className="text-[9px] text-text-secondary mt-1 font-medium">{subtitle}</p>}
         </div>
         <div className="w-10 h-10 rounded-full bg-accent/10 text-accent flex items-center justify-center group-hover:bg-accent group-hover:text-bg-main transition-all shadow-sm">
             <Icon name={icon} size={20} />
