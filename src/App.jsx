@@ -1131,28 +1131,20 @@ function AppContent() {
                 </h3>
                 <p className="text-sm text-text-secondary mb-10 leading-relaxed px-2">
                     {confirmAction.banned 
-                        ? (confirmAction.reason || "Your account is temporarily banned. If you think this was a mistake, please send us an enquiry.") 
+                        ? (confirmAction.reason || "Your account is temporarily banned due to violation of system protocols.") 
                         : "Your access has been restored. You can now continue using all features of the website."}
                 </p>
                 <div className="flex flex-col gap-3">
                     {confirmAction.banned ? (
-                        <>
-                            <a
-                                href="mailto:support@auristitutum.com?subject=Ban Appeal"
-                                className="w-full py-4 rounded-2xl bg-accent text-bg-main text-xs font-black uppercase tracking-[0.2em] transition-all hover:scale-[1.02] active:scale-[0.98] shadow-lg shadow-white/10 flex items-center justify-center gap-2"
-                            >
-                                <Icon name="mail" size={14} /> Send Appeal Email
-                            </a>
-                            <button
-                                onClick={() => {
-                                    authContext.logout();
-                                    setConfirmAction(null);
-                                }}
-                                className="w-full py-4 rounded-2xl bg-white/5 text-text-secondary text-xs font-black uppercase tracking-[0.2em] transition-all hover:bg-white/10"
-                            >
-                                Leave Website
-                            </button>
-                        </>
+                        <button
+                            onClick={() => {
+                                authContext.logout();
+                                setConfirmAction(null);
+                            }}
+                            className="w-full py-4 rounded-2xl bg-white/5 text-text-secondary text-xs font-black uppercase tracking-[0.2em] transition-all hover:bg-white/10"
+                        >
+                            Leave Website
+                        </button>
                     ) : (
                         <button
                             onClick={() => setConfirmAction(null)}
