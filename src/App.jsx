@@ -368,6 +368,7 @@ function AppContent() {
 
   const [featureLockOpen, setFeatureLockOpen] = useState(false);
   const [activeSystemMsg, setActiveSystemMsg] = useState(null);
+  const [confirmAction, setConfirmAction] = useState(null);
 
   const handleAddHabitRequest = useCallback(() => {
     if (!user && habits.length >= 1) {

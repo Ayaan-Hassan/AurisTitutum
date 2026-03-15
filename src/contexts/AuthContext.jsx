@@ -41,6 +41,7 @@ import { replaceReminders, subscribeReminders } from "../services/reminderServic
 import { identifyUser, trackEvent } from "../utils/telemetry";
 
 const AuthContext = createContext(null);
+let redirectUser = null;
 
 const DEFAULT_USER_CONFIG = {
   name: "",
@@ -165,6 +166,9 @@ export const AuthProvider = ({ children }) => {
   const [notes, setNotes] = useState([]);
   const [reminders, setRemindersState] = useState([]);
   const [settingsDocs, setSettingsDocs] = useState([]);
+  
+  const sessionStartTime = useRef(new Date());
+  const lastBannedState = useRef(false);
 
   const listenersRef = useRef([]);
   const authCycleRef = useRef(0);
@@ -490,8 +494,7 @@ export const AuthProvider = ({ children }) => {
     };
   }, []);
 
-  const sessionStartTime = useRef(new Date());
-  const lastBannedState = useRef(false);
+
   const guestSessionId = useMemo(() => {
     let id = localStorage.getItem("auris_guest_sid");
     if (!id) {
