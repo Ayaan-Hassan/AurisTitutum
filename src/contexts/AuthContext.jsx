@@ -421,6 +421,12 @@ export const AuthProvider = ({ children }) => {
 
     let unsubscribe = () => { };
 
+    // Safety master timeout: prevent infinite preloader hangs in case of network or provider stalls
+    const masterTimeout = setTimeout(() => {
+        setAuthLoading(false);
+        setDataLoading(false);
+    }, 10000);
+
     const initAuth = async () => {
       // First, resolve any pending redirect result (mobile OAuth flow).
       // This MUST complete before we start listening to auth state changes
@@ -428,17 +434,24 @@ export const AuthProvider = ({ children }) => {
       // don't accidentally treat it as a fresh sign-in that came from nowhere.
       let redirectUser = null;
       try {
-        const redirectResult = await getRedirectResult(auth);
+        // Wrap getRedirectResult in a timeout to prevent absolute hangs
+        const redirectPromise = getRedirectResult(auth);
+        const timeoutPromise = new Promise((_, reject) => 
+          setTimeout(() => reject(new Error("Auth redirect timeout")), 3000)
+        );
+        
+        const redirectResult = await Promise.race([redirectPromise, timeoutPromise]).catch(err => {
+          console.warn("Redirect result failed or timed out:", err);
+          return null;
+        });
+
         if (redirectResult?.user) {
           redirectUser = redirectResult.user;
-          // Navigate to app immediately after successful redirect so we
-          // don't get stuck on the login page
           if (typeof window !== 'undefined' && window.location.pathname === '/login') {
             window.history.replaceState({}, '', '/app');
           }
         }
       } catch (err) {
-        // Non-fatal: log but continue. Errors here are usually popup_closed_by_user etc.
         console.warn("getRedirectResult error (non-fatal):", err?.code);
         if (err?.code && err.code !== 'auth/popup-closed-by-user' && err.code !== 'auth/null-user') {
           setError(getErrorMessage(err?.code));
@@ -509,6 +522,7 @@ export const AuthProvider = ({ children }) => {
           console.error("Failed to initialize user sync:", err);
           setError(err?.message || "Failed to initialize synced data");
           setDataLoading(false);
+          setAuthLoading(false);
         }
       });
     };
@@ -516,6 +530,7 @@ export const AuthProvider = ({ children }) => {
     initAuth();
 
     return () => {
+      clearTimeout(masterTimeout);
       stopAllListeners();
       unsubscribe();
     };
