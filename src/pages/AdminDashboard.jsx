@@ -56,7 +56,7 @@ export default function AdminDashboard() {
         if (u.isOnline === false) return false;
         if (u.isOnline && !u.lastActive) return true;
         const diff = new Date() - new Date(u.lastActive);
-        return diff < 60000 * 2;
+        return diff < 75000;
     };
 
     const adminUid = import.meta.env.VITE_ADMIN_UID;

@@ -482,8 +482,9 @@ export const AuthProvider = ({ children }) => {
     updateUserPresence(user.uid, true, 0);
 
     const handleVisibilityChange = () => {
-      const isVisible = document.visibilityState === 'visible';
-      updateUserPresence(user.uid, isVisible, 0);
+      if (document.visibilityState === 'visible') {
+        updateUserPresence(user.uid, true, 0);
+      }
     };
 
     const handleBeforeUnload = () => {
@@ -492,13 +493,11 @@ export const AuthProvider = ({ children }) => {
 
     let secondsPassed = 0;
     const interval = setInterval(() => {
-       if (document.visibilityState === 'visible') {
-          secondsPassed++;
-          if (secondsPassed >= 60) {
-              updateUserPresence(user.uid, true, secondsPassed);
-              secondsPassed = 0;
-          }
-       }
+        secondsPassed++;
+        if (secondsPassed >= 30) {
+            updateUserPresence(user.uid, true, secondsPassed);
+            secondsPassed = 0;
+        }
     }, 1000);
 
     window.addEventListener("visibilitychange", handleVisibilityChange);

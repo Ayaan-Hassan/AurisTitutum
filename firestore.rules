@@ -1,0 +1,35 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(uid) {
+      return isSignedIn() && request.auth.uid == uid;
+    }
+
+    function isAdmin() {
+      // Verifying against your specific Admin UID
+      return isSignedIn() && request.auth.uid == "inB7hQ7PAuRxt19mBZ3xKe8unaV2";
+    }
+
+    // 1. User Rules: Users control their own data
+    match /users/{uid}/{document=**} {
+      allow read, write: if isOwner(uid);
+    }
+
+    // 2. Inquiries: Allow any signed-in user to create a ticket
+    // This resolves the "insufficient permissions" error on the Contact Us page
+    match /inquiries/{inquiryId} {
+      allow create: if isSignedIn();
+    }
+
+    // 3. MASTER ADMIN OVERRIDE
+    // This allows the Admin to READ and WRITE (edit/ban/delete) ANY document
+    match /{document=**} {
+      allow read, write: if isAdmin();
+    }
+  }
+}
