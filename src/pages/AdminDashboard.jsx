@@ -24,6 +24,7 @@ export default function AdminDashboard() {
     const [subUnsubscribes, setSubUnsubscribes] = useState([]);
     
     const [showOnlineOnly, setShowOnlineOnly] = useState(false);
+    const [showBannedOnly, setShowBannedOnly] = useState(false);
     const [searchQuery, setSearchQuery] = useState("");
     const [pinnedUsers, setPinnedUsers] = useState(() => {
         const saved = localStorage.getItem("admin_pinned_users");
@@ -140,9 +141,21 @@ export default function AdminDashboard() {
                 addToast("User data wiped", "info");
             } else if (action === "ban") {
                 await updateDoc(doc(db, "users", id), { isBanned: true });
+                await addDoc(collection(db, "users", id, "systemMessages"), {
+                    message: "PROTOCOL VIOLATION: Your access has been strictly revoked by the Administrator. You will be logged out momentarily.",
+                    type: "admin",
+                    createdAt: new Date().toISOString(),
+                    read: false
+                });
                 addToast("User banned", "warning");
             } else if (action === "unban") {
                 await updateDoc(doc(db, "users", id), { isBanned: false });
+                await addDoc(collection(db, "users", id, "systemMessages"), {
+                    message: "ACCESS RESTORED: Your account restrictions have been lifted. Welcome back.",
+                    type: "admin",
+                    createdAt: new Date().toISOString(),
+                    read: false
+                });
                 addToast("User access restored", "success");
             } else if (action === "delete") {
                 if (type === "inquiry") {
@@ -301,13 +314,22 @@ export default function AdminDashboard() {
                             <div className="p-5 border-b border-border-color bg-accent-dim shrink-0">
                                 <div className="flex items-center justify-between mb-3">
                                     <h3 className="font-bold tracking-tight text-sm uppercase">User Directory</h3>
-                                    <button 
-                                        onClick={() => setShowOnlineOnly(!showOnlineOnly)}
-                                        className={`p-2 rounded-lg border transition-all ${showOnlineOnly ? 'bg-success text-white border-success' : 'bg-white/5 text-text-secondary border-border-color hover:border-accent/40'}`}
-                                        title="Toggle Online Only"
-                                    >
-                                        <Icon name="filter" size={14} />
-                                    </button>
+                                    <div className="flex gap-1">
+                                        <button 
+                                            onClick={() => { setShowOnlineOnly(!showOnlineOnly); if (!showOnlineOnly) setShowBannedOnly(false); }}
+                                            className={`p-2 rounded-lg border transition-all ${showOnlineOnly ? 'bg-success text-white border-success' : 'bg-white/5 text-text-secondary border-border-color hover:border-accent/40'}`}
+                                            title="Online Users"
+                                        >
+                                            <Icon name="activity" size={14} />
+                                        </button>
+                                        <button 
+                                            onClick={() => { setShowBannedOnly(!showBannedOnly); if (!showBannedOnly) setShowOnlineOnly(false); }}
+                                            className={`p-2 rounded-lg border transition-all ${showBannedOnly ? 'bg-danger text-white border-danger' : 'bg-white/5 text-text-secondary border-border-color hover:border-accent/40'}`}
+                                            title="Banned Users"
+                                        >
+                                            <Icon name="user-x" size={14} />
+                                        </button>
+                                    </div>
                                 </div>
                                 <div className="relative">
                                     <Icon name="search" size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-text-secondary opacity-50" />
@@ -322,7 +344,11 @@ export default function AdminDashboard() {
                             </div>
                             <div className="overflow-y-auto flex-1 custom-scrollbar">
                                 {usersList
-                                    .filter(u => showOnlineOnly ? isUserOnline(u) : true)
+                                    .filter(u => {
+                                        if (showOnlineOnly) return isUserOnline(u);
+                                        if (showBannedOnly) return u.isBanned;
+                                        return true;
+                                    })
                                     .filter(u => {
                                         const q = searchQuery.toLowerCase();
                                         return (u.displayName || "").toLowerCase().includes(q) || (u.email || "").toLowerCase().includes(q);
@@ -350,15 +376,15 @@ export default function AdminDashboard() {
                                         </div>
                                         <div className="flex items-center gap-2">
                                              <div className="hidden group-hover/row:flex items-center gap-1.5 animate-in slide-in-from-right-2 duration-200">
-                                                 <button onClick={(e) => { e.stopPropagation(); setPinnedUsers(prev => prev.includes(u.id) ? prev.filter(id => id !== u.id) : [...prev, u.id]); }} title="Pin User" className={`w-7 h-7 rounded-lg flex items-center justify-center transition-all border ${pinnedUsers.includes(u.id) ? 'bg-accent/20 text-accent border-accent/40' : 'bg-white/5 text-text-secondary border-border-color hover:border-accent/40'}`}><Icon name="pin" size={12}/></button>
-                                                 <button onClick={(e) => { e.stopPropagation(); setConfirmAction({ type: "user", action: "wipe", id: u.id }); }} title="Wipe Data" className="w-7 h-7 rounded-lg bg-accent/10 text-accent hover:bg-accent hover:text-bg-main flex items-center justify-center transition-all border border-accent/20"><Icon name="eraser" size={12}/></button>
-                                                 <button onClick={(e) => { e.stopPropagation(); setConfirmAction({ type: "user", action: "delete", id: u.id }); }} title="Delete Account" className="w-7 h-7 rounded-lg bg-danger/10 text-danger hover:bg-danger hover:text-white flex items-center justify-center transition-all border border-danger/20"><Icon name="trash" size={12}/></button>
+                                                 <button onClick={(e) => { e.stopPropagation(); setPinnedUsers(prev => prev.includes(u.id) ? prev.filter(id => id !== u.id) : [...prev, u.id]); }} title="Pin User" className={`w-7 h-7 rounded-lg flex items-center justify-center transition-all border ${pinnedUsers.includes(u.id) ? 'bg-accent/20 text-accent border-accent/40' : 'bg-white/5 text-text-secondary border-border-color hover:border-accent/40'} hover:scale-110 active:scale-90`}><Icon name="pin" size={12}/></button>
+                                                 <button onClick={(e) => { e.stopPropagation(); setConfirmAction({ type: "user", action: "wipe", id: u.id }); }} title="Wipe Data" className="w-7 h-7 rounded-lg bg-accent/10 text-accent hover:bg-accent hover:text-bg-main flex items-center justify-center transition-all border border-accent/20 hover:scale-110 active:scale-90"><Icon name="eraser" size={12}/></button>
+                                                 <button onClick={(e) => { e.stopPropagation(); setConfirmAction({ type: "user", action: "delete", id: u.id }); }} title="Delete Account" className="w-7 h-7 rounded-lg bg-danger/10 text-danger hover:bg-danger hover:text-white flex items-center justify-center transition-all border border-danger/20 hover:scale-110 active:scale-90"><Icon name="trash" size={12}/></button>
                                                  {u.isBanned ? (
-                                                    <button onClick={(e) => { e.stopPropagation(); setConfirmAction({ type: "user", action: "unban", id: u.id }); }} title="Unban" className="w-7 h-7 rounded-lg bg-success/10 text-success hover:bg-success hover:text-white flex items-center justify-center transition-all border border-success/20"><Icon name="user-check" size={12}/></button>
+                                                    <button onClick={(e) => { e.stopPropagation(); setConfirmAction({ type: "user", action: "unban", id: u.id }); }} title="Unban" className="w-7 h-7 rounded-lg bg-success/10 text-success hover:bg-success hover:text-white flex items-center justify-center transition-all border border-success/20 hover:scale-110 active:scale-90"><Icon name="user-check" size={12}/></button>
                                                 ) : (
-                                                    <button onClick={(e) => { e.stopPropagation(); setConfirmAction({ type: "user", action: "ban", id: u.id }); }} title="Ban" className="w-7 h-7 rounded-lg bg-danger/10 text-danger hover:bg-danger hover:text-white flex items-center justify-center transition-all border border-danger/20"><Icon name="user-x" size={12}/></button>
+                                                    <button onClick={(e) => { e.stopPropagation(); setConfirmAction({ type: "user", action: "ban", id: u.id }); }} title="Ban" className="w-7 h-7 rounded-lg bg-danger/10 text-danger hover:bg-danger hover:text-white flex items-center justify-center transition-all border border-danger/20 hover:scale-110 active:scale-90"><Icon name="user-x" size={12}/></button>
                                                 )}
-                                                <button onClick={(e) => { e.stopPropagation(); setEditModal({ type: "msg", action: "sendMsg", id: u.id, initialValue: "", label: "Message Content", confirmLabel: "Send" }); }} title="Message" className="w-7 h-7 rounded-lg bg-accent/10 text-accent hover:bg-accent hover:text-bg-main flex items-center justify-center transition-all border border-accent/20"><Icon name="mail" size={12}/></button>
+                                                <button onClick={(e) => { e.stopPropagation(); setEditModal({ type: "msg", action: "sendMsg", id: u.id, initialValue: "", label: "Message Content", confirmLabel: "Send" }); }} title="Message" className="w-7 h-7 rounded-lg bg-accent/10 text-accent hover:bg-accent hover:text-bg-main flex items-center justify-center transition-all border border-accent/20 hover:scale-110 active:scale-90"><Icon name="mail" size={12}/></button>
                                             </div>
                                             {isUserOnline(u) && <div className="w-2 h-2 rounded-full bg-success shadow-[0_0_8px_rgba(var(--success-rgb),0.6)]"></div>}
                                         </div>
@@ -413,7 +439,7 @@ export default function AdminDashboard() {
                                             <StatsCard label="Time Spent" value={userStats.timeSpent} icon="clock" />
                                             <StatsCard label="Consistency" value={`${userStats.consistencyRate}%`} icon="activity" color="text-success" />
                                             <StatsCard label="Total Logs" value={userData.logs?.length || 0} icon="layers" />
-                                            <StatsCard label="Habits" value={userData.habits?.length || 0} icon="cpu" />
+                                            <StatsCard label="Total Habits" value={userData.habits?.length || 0} icon="activity" />
                                         </div>
 
                                         <div className="grid lg:grid-cols-2 gap-8 items-start">
@@ -459,11 +485,6 @@ export default function AdminDashboard() {
                                                                                                 <div key={i} className="flex justify-between items-center text-[11px] p-2 bg-bg-main/40 rounded-lg border border-border-color/20">
                                                                                                     <span className="font-medium text-text-primary">{e.mode === 'count' ? `${e.amount} ${e.unit || ''}` : e.mode === 'time' ? e.time : 'Logged'}</span>
                                                                                                     <div className="flex gap-2">
-                                                                                                        <button onClick={() => {
-                                                                                                            if (e.mode === "count") setEditModal({ type: "logs", action: "updateLogAmount", id: e.id, initialValue: String(e.amount), label: "Edit Log Amount" });
-                                                                                                            else if (e.mode === "time") setEditModal({ type: "logs", action: "updateLogTime", id: e.id, initialValue: e.time, label: "Edit Log Duration" });
-                                                                                                            else setAdminMessage({ type: "info", title: "Notice", body: "This log type cannot be edited here." });
-                                                                                                        }} className="text-accent opacity-50 hover:opacity-100 transition-opacity"><Icon name="edit" size={10} /></button>
                                                                                                         <button onClick={() => setConfirmAction({ type: "logs", action: "delete", id: e.id })} className="text-danger opacity-50 hover:opacity-100 transition-opacity"><Icon name="trash" size={10} /></button>
                                                                                                     </div>
                                                                                                 </div>
@@ -506,7 +527,7 @@ export default function AdminDashboard() {
                                                 <div className="bg-card-bg border border-border-color rounded-2xl p-6 shadow-sm">
                                                     <div className="flex items-center justify-between border-b border-border-color pb-3 mb-4">
                                                         <h4 className="text-[11px] font-black uppercase tracking-[0.2em] text-text-secondary">User Reminders ({userData.reminders?.length || 0})</h4>
-                                                        <button onClick={() => setCreateComplex({ type: 'reminder', title: '', time: '09:00' })} className="w-5 h-5 rounded bg-accent/10 text-accent hover:bg-accent hover:text-bg-main flex items-center justify-center transition-all"><Icon name="plus" size={10} /></button>
+                                                        <button onClick={() => setCreateComplex({ type: 'reminder', title: '', time: '09:00', repeat: 'daily', date: new Date().toISOString().split('T')[0] })} className="w-5 h-5 rounded bg-accent/10 text-accent hover:bg-accent hover:text-bg-main flex items-center justify-center transition-all"><Icon name="plus" size={10} /></button>
                                                     </div>
                                                     <div className="space-y-3 max-h-[220px] overflow-y-auto custom-scrollbar pr-2">
                                                         {userData.reminders?.length > 0 ? userData.reminders.map(r => (
@@ -538,17 +559,26 @@ export default function AdminDashboard() {
                                 <h3 className="text-sm font-bold uppercase tracking-widest text-text-secondary">Growth Analytics</h3>
                                 <p className="text-[10px] text-accent font-mono uppercase mt-1">Real-time user density index</p>
                             </div>
-                            <div className="flex flex-wrap items-center gap-2 bg-bg-main/50 p-1.5 rounded-2xl border border-border-color/50">
-                                <div className="flex gap-1 border-r border-border-color/50 pr-2 mr-1">
-                                    {['24h', '7d', '30d', '90d'].map(r => (
-                                        <button key={r} onClick={() => setGraphRange(r)} className={`px-3 py-1.5 rounded-xl text-[10px] font-bold uppercase transition-all ${graphRange === r ? 'bg-accent text-bg-main' : 'text-text-secondary hover:text-text-primary'}`}>{r}</button>
-                                    ))}
-                                </div>
-                                <div className="flex gap-1">
-                                    <button onClick={() => setGraphType('area')} className={`p-2 rounded-xl transition-all ${graphType === 'area' ? 'bg-white/10 text-accent' : 'text-text-secondary'}`} title="Area Chart"><Icon name="activity" size={14} /></button>
-                                    <button onClick={() => setGraphType('bar')} className={`p-2 rounded-xl transition-all ${graphType === 'bar' ? 'bg-white/10 text-accent' : 'text-text-secondary'}`} title="Bar Chart"><Icon name="bar-chart" size={14} /></button>
-                                    <button onClick={() => setGraphType('line')} className={`p-2 rounded-xl transition-all ${graphType === 'line' ? 'bg-white/10 text-accent' : 'text-text-secondary'}`} title="Line Chart"><Icon name="line-chart" size={14} /></button>
-                                </div>
+                            <div className="flex flex-wrap items-center gap-3 bg-bg-main/50 p-2 rounded-2xl border border-border-color/50">
+                                <select 
+                                    value={graphRange} 
+                                    onChange={(e) => setGraphRange(e.target.value)}
+                                    className="bg-accent/10 text-accent text-[10px] font-black uppercase tracking-widest border border-accent/20 px-3 py-1.5 rounded-xl outline-none transition-all hover:bg-accent/20 cursor-pointer appearance-none text-center"
+                                >
+                                    <option value="24h">Range: 24h</option>
+                                    <option value="7d">Range: 7d</option>
+                                    <option value="30d">Range: 30d</option>
+                                    <option value="90d">Range: 90d</option>
+                                </select>
+                                <select 
+                                    value={graphType} 
+                                    onChange={(e) => setGraphType(e.target.value)}
+                                    className="bg-white/5 text-text-secondary text-[10px] font-black uppercase tracking-widest border border-border-color px-3 py-1.5 rounded-xl outline-none transition-all hover:bg-white/10 cursor-pointer appearance-none text-center"
+                                >
+                                    <option value="area">Chart: Area</option>
+                                    <option value="bar">Chart: Bar</option>
+                                    <option value="line">Chart: Line</option>
+                                </select>
                             </div>
                         </div>
                         <div className="h-64 mt-4">
@@ -689,6 +719,7 @@ export default function AdminDashboard() {
                                 await addDoc(collection(db, "users", selectedUser, "notes"), { 
                                     title: "Admin Note", 
                                     body: val, 
+                                    color: "default", // White in the system palette
                                     createdAt: new Date().toISOString(), 
                                     adminCreated: true 
                                 });
@@ -762,11 +793,12 @@ export default function AdminDashboard() {
                                                 value={createComplex.mode}
                                                 onChange={(e) => setCreateComplex({...createComplex, mode: e.target.value})}
                                             >
-                                                <option value="quick">Quick</option>
-                                                <option value="count">Count</option>
-                                                <option value="timer">Timer</option>
-                                                <option value="rating">Rating</option>
-                                                <option value="choice">Choice</option>
+                                                <option value="quick">Quick (Tap)</option>
+                                                <option value="count">Count (Input)</option>
+                                                <option value="check">Check (Once)</option>
+                                                <option value="timer">Timer (Stopwatch)</option>
+                                                <option value="rating">Rating (1-5)</option>
+                                                <option value="upload">Upload (Media)</option>
                                             </select>
                                         </div>
                                     </div>
@@ -784,13 +816,36 @@ export default function AdminDashboard() {
                                             autoFocus
                                         />
                                     </div>
+                                    <div className="grid grid-cols-2 gap-3">
+                                        <div className="space-y-1">
+                                            <label className="text-[10px] font-black uppercase tracking-widest text-text-secondary pl-1">Scheduled Time</label>
+                                            <input 
+                                                type="time" 
+                                                className="w-full bg-bg-main border border-border-color p-3 rounded-xl text-sm outline-none focus:border-accent"
+                                                value={createComplex.time}
+                                                onChange={(e) => setCreateComplex({...createComplex, time: e.target.value})}
+                                            />
+                                        </div>
+                                        <div className="space-y-1">
+                                            <label className="text-[10px] font-black uppercase tracking-widest text-text-secondary pl-1">Repeat Cycle</label>
+                                            <select 
+                                                className="w-full bg-bg-main border border-border-color p-3 rounded-xl text-xs outline-none focus:border-accent appearance-none"
+                                                value={createComplex.repeat}
+                                                onChange={(e) => setCreateComplex({...createComplex, repeat: e.target.value})}
+                                            >
+                                                <option value="once">Once Only</option>
+                                                <option value="daily">Every Day</option>
+                                                <option value="weekly">Every Week</option>
+                                            </select>
+                                        </div>
+                                    </div>
                                     <div className="space-y-1">
-                                        <label className="text-[10px] font-black uppercase tracking-widest text-text-secondary pl-1">Scheduled Time</label>
+                                        <label className="text-[10px] font-black uppercase tracking-widest text-text-secondary pl-1">Specific Date</label>
                                         <input 
-                                            type="time" 
+                                            type="date" 
                                             className="w-full bg-bg-main border border-border-color p-3 rounded-xl text-sm outline-none focus:border-accent"
-                                            value={createComplex.time}
-                                            onChange={(e) => setCreateComplex({...createComplex, time: e.target.value})}
+                                            value={createComplex.date}
+                                            onChange={(e) => setCreateComplex({...createComplex, date: e.target.value})}
                                         />
                                     </div>
                                 </>
@@ -815,6 +870,8 @@ export default function AdminDashboard() {
                                         await addDoc(collection(db, "users", selectedUser, "reminders"), { 
                                             title: createComplex.title.trim(), 
                                             time: createComplex.time, 
+                                            repeat: createComplex.repeat,
+                                            date: createComplex.date,
                                             createdAt: new Date().toISOString(), 
                                             adminCreated: true 
                                         });
