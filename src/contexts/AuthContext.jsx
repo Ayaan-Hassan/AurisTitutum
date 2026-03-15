@@ -161,6 +161,9 @@ export const AuthProvider = ({ children }) => {
   const [authLoading, setAuthLoading] = useState(true);
   const [dataLoading, setDataLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [isBanned, setIsBanned] = useState(false);
+  const [banReason, setBanReason] = useState("");
+  const [showBanModal, setShowBanModal] = useState(false);
 
   const [habitDocs, setHabitDocs] = useState([]);
   const [logDocs, setLogDocs] = useState([]);
@@ -362,20 +365,24 @@ export const AuthProvider = ({ children }) => {
       ),
       onSnapshot(doc(db, "users", uid), (snap) => {
           if (authCycleRef.current !== cycleId) return;
-          if (snap.exists() && snap.data().isBanned === true) {
-              if (lastBannedState.current === false) {
-                  document.dispatchEvent(new CustomEvent("showBanStatus", {
-                      detail: { banned: true, reason: snap.data().banReason || "Your account is temporarily banned due to system protocol violations." }
-                  }));
-                  // Force immediate logout for strict enforcement
-                  setTimeout(() => auth.signOut(), 2000);
-              }
-          } else if (snap.exists() && snap.data().isBanned === false && lastBannedState.current === true) {
-              document.dispatchEvent(new CustomEvent("showBanStatus", {
-                detail: { banned: false, reason: "Access restored. You can now access all features normally." }
-            }));
+          const data = snap.exists() ? snap.data() : {};
+          const banned = data.isBanned === true;
+          const reason = data.banReason || "Your account is temporarily banned due to system protocol violations.";
+          
+          if (banned && lastBannedState.current === false) {
+              setIsBanned(true);
+              setBanReason(reason);
+              setShowBanModal(true);
+              
+              // Force logout after a short delay
+              setTimeout(() => {
+                  try { auth.signOut(); } catch(e) {}
+              }, 4000);
+          } else if (!banned && lastBannedState.current === true) {
+              setIsBanned(false);
+              setShowBanModal(true); // To show "Access restored"
           }
-          lastBannedState.current = snap.exists() ? (snap.data().isBanned === true) : false;
+          lastBannedState.current = banned;
       }, (err) => console.error("User doc listener error", err)),
       subscribeToUserSubcollection(
         uid,
@@ -625,6 +632,14 @@ export const AuthProvider = ({ children }) => {
     try {
       await authPersistenceReady;
       const result = await signInWithPopup(auth, googleProvider);
+
+      // Strict Ban Check
+      const userDoc = await getDoc(doc(db, "users", result.user.uid));
+      if (userDoc.exists() && userDoc.data().isBanned === true) {
+          await auth.signOut();
+          return { success: false, error: "Your account is temporarily suspended. Please send us an enquiry to appeal." };
+      }
+
       trackEvent("login", { method: "google" });
       return { success: true, user: result.user };
     } catch (err) {
@@ -645,6 +660,14 @@ export const AuthProvider = ({ children }) => {
     try {
       await authPersistenceReady;
       const result = await signInWithPopup(auth, facebookProvider);
+
+      // Strict Ban Check
+      const userDoc = await getDoc(doc(db, "users", result.user.uid));
+      if (userDoc.exists() && userDoc.data().isBanned === true) {
+          await auth.signOut();
+          return { success: false, error: "Your account is temporarily suspended. Please send us an enquiry to appeal." };
+      }
+
       trackEvent("login", { method: "facebook" });
       return { success: true, user: result.user };
     } catch (err) {
@@ -716,6 +739,10 @@ export const AuthProvider = ({ children }) => {
     loginWithFacebook,
     logout,
     isAuthenticated: !!user,
+    isBanned,
+    banReason,
+    showBanModal,
+    setShowBanModal,
 
     habits,
     notes,

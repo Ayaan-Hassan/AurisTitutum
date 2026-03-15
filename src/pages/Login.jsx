@@ -1,4 +1,4 @@
-﻿import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useLocation, Link } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
 import { Card } from "../components/ui/Card";
@@ -259,6 +259,38 @@ const Login = () => {
           </form>
         </Card>
       </div>
+      
+      {/* Ban Status Modal */}
+      {error && error.includes("suspended") && (
+        <div className="fixed inset-0 bg-black/90 backdrop-blur-2xl flex items-center justify-center z-[200] p-4 text-center">
+            <div className="glass-card w-full max-w-sm p-8 rounded-[3rem] border-white/10 relative overflow-hidden shadow-2xl">
+                <div className="absolute -top-24 -right-24 w-48 h-48 bg-danger/20 rounded-full blur-[80px]" />
+                <div className="w-24 h-24 mx-auto rounded-[2rem] bg-danger/10 text-danger flex items-center justify-center mb-8 border border-white/5">
+                    <Icon name="shield-alert" size={48} />
+                </div>
+                <h3 className="text-2xl font-bold tracking-tight text-text-primary mb-3">
+                    Account Suspended
+                </h3>
+                <p className="text-sm text-text-secondary mb-10 leading-relaxed px-2">
+                    {error}
+                </p>
+                <div className="flex flex-col gap-3">
+                    <a
+                        href="mailto:support@auristitutum.com?subject=Ban Appeal"
+                        className="w-full py-4 rounded-2xl bg-accent text-bg-main text-xs font-black uppercase tracking-[0.2em] transition-all hover:scale-[1.02] active:scale-[0.98] shadow-lg shadow-white/10 flex items-center justify-center gap-2"
+                    >
+                        <Icon name="mail" size={14} /> Send Appeal Email
+                    </a>
+                    <button
+                        onClick={() => setError("")}
+                        className="w-full py-4 rounded-2xl bg-white/5 text-text-secondary text-xs font-black uppercase tracking-[0.2em] transition-all hover:bg-white/10"
+                    >
+                        Close
+                    </button>
+                </div>
+            </div>
+        </div>
+      )}
     </div>
   );
 };

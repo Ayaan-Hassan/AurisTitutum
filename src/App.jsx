@@ -356,6 +356,18 @@ function AppContent() {
     setUserConfig((prev) => mergeUserIdentityIntoConfig(prev, user));
   }, [activeScope, userKey, user?.email, user?.name]);
 
+  const authCtx = useAuth();
+  useEffect(() => {
+    if (authCtx.showBanModal) {
+        setConfirmAction({
+            type: "ban_notice",
+            banned: authCtx.isBanned,
+            reason: authCtx.banReason
+        });
+        authCtx.setShowBanModal(false);
+    }
+  }, [authCtx.showBanModal, authCtx.isBanned, authCtx.banReason]);
+
   const { toasts, removeToast, notifications, markAllRead, addToast } =
     useHabitNotifications(habits, {
       ...userConfig.settings,
@@ -387,20 +399,11 @@ function AppContent() {
     const handleSystemPopup = (e) => {
       setActiveSystemMsg(e.detail.message);
     };
-    const handleBanStatus = (e) => {
-        setConfirmAction({
-            type: "ban_notice",
-            banned: e.detail.banned,
-            reason: e.detail.reason
-        });
-    };
     document.addEventListener("showToast", handleToast);
     document.addEventListener("showSystemPopup", handleSystemPopup);
-    document.addEventListener("showBanStatus", handleBanStatus);
     return () => {
       document.removeEventListener("showToast", handleToast);
       document.removeEventListener("showSystemPopup", handleSystemPopup);
-      document.removeEventListener("showBanStatus", handleBanStatus);
     };
   }, [addToast]);
 
