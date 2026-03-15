@@ -1,5 +1,5 @@
 import { createContext, useContext, useState, useEffect, useMemo, useRef } from "react";
-import { onSnapshot, doc, updateDoc } from "firebase/firestore";
+import { onSnapshot, doc, updateDoc, getDoc } from "firebase/firestore";
 import {
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
