@@ -264,23 +264,13 @@ export default function AdminDashboard() {
                 <div className="flex flex-col gap-6 relative animate-in fade-in duration-700">
                     <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
                         <MetricCard title="Total Users" value={usersList.length} icon="user" />
-                        <div 
-                            className={`bg-card-bg border border-border-color rounded-2xl p-5 flex items-center justify-between transition-all shadow-sm group`}
-                        >
-                            <div>
-                                <p className="text-[10px] font-black uppercase tracking-widest text-text-secondary mb-1">Online Now</p>
-                                <p className="text-3xl font-mono font-bold text-success flex items-center gap-2">
-                                    {usersList.filter(u => isUserOnline(u)).length}
-                                    <span className="relative flex h-2 w-2">
-                                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-success opacity-75"></span>
-                                      <span className="relative inline-flex rounded-full h-2 w-2 bg-success"></span>
-                                    </span>
-                                </p>
-                            </div>
-                            <div className={`w-10 h-10 rounded-full bg-success/10 text-success flex items-center justify-center`}>
-                                <Icon name="activity" size={20} />
-                            </div>
-                        </div>
+                        <MetricCard 
+                            title="Online Now" 
+                            value={usersList.filter(u => isUserOnline(u)).length} 
+                            icon="activity" 
+                            color="text-success"
+                            indicator={<span className="relative flex h-2 w-2"><span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-success opacity-75"></span><span className="relative inline-flex rounded-full h-2 w-2 bg-success"></span></span>}
+                        />
                         <MetricCard title="Habits Created" value={stats.habits} icon="activity" />
                         <MetricCard title="Reminders Set" value={stats.reminders} icon="bell" />
                         <MetricCard title="Total Notes" value={stats.notes} icon="file-text" />
@@ -340,15 +330,16 @@ export default function AdminDashboard() {
                                             <p className="text-[10px] text-text-secondary font-mono truncate opacity-60">{u.email}</p>
                                         </div>
                                         <div className="flex items-center gap-2">
-                                            <div className="hidden group-hover/row:flex items-center gap-1.5 animate-in slide-in-from-right-2 duration-200">
-                                                <button onClick={(e) => { e.stopPropagation(); setPinnedUsers(prev => prev.includes(u.id) ? prev.filter(id => id !== u.id) : [...prev, u.id]); }} title="Pin User" className={`w-7 h-7 rounded-lg flex items-center justify-center transition-all border ${pinnedUsers.includes(u.id) ? 'bg-accent/20 text-accent border-accent/40' : 'bg-white/5 text-text-secondary border-border-color hover:border-accent/40'}`}><Icon name="pin" size={12}/></button>
-                                                <button onClick={(e) => { e.stopPropagation(); setConfirmAction({ type: "user", action: "wipe", id: u.id }); }} title="Wipe Data" className="w-7 h-7 rounded-lg bg-danger/10 text-danger hover:bg-danger hover:text-white flex items-center justify-center transition-all border border-danger/20"><Icon name="trash" size={12}/></button>
-                                                {u.isBanned ? (
+                                             <div className="hidden group-hover/row:flex items-center gap-1.5 animate-in slide-in-from-right-2 duration-200">
+                                                 <button onClick={(e) => { e.stopPropagation(); setPinnedUsers(prev => prev.includes(u.id) ? prev.filter(id => id !== u.id) : [...prev, u.id]); }} title="Pin User" className={`w-7 h-7 rounded-lg flex items-center justify-center transition-all border ${pinnedUsers.includes(u.id) ? 'bg-accent/20 text-accent border-accent/40' : 'bg-white/5 text-text-secondary border-border-color hover:border-accent/40'}`}><Icon name="pin" size={12}/></button>
+                                                 <button onClick={(e) => { e.stopPropagation(); setConfirmAction({ type: "user", action: "wipe", id: u.id }); }} title="Wipe Data" className="w-7 h-7 rounded-lg bg-accent/10 text-accent hover:bg-accent hover:text-bg-main flex items-center justify-center transition-all border border-accent/20"><Icon name="eraser" size={12}/></button>
+                                                 <button onClick={(e) => { e.stopPropagation(); setConfirmAction({ type: "user", action: "delete", id: u.id }); }} title="Delete Account" className="w-7 h-7 rounded-lg bg-danger/10 text-danger hover:bg-danger hover:text-white flex items-center justify-center transition-all border border-danger/20"><Icon name="trash" size={12}/></button>
+                                                 {u.isBanned ? (
                                                     <button onClick={(e) => { e.stopPropagation(); setConfirmAction({ type: "user", action: "unban", id: u.id }); }} title="Unban" className="w-7 h-7 rounded-lg bg-success/10 text-success hover:bg-success hover:text-white flex items-center justify-center transition-all border border-success/20"><Icon name="user-check" size={12}/></button>
                                                 ) : (
                                                     <button onClick={(e) => { e.stopPropagation(); setConfirmAction({ type: "user", action: "ban", id: u.id }); }} title="Ban" className="w-7 h-7 rounded-lg bg-danger/10 text-danger hover:bg-danger hover:text-white flex items-center justify-center transition-all border border-danger/20"><Icon name="user-x" size={12}/></button>
                                                 )}
-                                                <button onClick={(e) => { e.stopPropagation(); setEditModal({ type: "msg", action: "sendMsg", id: u.id, initialValue: "", label: "Message", confirmLabel: "Send" }); }} title="Message" className="w-7 h-7 rounded-lg bg-accent/10 text-accent hover:bg-accent hover:text-bg-main flex items-center justify-center transition-all border border-accent/20"><Icon name="mail" size={12}/></button>
+                                                <button onClick={(e) => { e.stopPropagation(); setEditModal({ type: "msg", action: "sendMsg", id: u.id, initialValue: "", label: "Message Content", confirmLabel: "Send" }); }} title="Message" className="w-7 h-7 rounded-lg bg-accent/10 text-accent hover:bg-accent hover:text-bg-main flex items-center justify-center transition-all border border-accent/20"><Icon name="mail" size={12}/></button>
                                             </div>
                                             {isUserOnline(u) && <div className="w-2 h-2 rounded-full bg-success shadow-[0_0_8px_rgba(var(--success-rgb),0.6)]"></div>}
                                         </div>
@@ -408,13 +399,16 @@ export default function AdminDashboard() {
 
                                         <div className="grid lg:grid-cols-2 gap-8 items-start">
                                             <div className="bg-card-bg border border-border-color rounded-2xl p-6 shadow-sm space-y-4">
-                                                <h4 className="text-[11px] font-black uppercase tracking-[0.2em] text-text-secondary border-b border-border-color pb-3">User Habits</h4>
+                                                <div className="flex items-center justify-between border-b border-border-color pb-3">
+                                                    <h4 className="text-[11px] font-black uppercase tracking-[0.2em] text-text-secondary">User Habits</h4>
+                                                    <button onClick={() => setEditModal({ type: "habits", action: "createHabit", id: "new", initialValue: "", label: "Add New Habit", confirmLabel: "Create" })} className="w-5 h-5 rounded bg-accent/10 text-accent hover:bg-accent hover:text-bg-main flex items-center justify-center transition-all"><Icon name="plus" size={10} /></button>
+                                                </div>
                                                 <div className="space-y-3">
                                                     {userData.habits?.length > 0 ? userData.habits.map(h => (
                                                         <div key={h.id} className={`border rounded-xl overflow-hidden transition-all duration-300 ${inspectorHabit === h.id ? 'border-accent bg-accent/5 ring-1 ring-accent/20' : 'border-border-color bg-bg-main'}`}>
                                                             <div className="p-4 flex items-center justify-between group">
                                                                 <div onClick={() => setInspectorHabit(inspectorHabit === h.id ? null : h.id)} className="cursor-pointer flex-1">
-                                                                    <p className="text-sm font-bold text-text-primary mb-1">{h.emoji} {h.name}</p>
+                                                                    <p className="text-sm font-bold text-text-primary mb-1">{h.name}</p>
                                                                     <div className="flex gap-2">
                                                                        <span className={`text-[8px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded ${h.type === 'Good' ? 'bg-success/20 text-success' : 'bg-danger/20 text-danger'}`}>{h.type}</span>
                                                                        <span className="text-[8px] font-mono font-bold text-text-secondary px-1.5 py-0.5 rounded bg-white/5 uppercase tracking-tighter">{h.mode}</span>
@@ -470,7 +464,10 @@ export default function AdminDashboard() {
 
                                             <div className="space-y-6">
                                                 <div className="bg-card-bg border border-border-color rounded-2xl p-6 shadow-sm">
-                                                    <h4 className="text-[11px] font-black uppercase tracking-[0.2em] text-text-secondary border-b border-border-color pb-3 mb-4">User Notes ({userData.notes?.length || 0})</h4>
+                                                    <div className="flex items-center justify-between border-b border-border-color pb-3 mb-4">
+                                                        <h4 className="text-[11px] font-black uppercase tracking-[0.2em] text-text-secondary">User Notes ({userData.notes?.length || 0})</h4>
+                                                        <button onClick={() => setEditModal({ type: "notes", action: "createNote", id: "new", initialValue: "", label: "Add New Note", confirmLabel: "Create" })} className="w-5 h-5 rounded bg-accent/10 text-accent hover:bg-accent hover:text-bg-main flex items-center justify-center transition-all"><Icon name="plus" size={10} /></button>
+                                                    </div>
                                                     <div className="space-y-3 max-h-[220px] overflow-y-auto custom-scrollbar pr-2">
                                                         {userData.notes?.length > 0 ? userData.notes.map(n => (
                                                             <div key={n.id} className="p-4 bg-bg-sidebar rounded-xl border border-border-color group">
@@ -488,7 +485,10 @@ export default function AdminDashboard() {
                                                 </div>
 
                                                 <div className="bg-card-bg border border-border-color rounded-2xl p-6 shadow-sm">
-                                                    <h4 className="text-[11px] font-black uppercase tracking-[0.2em] text-text-secondary border-b border-border-color pb-3 mb-4">User Reminders ({userData.reminders?.length || 0})</h4>
+                                                    <div className="flex items-center justify-between border-b border-border-color pb-3 mb-4">
+                                                        <h4 className="text-[11px] font-black uppercase tracking-[0.2em] text-text-secondary">User Reminders ({userData.reminders?.length || 0})</h4>
+                                                        <button onClick={() => setEditModal({ type: "reminders", action: "createReminder", id: "new", initialValue: "09:00", label: "Add New Reminder (Time)", confirmLabel: "Create" })} className="w-5 h-5 rounded bg-accent/10 text-accent hover:bg-accent hover:text-bg-main flex items-center justify-center transition-all"><Icon name="plus" size={10} /></button>
+                                                    </div>
                                                     <div className="space-y-3 max-h-[220px] overflow-y-auto custom-scrollbar pr-2">
                                                         {userData.reminders?.length > 0 ? userData.reminders.map(r => (
                                                             <div key={r.id} className="p-4 bg-bg-sidebar rounded-xl border border-border-color flex items-center justify-between">
@@ -592,11 +592,13 @@ export default function AdminDashboard() {
             {/* Simple Confirmation Modal */}
             {confirmAction && (
                 <ConfirmModal 
+                    open={true}
                     title="Are you sure?"
                     message={
-                        confirmAction.action === "wipe" ? "This will delete all data for this user forever." :
+                        confirmAction.action === "wipe" ? "This will PERMANENTLY delete all habits, logs, and data for this user." :
                         confirmAction.action === "ban" ? "This user will not be able to log in anymore." :
                         confirmAction.action === "unban" ? "This will let the user log in again." :
+                        confirmAction.action === "delete" && confirmAction.type === "user" ? "This will PERMANENTLY delete the entire user account and all data." :
                         `Do you want to delete this ${confirmAction.type} entry?`
                     }
                     onConfirm={handleActionConfirm}
@@ -609,8 +611,8 @@ export default function AdminDashboard() {
             {/* Edit Modal (Executes directly for less friction) */}
             {editModal && (
                 <RenameModal 
-                    title={editModal.label}
-                    label={editModal.type === "msg" ? null : editModal.label}
+                    title={editModal.type === "msg" ? "Compose Admin Message" : editModal.label}
+                    label={editModal.type === "msg" ? "Message Content" : null}
                     confirmLabel={editModal.confirmLabel || "Save"}
                     initialValue={editModal.initialValue}
                     onConfirm={async (val) => {
@@ -619,6 +621,28 @@ export default function AdminDashboard() {
                             if (type === "msg") await handleSysMessageSend(id, val);
                             else if (action === "updateHabit") {
                                 await updateDoc(doc(db, "users", selectedUser, "habits", id), { name: val, adminModified: true, modifiedAt: new Date().toISOString() });
+                            } else if (action === "createHabit") {
+                                await addDoc(collection(db, "users", selectedUser, "habits"), { 
+                                    name: val, 
+                                    type: "Good", 
+                                    mode: "quick", 
+                                    createdAt: new Date().toISOString(), 
+                                    adminCreated: true 
+                                });
+                            } else if (action === "createNote") {
+                                await addDoc(collection(db, "users", selectedUser, "notes"), { 
+                                    title: "Admin Note", 
+                                    body: val, 
+                                    createdAt: new Date().toISOString(), 
+                                    adminCreated: true 
+                                });
+                            } else if (action === "createReminder") {
+                                await addDoc(collection(db, "users", selectedUser, "reminders"), { 
+                                    title: "Admin Reminder", 
+                                    time: val, 
+                                    createdAt: new Date().toISOString(), 
+                                    adminCreated: true 
+                                });
                             } else if (action === "updateNote") {
                                 await updateDoc(doc(db, "users", selectedUser, "notes", id), { body: val, adminModified: true, modifiedAt: new Date().toISOString() });
                             } else if (action === "updateReminder") {
@@ -655,12 +679,15 @@ export default function AdminDashboard() {
     );
 }
 
-const MetricCard = ({ title, value, icon }) => (
+const MetricCard = ({ title, value, icon, indicator, color = "text-text-primary" }) => (
     <Card className="p-5 flex items-center justify-between hover:scale-[1.02] transition-all bg-card-bg border-border-color shadow-sm cursor-default group overflow-hidden relative">
         <div className="absolute top-0 right-0 w-24 h-24 bg-accent/5 blur-3xl pointer-events-none group-hover:bg-accent/10 transition-colors" />
         <div className="relative z-10">
             <p className="text-[10px] font-black uppercase tracking-widest text-text-secondary mb-1 opacity-70 group-hover:opacity-100 transition-opacity">{title}</p>
-            <p className="text-3xl font-mono font-bold text-text-primary tracking-tighter">{value}</p>
+            <p className={`text-3xl font-mono font-bold ${color} tracking-tighter flex items-center gap-2`}>
+                {value}
+                {indicator}
+            </p>
         </div>
         <div className="w-10 h-10 rounded-full bg-accent/10 text-accent flex items-center justify-center group-hover:bg-accent group-hover:text-bg-main transition-all shadow-sm">
             <Icon name={icon} size={20} />

@@ -385,6 +385,7 @@ function AppContent() {
     };
     const handleSystemPopup = (e) => {
       setActiveSystemMsg(e.detail.message);
+      addToast("Priority Admin Message Received", "info");
     };
     document.addEventListener("showToast", handleToast);
     document.addEventListener("showSystemPopup", handleSystemPopup);

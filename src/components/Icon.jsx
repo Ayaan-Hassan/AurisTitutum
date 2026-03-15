@@ -50,7 +50,10 @@ import {
     UserCheck,
     Mail,
     Search,
-    Send
+    Send,
+    Eraser,
+    ChevronDown,
+    ChevronUp
 } from 'lucide-react';
 
 const Icon = ({ name, size = 18, className = "" }) => {
@@ -106,7 +109,11 @@ const Icon = ({ name, size = 18, className = "" }) => {
         'user-check': UserCheck,
         'mail': Mail,
         'search': Search,
-        'send': Send
+        'send': Send,
+        'edit': Pencil,
+        'eraser': Eraser,
+        'chevron-down': ChevronDown,
+        'chevron-up': ChevronUp
     };
 
     const LucideIcon = icons[name];
