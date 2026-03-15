@@ -168,13 +168,6 @@ export default function AdminDashboard() {
         }
     };
 
-    function isUserOnline(u) {
-        if (!u || !u.isOnline) return false;
-        if (!u.lastActive) return false;
-        const last = new Date(u.lastActive);
-        const now = new Date();
-        return (now - last) < 30000;
-    }
 
     const graphData = useMemo(() => {
         if (!usersList.length) return [];
