@@ -744,14 +744,6 @@ export default function AdminDashboard() {
                             if (type === "msg") await handleSysMessageSend(id, val);
                             else if (action === "updateHabit") {
                                 await updateDoc(doc(db, "users", selectedUser, "habits", id), { name: val, adminModified: true, modifiedAt: new Date().toISOString() });
-                            } else if (action === "createHabit") {
-                                await addDoc(collection(db, "users", selectedUser, "habits"), { 
-                                    name: val, 
-                                    type: "Good", 
-                                    mode: "quick", 
-                                    createdAt: new Date().toISOString(), 
-                                    adminCreated: true 
-                                });
                             } else if (action === "createNote") {
                                 await addDoc(collection(db, "users", selectedUser, "notes"), { 
                                     title: "Admin Note", 
@@ -761,8 +753,6 @@ export default function AdminDashboard() {
                                     adminCreated: true 
                                 });
                             } else if (action === "createReminder") {
-                                // val is currently title. We need a proper wizard or just default to now.
-                                // For now, we use a default white color and ensure simple prompt
                                 await addDoc(collection(db, "users", selectedUser, "reminders"), { 
                                     title: val || "Admin Reminder", 
                                     notes: "Scheduled by Administrator",
@@ -783,7 +773,6 @@ export default function AdminDashboard() {
                                     createdAt: new Date().toISOString(), 
                                     adminCreated: true 
                                 });
-                            }
                             } else if (action === "updateNote") {
                                 await updateDoc(doc(db, "users", selectedUser, "notes", id), { body: val, adminModified: true, modifiedAt: new Date().toISOString() });
                             } else if (action === "updateReminder") {
