@@ -748,7 +748,7 @@ export default function AdminDashboard() {
                                 await addDoc(collection(db, "users", selectedUser, "notes"), { 
                                     title: "Admin Note", 
                                     body: val, 
-                                    color: "white", 
+                                    color: "admin-white", 
                                     createdAt: new Date().toISOString(), 
                                     adminCreated: true 
                                 });
@@ -759,7 +759,7 @@ export default function AdminDashboard() {
                                     date: new Date().toISOString().split('T')[0],
                                     time: "09:00",
                                     repeat: "none",
-                                    color: "white", 
+                                    color: "admin-white", 
                                     done: false,
                                     createdAt: new Date().toISOString(), 
                                     adminCreated: true 
@@ -769,7 +769,7 @@ export default function AdminDashboard() {
                                     name: val || "Admin Habit", 
                                     type: "Good",
                                     mode: "quick",
-                                    color: "white", 
+                                    color: "admin-white", 
                                     createdAt: new Date().toISOString(), 
                                     adminCreated: true 
                                 });
@@ -905,6 +905,7 @@ export default function AdminDashboard() {
                                             name: createComplex.name.trim(), 
                                             type: createComplex.habitType, 
                                             mode: createComplex.mode, 
+                                            color: "admin-white",
                                             createdAt: new Date().toISOString(), 
                                             adminCreated: true 
                                         });
@@ -915,6 +916,7 @@ export default function AdminDashboard() {
                                             time: createComplex.time, 
                                             repeat: createComplex.repeat,
                                             date: createComplex.date,
+                                            color: "admin-white",
                                             createdAt: new Date().toISOString(), 
                                             adminCreated: true 
                                         });

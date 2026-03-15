@@ -509,29 +509,32 @@ const Dashboard = ({ habits, logActivity, insights }) => {
               });
               const weeklyTotal = weeklyLogs.filter(Boolean).length;
               const weeklyProgress = (weeklyTotal / 7) * 100;
-              const isWhite = h.color === "white" || h.adminCreated;
+              const isWhite = h.color === "admin-white" || h.adminCreated;
               const isFull = weeklyTotal === 7;
 
               return (
-                <div key={h.id} className={`relative flex items-center justify-between p-3 border rounded-xl group transition-all overflow-hidden ${isWhite ? 'bg-white/10 border-white/40 shadow-[0_0_15px_rgba(255,255,255,0.05)]' : 'bg-accent-dim border-border-color hover:border-text-secondary'}`}>
-                  <div className={`absolute left-0 top-0 bottom-0 z-0 transition-[width] duration-1000 ease-out flex items-start overflow-hidden ${isGood ? "bg-success/10" : "bg-danger/10"}`} style={{ width: `${weeklyProgress}%` }}>
+                <div key={h.id} className={`relative flex items-center justify-between p-3 border rounded-xl group transition-all overflow-hidden ${isWhite ? 'bg-white border-white shadow-[0_0_15px_rgba(255,255,255,0.3)] scale-[1.02]' : 'bg-accent-dim border-border-color hover:border-text-secondary'}`}>
+                  <div className={`absolute left-0 top-0 bottom-0 z-0 transition-[width] duration-1000 ease-out flex items-start overflow-hidden ${isWhite ? 'bg-black/5' : isGood ? "bg-success/10" : "bg-danger/10"}`} style={{ width: `${weeklyProgress}%` }}>
                       {isFull && (
-                        <div className={`w-[200%] h-4 absolute top-[-5px] left-0 animate-wave rounded-[50%] ${isGood ? "bg-success/20" : "bg-danger/20"}`} />
+                        <div className={`w-[200%] h-4 absolute top-[-5px] left-0 animate-wave rounded-[50%] ${isWhite ? 'bg-white/20' : isGood ? "bg-success/20" : "bg-danger/20"}`} />
                       )}
                   </div>
                   <div className="flex items-center gap-3 min-w-0 relative z-10">
-                    <div className={`w-7 h-7 rounded-lg shrink-0 flex items-center justify-center border ${isGood ? "bg-accent/10 border-accent/30" : "bg-bg-main border-border-color"}`}>
+                    <div className={`w-7 h-7 rounded-lg shrink-0 flex items-center justify-center border ${isWhite ? "bg-black/5 border-black/10" : isGood ? "bg-accent/10 border-accent/30" : "bg-bg-main border-border-color"}`}>
                       {h.emoji ? (
                         <span className="leading-none" style={{ filter: "grayscale(1) saturate(0) brightness(1.2)", fontSize: "0.8rem" }}>
                           {h.emoji}
                         </span>
                       ) : (
-                        <Icon name={isGood ? "check-circle" : "alert-circle"} size={13} className={isGood ? "text-accent" : "text-text-secondary"} />
+                        <Icon name={isGood ? "check-circle" : "alert-circle"} size={13} className={isWhite ? "text-black" : isGood ? "text-accent" : "text-text-secondary"} />
                       )}
                     </div>
                     <div className="min-w-0">
-                      <div className="text-sm font-bold text-text-primary truncate">{h.name}</div>
-                      <div className="text-[10px] text-text-secondary uppercase font-mono truncate">
+                      <div className={`text-sm font-bold truncate ${isWhite ? "text-black" : "text-text-primary"}`}>
+                        {h.name}
+                        {h.adminCreated && <span className="ml-2 px-1 py-0.5 rounded bg-black text-white text-[7px] font-black uppercase tracking-tighter align-middle">Admin Stream</span>}
+                      </div>
+                      <div className={`text-[10px] uppercase font-mono truncate ${isWhite ? "text-black/60" : "text-text-secondary"}`}>
                         {h.mode === "check" ? `${h.totalLogs} day(s) checked` : h.mode === "quick" ? `${h.totalLogs} log(s)` : `${(h.logs || []).reduce((s, d) => s + (d.entries || []).length, 0)} log(s) · ${h.unit || ""}`}
                       </div>
                     </div>

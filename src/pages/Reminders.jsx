@@ -162,16 +162,16 @@ const ReminderCard = ({ reminder, onDelete, onEdit, onMarkDone }) => {
   const isWhite = reminder.color === "white" || reminder.adminCreated;
 
   return (
-    <div className={`flex items-start justify-between gap-3 p-4 rounded-2xl border transition-all group ${past ? "bg-bg-main/40 border-border-color opacity-60" : isWhite ? "bg-white/10 border-white/40 shadow-[0_0_15px_rgba(255,255,255,0.05)] scale-[1.01]" : "bg-card-bg border-border-color hover:border-text-secondary"}`}>
+    <div className={`flex items-start justify-between gap-3 p-4 rounded-2xl border transition-all group ${past ? "bg-bg-main/40 border-border-color opacity-60" : isWhite ? "bg-white border-white shadow-[0_0_15px_rgba(255,255,255,0.3)] scale-[1.01]" : "bg-card-bg border-border-color hover:border-text-secondary"}`}>
       <div className="flex items-start gap-3 min-w-0 flex-1">
-        <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 mt-0.5 border ${past ? "bg-bg-main border-border-color" : "bg-accent-dim border-border-color"}`}>
-          <Icon name={past ? "check-circle" : "bell"} size={15} className={past ? "text-text-secondary" : "text-text-primary"} />
+        <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 mt-0.5 border ${past ? "bg-bg-main border-border-color" : isWhite ? "bg-black/5 border-black/10" : "bg-accent-dim border-border-color"}`}>
+          <Icon name={past ? "check-circle" : "bell"} size={15} className={past ? "text-text-secondary" : isWhite ? "text-black" : "text-text-primary"} />
         </div>
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2 flex-wrap mb-0.5">
-            <p className={`text-sm font-bold ${past ? "text-text-secondary line-through" : "text-text-primary"}`}>{reminder.title}</p>
+            <p className={`text-sm font-bold ${past ? "text-text-secondary line-through" : isWhite ? "text-black" : "text-text-primary"}`}>{reminder.title}</p>
             {repeat !== "none" && (
-              <span className="text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded bg-accent-dim text-text-secondary border border-border-color">{REPEAT_LABELS[repeat]}</span>
+              <span className={`text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded border ${isWhite ? "bg-black text-white border-black" : "bg-accent-dim text-text-secondary border-border-color"}`}>{REPEAT_LABELS[repeat]}</span>
             )}
             {past && !reminder.done && (
               <span className="text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded bg-bg-sidebar text-text-secondary border border-border-color">Past</span>
@@ -179,9 +179,12 @@ const ReminderCard = ({ reminder, onDelete, onEdit, onMarkDone }) => {
             {reminder.done && (
               <span className="text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded bg-success/10 text-success border border-success/30">Done</span>
             )}
+            {reminder.adminCreated && (
+                <span className="text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded bg-black text-white border-black">Admin Alert</span>
+            )}
           </div>
-          {reminder.notes && <p className="text-xs text-text-secondary truncate mb-0.5">{reminder.notes}</p>}
-          <p className="text-[10px] font-mono text-text-secondary uppercase tracking-wider">
+          {reminder.notes && <p className={`text-xs truncate mb-0.5 ${isWhite ? "text-black/70 font-medium" : "text-text-secondary"}`}>{reminder.notes}</p>}
+          <p className={`text-[10px] font-mono uppercase tracking-wider ${isWhite ? "text-black/50" : "text-text-secondary"}`}>
             {repeat === "daily" ? `Every day at ${formatTimeOnly(reminder.time)}`
               : repeat === "weekly" ? `Every week (${new Date(reminder.date + "T12:00:00").toLocaleDateString("en-US", { weekday: "long" })}) at ${formatTimeOnly(reminder.time)}`
                 : formatDateTime(reminder.date, reminder.time)}

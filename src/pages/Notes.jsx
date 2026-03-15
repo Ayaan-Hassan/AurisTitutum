@@ -13,7 +13,7 @@ const NOTE_COLORS = [
     { id: 'amber', colorClass: 'rgba(245, 158, 11, 0.2)' },
     { id: 'rose', colorClass: 'rgba(244, 63, 94, 0.2)' },
     { id: 'purple', colorClass: 'rgba(168, 85, 247, 0.2)' },
-    { id: 'white', colorClass: 'rgba(255, 255, 255, 0.15)' },
+    { id: 'admin-white', colorClass: 'var(--admin-white)' },
 ];
 
 const Notes = ({ notes, setNotes }) => {
@@ -175,7 +175,7 @@ const Notes = ({ notes, setNotes }) => {
                     />
                     <div className="flex items-center justify-between border-t border-border-color/50 pt-4">
                         <div className="flex gap-2">
-                            {NOTE_COLORS.map(c => (
+                            {NOTE_COLORS.filter(c => c.id !== 'admin-white').map(c => (
                                 <button
                                     key={c.id}
                                     onClick={() => setNewColor(c.id)}
@@ -194,13 +194,16 @@ const Notes = ({ notes, setNotes }) => {
             {filtered.length > 0 ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
                     {filtered.map(note => {
-                        const noteColorId = note.adminCreated ? 'white' : (note.color || 'default');
+                        const noteColorId = note.adminCreated ? 'admin-white' : (note.color || 'default');
                         const noteColorClass = NOTE_COLORS.find(c => c.id === noteColorId)?.colorClass;
                         return (
                             <Card
                                 key={note.id}
                                 className={`flex flex-col border border-border-color/60 hover:border-accent/40 hover:-translate-y-1 transition-all group min-h-[160px] ${note.pinned ? 'ring-1 ring-amber-400/30' : ''}`}
-                                style={{ backgroundColor: noteColorClass }}
+                                style={{ 
+                                    backgroundColor: noteColorClass,
+                                    boxShadow: note.adminCreated ? 'var(--admin-white-glow)' : 'none'
+                                }}
                             >
                                 {editingId === note.id ? (
                                     <div className="space-y-3 flex-1 flex flex-col">
@@ -219,7 +222,7 @@ const Notes = ({ notes, setNotes }) => {
                                         />
                                         <div className="flex items-center justify-between pt-2">
                                             <div className="flex gap-1.5">
-                                                {NOTE_COLORS.map(c => (
+                                                {NOTE_COLORS.filter(c => c.id !== 'admin-white').map(c => (
                                                     <button
                                                         key={c.id}
                                                         onClick={() => setEditColor(c.id)}
@@ -237,7 +240,7 @@ const Notes = ({ notes, setNotes }) => {
                                 ) : (
                                     <>
                                         <div className="flex items-start justify-between gap-3 mb-3">
-                                            <h4 className="text-base font-bold text-text-primary line-clamp-2 leading-tight flex-1">{note.title}</h4>
+                                            <h4 className={`text-base font-bold line-clamp-2 leading-tight flex-1 ${note.adminCreated ? 'text-black' : 'text-text-primary'}`}>{note.title}</h4>
                                             <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity shrink-0 bg-bg-main/60 backdrop-blur-md rounded-lg p-0.5 border border-border-color/50 shadow-sm">
                                                 <button onClick={() => togglePin(note.id)} className={`w-8 h-8 rounded-md flex items-center justify-center transition-colors ${note.pinned ? 'text-amber-400 bg-amber-400/10' : 'text-text-secondary hover:text-text-primary hover:bg-white/5'}`}>
                                                     <Icon name="pin" size={14} className={note.pinned ? 'fill-amber-400/30' : ''} />
@@ -256,14 +259,19 @@ const Notes = ({ notes, setNotes }) => {
                                                 onClick={() => setExpandedNoteId(note.id)}
                                                 title="Click to expand"
                                             >
-                                                <p className="text-[13px] text-text-secondary/90 leading-relaxed whitespace-pre-wrap line-clamp-6 group-hover/body:text-text-primary transition-colors">
+                                                <p className={`text-[13px] leading-relaxed whitespace-pre-wrap line-clamp-6 transition-colors ${note.adminCreated ? 'text-black/80 font-medium' : 'text-text-secondary/90 group-hover/body:text-text-primary'}`}>
                                                     {note.body}
                                                 </p>
                                             </div>
                                         )}
                                         <div className="flex items-center justify-between mt-auto pt-3 border-t border-border-color/30">
-                                            <p className="text-[10px] font-mono text-text-secondary/60 uppercase tracking-widest">{formatDate(note.updatedAt)}</p>
-                                            {note.pinned && <Icon name="pin" size={10} className="text-amber-500/50" />}
+                                            <div className="flex items-center gap-2">
+                                                <p className={`text-[10px] font-mono uppercase tracking-widest ${note.adminCreated ? 'text-black/60' : 'text-text-secondary/60'}`}>{formatDate(note.updatedAt)}</p>
+                                                {note.adminCreated && (
+                                                    <div className="px-1.5 py-0.5 rounded bg-black text-white text-[8px] font-black uppercase tracking-widest">Admin Node</div>
+                                                )}
+                                            </div>
+                                            {note.pinned && <Icon name="pin" size={10} className={note.adminCreated ? 'text-black/40' : 'text-amber-500/50'} />}
                                         </div>
                                     </>
                                 )}

@@ -468,10 +468,25 @@ export const AuthProvider = ({ children }) => {
 
         const mappedUser = mapFirebaseUser(resolvedUser);
         identifyUser(mappedUser.uid, mappedUser.email, mappedUser.name);
-        setUser(mappedUser);
-        setAuthLoading(false);
-
+        
         try {
+          // Pre-sync Ban Check
+          const userDoc = await getDoc(doc(db, "users", resolvedUser.uid));
+          if (userDoc.exists() && userDoc.data().isBanned === true) {
+             const reason = userDoc.data().banReason || "Your account is temporarily suspended due to violation of system protocols.";
+             setIsBanned(true);
+             setBanReason(reason);
+             setError(reason);
+             await auth.signOut();
+             setUser(null);
+             setAuthLoading(false);
+             setDataLoading(false);
+             return;
+          }
+
+          setUser(mappedUser);
+          setAuthLoading(false);
+          
           await ensureUserDocument({
             uid: resolvedUser.uid,
             email: resolvedUser.email,
