@@ -1159,29 +1159,25 @@ function AppContent() {
       )}
 
       {activeSystemMsg && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-md flex items-center justify-center z-[150] p-4">
-            <div className="glass-card w-full max-w-md p-8 rounded-[2.5rem] border-white/10 relative overflow-hidden">
-                <div className="absolute top-0 right-0 w-32 h-32 bg-accent/10 blur-[50px] pointer-events-none" />
-                <div className="flex items-center gap-4 mb-6">
-                    <div className="w-12 h-12 rounded-2xl bg-white/10 text-white flex items-center justify-center border border-white/5">
-                        <Icon name="mail" size={24} />
-                    </div>
-                    <div>
-                        <h3 className="text-lg font-bold text-text-primary">Admin Message</h3>
-                        <p className="text-[10px] text-text-secondary font-black uppercase tracking-widest">A message has been sent to you</p>
-                    </div>
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-xl flex items-center justify-center z-[200] p-4 text-center">
+            <div className="glass-card w-full max-w-sm p-8 rounded-[3rem] border-white/10 relative overflow-hidden shadow-2xl">
+                <div className="absolute -top-24 -right-24 w-48 h-48 bg-accent/20 rounded-full blur-[80px]" />
+                <div className="w-24 h-24 mx-auto rounded-[2rem] bg-accent/10 text-accent flex items-center justify-center mb-8 border border-white/5">
+                    <Icon name="mail" size={48} />
                 </div>
-                <div className="p-6 bg-white border border-white/10 rounded-2xl mb-8">
-                    <p className="text-sm text-black font-medium leading-relaxed whitespace-pre-wrap">
-                        <span className="font-black text-[10px] uppercase opacity-40 block mb-2">Message Content:</span>
+                <h3 className="text-2xl font-bold tracking-tight text-text-primary mb-3">
+                    Admin Message
+                </h3>
+                <div className="bg-white/5 border border-white/10 rounded-2xl p-6 mb-10">
+                    <p className="text-sm text-text-secondary leading-relaxed whitespace-pre-wrap">
                         {activeSystemMsg}
                     </p>
                 </div>
                 <button
                     onClick={() => setActiveSystemMsg(null)}
-                    className="w-full py-4 bg-white text-black rounded-2xl text-[11px] font-black uppercase tracking-[0.3em] hover:opacity-90 transition-all shadow-xl"
+                    className="w-full py-4 rounded-2xl bg-accent text-bg-main text-xs font-black uppercase tracking-[0.2em] transition-all hover:scale-[1.02] active:scale-[0.98] shadow-lg shadow-white/10"
                 >
-                    Acknowledge Message
+                    Acknowledge
                 </button>
             </div>
         </div>

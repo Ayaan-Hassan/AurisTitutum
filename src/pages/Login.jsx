@@ -260,7 +260,6 @@ const Login = () => {
         </Card>
       </div>
       
-      {/* Ban Status Modal */}
       {error && error.includes("suspended") && (
         <div className="fixed inset-0 bg-black/90 backdrop-blur-2xl flex items-center justify-center z-[200] p-4 text-center">
             <div className="glass-card w-full max-w-sm p-8 rounded-[3rem] border-white/10 relative overflow-hidden shadow-2xl">
@@ -276,10 +275,10 @@ const Login = () => {
                 </p>
                 <div className="flex flex-col gap-3">
                     <button
-                        onClick={() => setError("")}
+                        onClick={() => navigate("/")}
                         className="w-full py-4 rounded-2xl bg-white/5 text-text-secondary text-xs font-black uppercase tracking-[0.2em] transition-all hover:bg-white/10"
                     >
-                        Close
+                        Leave Website
                     </button>
                 </div>
             </div>

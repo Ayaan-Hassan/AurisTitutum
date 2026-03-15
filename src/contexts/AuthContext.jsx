@@ -586,7 +586,7 @@ export const AuthProvider = ({ children }) => {
       const userDoc = await getDoc(doc(db, "users", result.user.uid));
       if (userDoc.exists() && userDoc.data().isBanned === true) {
           await auth.signOut();
-          return { success: false, error: "Your account is temporarily suspended. Please send us an enquiry to appeal." };
+          return { success: false, error: "Your account is temporarily suspended due to violation of system protocols." };
       }
 
       trackEvent("login", { method: "email" });
@@ -637,7 +637,7 @@ export const AuthProvider = ({ children }) => {
       const userDoc = await getDoc(doc(db, "users", result.user.uid));
       if (userDoc.exists() && userDoc.data().isBanned === true) {
           await auth.signOut();
-          return { success: false, error: "Your account is temporarily suspended. Please send us an enquiry to appeal." };
+          return { success: false, error: "Your account is temporarily suspended due to violation of system protocols." };
       }
 
       trackEvent("login", { method: "google" });
