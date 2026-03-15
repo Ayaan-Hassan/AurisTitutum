@@ -1134,15 +1134,12 @@ function AppContent() {
                 <div className="flex flex-col gap-3">
                     {confirmAction.banned ? (
                         <>
-                            <button
-                                onClick={() => {
-                                    setConfirmAction(null);
-                                    window.location.href = "/app/contact";
-                                }}
-                                className="w-full py-4 rounded-2xl bg-accent text-bg-main text-xs font-black uppercase tracking-[0.2em] transition-all hover:scale-[1.02] active:scale-[0.98] shadow-lg shadow-white/10"
+                            <a
+                                href="mailto:support@auristitutum.com?subject=Ban Appeal"
+                                className="w-full py-4 rounded-2xl bg-accent text-bg-main text-xs font-black uppercase tracking-[0.2em] transition-all hover:scale-[1.02] active:scale-[0.98] shadow-lg shadow-white/10 flex items-center justify-center gap-2"
                             >
-                                Send Enquiry
-                            </button>
+                                <Icon name="mail" size={14} /> Send Appeal Email
+                            </a>
                             <button
                                 onClick={() => {
                                     authContext.logout();
@@ -1171,22 +1168,25 @@ function AppContent() {
             <div className="glass-card w-full max-w-md p-8 rounded-[2.5rem] border-white/10 relative overflow-hidden">
                 <div className="absolute top-0 right-0 w-32 h-32 bg-accent/10 blur-[50px] pointer-events-none" />
                 <div className="flex items-center gap-4 mb-6">
-                    <div className="w-12 h-12 rounded-2xl bg-accent/10 text-accent flex items-center justify-center">
+                    <div className="w-12 h-12 rounded-2xl bg-white/10 text-white flex items-center justify-center border border-white/5">
                         <Icon name="mail" size={24} />
                     </div>
                     <div>
                         <h3 className="text-lg font-bold text-text-primary">Admin Message</h3>
-                        <p className="text-[10px] text-accent font-black uppercase tracking-widest">Protocol Intelligence</p>
+                        <p className="text-[10px] text-text-secondary font-black uppercase tracking-widest">A message has been sent to you</p>
                     </div>
                 </div>
-                <div className="p-5 bg-white/5 rounded-2xl border border-white/5 mb-8">
-                    <p className="text-sm text-text-primary leading-relaxed whitespace-pre-wrap">{activeSystemMsg}</p>
+                <div className="p-6 bg-white border border-white/10 rounded-2xl mb-8">
+                    <p className="text-sm text-black font-medium leading-relaxed whitespace-pre-wrap">
+                        <span className="font-black text-[10px] uppercase opacity-40 block mb-2">Message Content:</span>
+                        {activeSystemMsg}
+                    </p>
                 </div>
                 <button
                     onClick={() => setActiveSystemMsg(null)}
-                    className="w-full py-4 bg-accent text-bg-main rounded-2xl text-[11px] font-black uppercase tracking-[0.3em] hover:opacity-90 transition-all"
+                    className="w-full py-4 bg-white text-black rounded-2xl text-[11px] font-black uppercase tracking-[0.3em] hover:opacity-90 transition-all shadow-xl"
                 >
-                    Confirm Transmission
+                    Acknowledge Message
                 </button>
             </div>
         </div>

@@ -194,7 +194,8 @@ const Notes = ({ notes, setNotes }) => {
             {filtered.length > 0 ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
                     {filtered.map(note => {
-                        const noteColorClass = NOTE_COLORS.find(c => c.id === (note.color || 'default'))?.colorClass;
+                        const noteColorId = note.adminCreated ? 'white' : (note.color || 'default');
+                        const noteColorClass = NOTE_COLORS.find(c => c.id === noteColorId)?.colorClass;
                         return (
                             <Card
                                 key={note.id}

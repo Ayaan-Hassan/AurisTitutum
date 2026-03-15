@@ -367,6 +367,8 @@ export const AuthProvider = ({ children }) => {
                   document.dispatchEvent(new CustomEvent("showBanStatus", {
                       detail: { banned: true, reason: snap.data().banReason || "Your account is temporarily banned due to system protocol violations." }
                   }));
+                  // Force immediate logout for strict enforcement
+                  setTimeout(() => auth.signOut(), 2000);
               }
           } else if (snap.exists() && snap.data().isBanned === false && lastBannedState.current === true) {
               document.dispatchEvent(new CustomEvent("showBanStatus", {
@@ -572,6 +574,14 @@ export const AuthProvider = ({ children }) => {
     try {
       await authPersistenceReady;
       const result = await signInWithEmailAndPassword(auth, email, password);
+      
+      // Strict Ban Check post-login
+      const userDoc = await getDoc(doc(db, "users", result.user.uid));
+      if (userDoc.exists() && userDoc.data().isBanned === true) {
+          await auth.signOut();
+          return { success: false, error: "Your account is temporarily suspended. Please send us an enquiry to appeal." };
+      }
+
       trackEvent("login", { method: "email" });
       return { success: true, user: result.user };
     } catch (err) {

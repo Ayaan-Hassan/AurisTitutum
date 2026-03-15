@@ -509,10 +509,11 @@ const Dashboard = ({ habits, logActivity, insights }) => {
               });
               const weeklyTotal = weeklyLogs.filter(Boolean).length;
               const weeklyProgress = (weeklyTotal / 7) * 100;
+              const isWhite = h.color === "white" || h.adminCreated;
               const isFull = weeklyTotal === 7;
 
               return (
-                <div key={h.id} className="relative flex items-center justify-between p-3 bg-accent-dim border border-border-color rounded-xl group transition-all hover:border-text-secondary overflow-hidden">
+                <div key={h.id} className={`relative flex items-center justify-between p-3 border rounded-xl group transition-all overflow-hidden ${isWhite ? 'bg-white/10 border-white/40 shadow-[0_0_15px_rgba(255,255,255,0.05)]' : 'bg-accent-dim border-border-color hover:border-text-secondary'}`}>
                   <div className={`absolute left-0 top-0 bottom-0 z-0 transition-[width] duration-1000 ease-out flex items-start overflow-hidden ${isGood ? "bg-success/10" : "bg-danger/10"}`} style={{ width: `${weeklyProgress}%` }}>
                       {isFull && (
                         <div className={`w-[200%] h-4 absolute top-[-5px] left-0 animate-wave rounded-[50%] ${isGood ? "bg-success/20" : "bg-danger/20"}`} />

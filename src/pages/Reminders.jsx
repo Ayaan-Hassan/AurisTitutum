@@ -159,9 +159,10 @@ const ReminderForm = ({ initial = {}, onSave, onCancel, title: formTitle }) => {
 const ReminderCard = ({ reminder, onDelete, onEdit, onMarkDone }) => {
   const past = isReminderPast(reminder);
   const repeat = reminder.repeat || "none";
+  const isWhite = reminder.color === "white" || reminder.adminCreated;
 
   return (
-    <div className={`flex items-start justify-between gap-3 p-4 rounded-2xl border transition-all group ${past ? "bg-bg-main/40 border-border-color opacity-60" : "bg-card-bg border-border-color hover:border-text-secondary"}`}>
+    <div className={`flex items-start justify-between gap-3 p-4 rounded-2xl border transition-all group ${past ? "bg-bg-main/40 border-border-color opacity-60" : isWhite ? "bg-white/10 border-white/40 shadow-[0_0_15px_rgba(255,255,255,0.05)] scale-[1.01]" : "bg-card-bg border-border-color hover:border-text-secondary"}`}>
       <div className="flex items-start gap-3 min-w-0 flex-1">
         <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 mt-0.5 border ${past ? "bg-bg-main border-border-color" : "bg-accent-dim border-border-color"}`}>
           <Icon name={past ? "check-circle" : "bell"} size={15} className={past ? "text-text-secondary" : "text-text-primary"} />

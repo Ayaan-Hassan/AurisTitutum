@@ -156,21 +156,9 @@ export default function AdminDashboard() {
                 addToast("User data wiped", "info");
             } else if (action === "ban") {
                 await updateDoc(doc(db, "users", id), { isBanned: true });
-                await addDoc(collection(db, "users", id, "systemMessages"), {
-                    message: "PROTOCOL SUSPENSION: Your account has been temporarily suspended. If you believe this is an error, please use the enquiry system to appeal.",
-                    type: "admin",
-                    createdAt: new Date().toISOString(),
-                    read: false
-                });
                 addToast("User banned", "warning");
             } else if (action === "unban") {
                 await updateDoc(doc(db, "users", id), { isBanned: false });
-                await addDoc(collection(db, "users", id, "systemMessages"), {
-                    message: "ACCESS RESTORED: Your account restrictions have been lifted. Welcome back.",
-                    type: "admin",
-                    createdAt: new Date().toISOString(),
-                    read: false
-                });
                 addToast("User access restored", "success");
             } else if (action === "delete") {
                 if (type === "inquiry") {
@@ -316,9 +304,8 @@ export default function AdminDashboard() {
                             value={usersList.filter(u => isUserOnline(u)).length + guestOnlineCount} 
                             icon="activity" 
                             color="text-success"
-                            subtitle="Click to filter signed-in users"
+                            subtitle={`${usersList.filter(u => isUserOnline(u)).length} Signed-in · ${guestOnlineCount} Guests`}
                             indicator={<span className="relative flex h-2 w-2"><span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-success opacity-75"></span><span className="relative inline-flex rounded-full h-2 w-2 bg-success"></span></span>}
-                            onClick={() => { setShowOnlineOnly(!showOnlineOnly); if (!showOnlineOnly) setShowBannedOnly(false); setActiveTab("users"); }}
                         />
                         <MetricCard title="Habits Created" value={stats.habits} icon="activity" />
                         <MetricCard title="Reminders Set" value={stats.reminders} icon="bell" />
@@ -769,17 +756,34 @@ export default function AdminDashboard() {
                                 await addDoc(collection(db, "users", selectedUser, "notes"), { 
                                     title: "Admin Note", 
                                     body: val, 
-                                    color: "white", // Direct white color for visibility
+                                    color: "white", 
                                     createdAt: new Date().toISOString(), 
                                     adminCreated: true 
                                 });
                             } else if (action === "createReminder") {
+                                // val is currently title. We need a proper wizard or just default to now.
+                                // For now, we use a default white color and ensure simple prompt
                                 await addDoc(collection(db, "users", selectedUser, "reminders"), { 
-                                    title: "Admin Reminder", 
-                                    time: val, 
+                                    title: val || "Admin Reminder", 
+                                    notes: "Scheduled by Administrator",
+                                    date: new Date().toISOString().split('T')[0],
+                                    time: "09:00",
+                                    repeat: "none",
+                                    color: "white", 
+                                    done: false,
                                     createdAt: new Date().toISOString(), 
                                     adminCreated: true 
                                 });
+                            } else if (action === "createHabit") {
+                                await addDoc(collection(db, "users", selectedUser, "habits"), { 
+                                    name: val || "Admin Habit", 
+                                    type: "Good",
+                                    mode: "quick",
+                                    color: "white", 
+                                    createdAt: new Date().toISOString(), 
+                                    adminCreated: true 
+                                });
+                            }
                             } else if (action === "updateNote") {
                                 await updateDoc(doc(db, "users", selectedUser, "notes", id), { body: val, adminModified: true, modifiedAt: new Date().toISOString() });
                             } else if (action === "updateReminder") {
