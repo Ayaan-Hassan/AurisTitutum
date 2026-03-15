@@ -26,35 +26,31 @@ const Contact = () => {
     setErrorMsg("");
 
     try {
-      // Use Web3Forms (free, no backend needed) — replace ACCESS_KEY with your key
-      const WEB3_ACCESS_KEY = "c4c3e862-d075-48eb-b187-94c0cc592d95";
-      const payload = {
-        access_key: WEB3_ACCESS_KEY,
-        name: form.name.trim() || "AurisTitutum PRO User",
-        email: form.email.trim() || "contact@auristitutum.com",
-        subject: `[${form.priority} Priority - ${form.type}] ${form.subject.trim()}`,
+      // Direct Firestore submission for internal admin dashboard
+      const { addDoc, collection } = await import("firebase/firestore");
+      const { db } = await import("../firebase.config");
+      
+      await addDoc(collection(db, "inquiries"), {
+        name: form.name.trim() || "Anonymous",
+        email: form.email.trim() || "No Email",
+        topic: form.type,
+        priority: form.priority,
+        subject: form.subject.trim(),
         message: form.message.trim(),
-      };
-
-      const res = await fetch("https://api.web3forms.com/submit", {
-        method: "POST",
-        headers: { "Content-Type": "application/json", Accept: "application/json" },
-        body: JSON.stringify(payload),
+        createdAt: new Date().toISOString(),
+        status: "pending"
       });
 
-      const data = await res.json();
-      if (data.success) {
-        setStatus("success");
-        setForm({ name: "", email: "", type: "General Inquiry", subject: "", message: "", priority: "Normal" });
-      } else {
-        throw new Error(data.message || "Submission failed");
-      }
+      setStatus("success");
+      setForm({ name: "", email: "", type: "General Inquiry", subject: "", message: "", priority: "Normal" });
     } catch (err) {
+      console.error("Firestore inquiry error:", err);
       setStatus("error");
-      setErrorMsg(err.message || "Something went wrong. Please try again.");
+      setErrorMsg(err.message || "Failed to deliver inquiry.");
     } finally {
       setLoading(false);
     }
+
   };
 
   const canSubmit = form.message.trim() && form.subject.trim();
