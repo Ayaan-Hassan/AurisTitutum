@@ -53,7 +53,9 @@ import {
     Send,
     Eraser,
     ChevronDown,
-    ChevronUp
+    ChevronUp,
+    Calendar,
+    BarChart
 } from 'lucide-react';
 
 const Icon = ({ name, size = 18, className = "" }) => {
@@ -113,7 +115,9 @@ const Icon = ({ name, size = 18, className = "" }) => {
         'edit': Pencil,
         'eraser': Eraser,
         'chevron-down': ChevronDown,
-        'chevron-up': ChevronUp
+        'chevron-up': ChevronUp,
+        'calendar': Calendar,
+        'bar-chart': BarChart
     };
 
     const LucideIcon = icons[name];

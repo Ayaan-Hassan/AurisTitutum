@@ -384,8 +384,13 @@ function AppContent() {
       addToast(e.detail.message, e.detail.type);
     };
     const handleSystemPopup = (e) => {
-      setActiveSystemMsg(e.detail.message);
-      addToast("Priority Admin Message Received", "info");
+      document.dispatchEvent(new CustomEvent("addSystemNotification", {
+          detail: { 
+              title: "Admin Message", 
+              body: e.detail.message, 
+              level: "info" 
+          }
+      }));
     };
     document.addEventListener("showToast", handleToast);
     document.addEventListener("showSystemPopup", handleSystemPopup);
@@ -1103,43 +1108,6 @@ function AppContent() {
               >
                 Not now
               </button>
-            </div>
-          </div>
-        </div>
-      )}
-      {/* System Communication Popup */}
-      {activeSystemMsg && (
-        <div className="fixed inset-0 z-[1000] bg-black/90 backdrop-blur-sm flex justify-center items-center p-6 animate-in fade-in duration-500">
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_var(--accent-dim)_0%,_transparent_70%)] opacity-20"></div>
-          <div className="bg-card-bg border border-border-color p-8 rounded-[2rem] shadow-[0_0_50px_rgba(0,0,0,0.5)] max-w-md w-full relative overflow-hidden group border-t-accent">
-            <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-accent to-transparent"></div>
-            
-            <div className="flex flex-col items-center text-center">
-              <div className="w-14 h-14 rounded-xl bg-accent/10 border border-accent/20 flex items-center justify-center text-accent mb-6 shadow-xl shadow-accent/5">
-                <Icon name="mail" size={28} />
-              </div>
-              
-              <h3 className="text-xl font-bold text-text-primary mb-2 tracking-tight flex items-center gap-2">
-                Admin Message
-              </h3>
-              <p className="text-[10px] font-black uppercase tracking-[0.3em] text-accent mb-6 opacity-60">Priority Transmission</p>
-              
-              <div className="w-full p-6 bg-bg-main/50 rounded-2xl border border-border-color/50 mb-8 max-h-[300px] overflow-y-auto custom-scrollbar">
-                <p className="text-sm text-text-primary leading-relaxed font-medium whitespace-pre-wrap text-left">
-                  {activeSystemMsg.message || activeSystemMsg}
-                </p>
-              </div>
-              
-              <button 
-                onClick={() => setActiveSystemMsg(null)}
-                className="w-full py-4 rounded-2xl bg-accent text-bg-main font-bold uppercase tracking-[0.1em] text-[11px] shadow-lg shadow-accent/20 hover:scale-[1.02] active:scale-[0.98] transition-all"
-              >
-                Close Message
-              </button>
-              
-              <p className="mt-6 text-[8px] font-mono text-text-secondary uppercase tracking-[0.3em] opacity-30">
-                Official Correspondence • Auris Dashboard
-              </p>
             </div>
           </div>
         </div>

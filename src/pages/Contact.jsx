@@ -1,10 +1,12 @@
 import { useState } from "react";
 import Icon from "../components/Icon";
 import { Card } from "../components/ui/Card";
+import { useAuth } from "../contexts/AuthContext";
 
 // ─── Contact Us Page ─────────────────────────────────────────────────────────
 const Contact = () => {
-  const [form, setForm] = useState({ name: "", email: "", type: "General Inquiry", subject: "", message: "", priority: "Normal" });
+  const { user } = useAuth();
+  const [form, setForm] = useState({ type: "General Inquiry", subject: "", message: "", priority: "Normal" });
   const [loading, setLoading] = useState(false);
   const [status, setStatus] = useState(null); // null | 'success' | 'error'
   const [errorMsg, setErrorMsg] = useState("");
@@ -31,8 +33,9 @@ const Contact = () => {
       const { db } = await import("../firebase.config");
 
       await addDoc(collection(db, "inquiries"), {
-        name: form.name.trim() || "Anonymous",
-        email: form.email.trim() || "No Email",
+        uid: user?.uid || "anonymous",
+        name: user?.displayName || user?.name || "Anonymous",
+        email: user?.email || "No Email",
         topic: form.type,
         priority: form.priority,
         subject: form.subject.trim(),
@@ -42,7 +45,7 @@ const Contact = () => {
       });
 
       setStatus("success");
-      setForm({ name: "", email: "", type: "General Inquiry", subject: "", message: "", priority: "Normal" });
+      setForm({ type: "General Inquiry", subject: "", message: "", priority: "Normal" });
     } catch (err) {
       console.error("Firestore inquiry error:", err);
       setStatus("error");
@@ -92,46 +95,15 @@ const Contact = () => {
           )}
 
           <form onSubmit={handleSubmit} className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {/* Optional Name */}
-              <div className="space-y-2">
-                <label className="text-[10px] font-black text-text-secondary uppercase tracking-[0.3em]">
-                  Name (Optional)
-                </label>
-                <div className="relative">
-                  <div className="absolute left-4 top-1/2 -translate-y-1/2 text-text-secondary/50">
-                    <Icon name="user" size={16} />
-                  </div>
-                  <input
-                    type="text"
-                    name="name"
-                    value={form.name}
-                    onChange={handleChange}
-                    placeholder="Your name or alias"
-                    className="w-full bg-bg-main border border-border-color p-4 pl-12 rounded-xl outline-none focus:border-accent text-sm text-text-primary transition-all placeholder:text-text-secondary/40"
-                  />
+            <div className="p-4 bg-accent/5 rounded-xl border border-accent/20 flex items-center gap-4 mb-2">
+                <div className="w-10 h-10 rounded-full bg-accent/20 flex items-center justify-center text-accent font-bold">
+                    {(user?.displayName || user?.name || "A").charAt(0)}
                 </div>
-              </div>
-
-              {/* Optional Email */}
-              <div className="space-y-2">
-                <label className="text-[10px] font-black text-text-secondary uppercase tracking-[0.3em]">
-                  Email Address (Optional)
-                </label>
-                <div className="relative">
-                  <div className="absolute left-4 top-1/2 -translate-y-1/2 text-text-secondary/50">
-                    <Icon name="mail" size={16} />
-                  </div>
-                  <input
-                    type="email"
-                    name="email"
-                    value={form.email}
-                    onChange={handleChange}
-                    placeholder="Return email address"
-                    className="w-full bg-bg-main border border-border-color p-4 pl-12 rounded-xl outline-none focus:border-accent text-sm text-text-primary transition-all placeholder:text-text-secondary/40"
-                  />
+                <div>
+                    <p className="text-xs font-bold text-text-primary">{user?.displayName || user?.name || "Anonymous User"}</p>
+                    <p className="text-[10px] text-text-secondary opacity-70">{user?.email || "No email linked"}</p>
                 </div>
-              </div>
+                <div className="ml-auto px-2 py-1 bg-accent/10 rounded text-[8px] font-black uppercase text-accent tracking-tighter">Verified Session</div>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">

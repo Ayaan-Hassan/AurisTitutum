@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { collection, getDocs, collectionGroup, getCountFromServer, onSnapshot, doc, deleteDoc, updateDoc, addDoc, query } from "firebase/firestore";
-import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
+import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, LineChart, Line, BarChart, Bar } from 'recharts';
 import { db } from "../firebase.config";
 import { useAuth } from "../contexts/AuthContext";
 import { Button } from "../components/ui/Button";
@@ -36,6 +36,10 @@ export default function AdminDashboard() {
     const [adminMessage, setAdminMessage] = useState(null);
     const [editModal, setEditModal] = useState(null);
     const [liveTick, setLiveTick] = useState(0);
+
+    const [graphRange, setGraphRange] = useState("30d");
+    const [graphType, setGraphType] = useState("area");
+    const [createComplex, setCreateComplex] = useState(null);
 
     useEffect(() => {
         localStorage.setItem("admin_pinned_users", JSON.stringify(pinnedUsers));
@@ -184,21 +188,36 @@ export default function AdminDashboard() {
     const graphData = useMemo(() => {
         if (!usersList.length) return [];
         const dateCounts = {};
+        const hourCounts = {};
+        const now = new Date();
+
         usersList.forEach(u => {
             const d = u.createdAt ? new Date(u.createdAt) : new Date();
-            const k = d.toISOString().split('T')[0];
-            dateCounts[k] = (dateCounts[k] || 0) + 1;
+            const dateK = d.toISOString().split('T')[0];
+            const hourK = d.getHours();
+            dateCounts[dateK] = (dateCounts[dateK] || 0) + 1;
+            if (d.toDateString() === now.toDateString()) {
+                hourCounts[hourK] = (hourCounts[hourK] || 0) + 1;
+            }
         });
+
         const data = [];
-        for (let i = 29; i >= 0; i--) {
-            const d = new Date();
-            d.setDate(d.getDate() - i);
-            const k = d.toISOString().split('T')[0];
-            const display = d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
-            data.push({ name: display, users: dateCounts[k] || 0 });
+        if (graphRange === "24h") {
+            for (let i = 0; i < 24; i++) {
+                data.push({ name: `${i}:00`, users: hourCounts[i] || 0 });
+            }
+        } else {
+            const days = graphRange === "7d" ? 7 : graphRange === "30d" ? 30 : 90;
+            for (let i = days - 1; i >= 0; i--) {
+                const d = new Date();
+                d.setDate(d.getDate() - i);
+                const k = d.toISOString().split('T')[0];
+                const display = d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+                data.push({ name: display, users: dateCounts[k] || 0 });
+            }
         }
         return data;
-    }, [usersList]);
+    }, [usersList, graphRange]);
 
     const userStats = useMemo(() => {
         if (!userData || !usersList.length || !selectedUser) return null;
@@ -401,7 +420,7 @@ export default function AdminDashboard() {
                                             <div className="bg-card-bg border border-border-color rounded-2xl p-6 shadow-sm space-y-4">
                                                 <div className="flex items-center justify-between border-b border-border-color pb-3">
                                                     <h4 className="text-[11px] font-black uppercase tracking-[0.2em] text-text-secondary">User Habits</h4>
-                                                    <button onClick={() => setEditModal({ type: "habits", action: "createHabit", id: "new", initialValue: "", label: "Add New Habit", confirmLabel: "Create" })} className="w-5 h-5 rounded bg-accent/10 text-accent hover:bg-accent hover:text-bg-main flex items-center justify-center transition-all"><Icon name="plus" size={10} /></button>
+                                                    <button onClick={() => setCreateComplex({ type: 'habit', name: '', mode: 'quick', habitType: 'Good' })} className="w-5 h-5 rounded bg-accent/10 text-accent hover:bg-accent hover:text-bg-main flex items-center justify-center transition-all"><Icon name="plus" size={10} /></button>
                                                 </div>
                                                 <div className="space-y-3">
                                                     {userData.habits?.length > 0 ? userData.habits.map(h => (
@@ -487,7 +506,7 @@ export default function AdminDashboard() {
                                                 <div className="bg-card-bg border border-border-color rounded-2xl p-6 shadow-sm">
                                                     <div className="flex items-center justify-between border-b border-border-color pb-3 mb-4">
                                                         <h4 className="text-[11px] font-black uppercase tracking-[0.2em] text-text-secondary">User Reminders ({userData.reminders?.length || 0})</h4>
-                                                        <button onClick={() => setEditModal({ type: "reminders", action: "createReminder", id: "new", initialValue: "09:00", label: "Add New Reminder (Time)", confirmLabel: "Create" })} className="w-5 h-5 rounded bg-accent/10 text-accent hover:bg-accent hover:text-bg-main flex items-center justify-center transition-all"><Icon name="plus" size={10} /></button>
+                                                        <button onClick={() => setCreateComplex({ type: 'reminder', title: '', time: '09:00' })} className="w-5 h-5 rounded bg-accent/10 text-accent hover:bg-accent hover:text-bg-main flex items-center justify-center transition-all"><Icon name="plus" size={10} /></button>
                                                     </div>
                                                     <div className="space-y-3 max-h-[220px] overflow-y-auto custom-scrollbar pr-2">
                                                         {userData.reminders?.length > 0 ? userData.reminders.map(r => (
@@ -513,26 +532,63 @@ export default function AdminDashboard() {
                     </div>
                     ) : null }
 
-                    <div className="h-64 bg-card-bg border border-border-color rounded-3xl p-8 shadow-sm">
-                        <h3 className="text-sm font-bold uppercase tracking-widest text-text-secondary mb-4">User Growth (Last 30 Days)</h3>
-                        <ResponsiveContainer width="100%" height="100%">
-                            <AreaChart data={graphData}>
-                                <defs>
-                                    <linearGradient id="colorUsers" x1="0" y1="0" x2="0" y2="1">
-                                        <stop offset="5%" stopColor="var(--accent)" stopOpacity={0.3}/>
-                                        <stop offset="95%" stopColor="var(--accent)" stopOpacity={0}/>
-                                    </linearGradient>
-                                </defs>
-                                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--border-color)" opacity={0.2} />
-                                <XAxis dataKey="name" stroke="var(--text-secondary)" fontSize={10} tickLine={false} axisLine={false} />
-                                <YAxis stroke="var(--text-secondary)" fontSize={10} tickLine={false} axisLine={false} />
-                                <Tooltip 
-                                    contentStyle={{ backgroundColor: 'var(--card-bg)', borderColor: 'var(--border-color)', borderRadius: '12px' }}
-                                    itemStyle={{ color: 'var(--accent)', fontSize: '12px', fontWeight: 'bold' }}
-                                />
-                                <Area type="monotone" dataKey="users" stroke="var(--accent)" fillOpacity={1} fill="url(#colorUsers)" strokeWidth={3} />
-                            </AreaChart>
-                        </ResponsiveContainer>
+                    <div className="bg-card-bg border border-border-color rounded-3xl p-8 shadow-sm flex flex-col gap-6">
+                        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                            <div>
+                                <h3 className="text-sm font-bold uppercase tracking-widest text-text-secondary">Growth Analytics</h3>
+                                <p className="text-[10px] text-accent font-mono uppercase mt-1">Real-time user density index</p>
+                            </div>
+                            <div className="flex flex-wrap items-center gap-2 bg-bg-main/50 p-1.5 rounded-2xl border border-border-color/50">
+                                <div className="flex gap-1 border-r border-border-color/50 pr-2 mr-1">
+                                    {['24h', '7d', '30d', '90d'].map(r => (
+                                        <button key={r} onClick={() => setGraphRange(r)} className={`px-3 py-1.5 rounded-xl text-[10px] font-bold uppercase transition-all ${graphRange === r ? 'bg-accent text-bg-main' : 'text-text-secondary hover:text-text-primary'}`}>{r}</button>
+                                    ))}
+                                </div>
+                                <div className="flex gap-1">
+                                    <button onClick={() => setGraphType('area')} className={`p-2 rounded-xl transition-all ${graphType === 'area' ? 'bg-white/10 text-accent' : 'text-text-secondary'}`} title="Area Chart"><Icon name="activity" size={14} /></button>
+                                    <button onClick={() => setGraphType('bar')} className={`p-2 rounded-xl transition-all ${graphType === 'bar' ? 'bg-white/10 text-accent' : 'text-text-secondary'}`} title="Bar Chart"><Icon name="bar-chart" size={14} /></button>
+                                    <button onClick={() => setGraphType('line')} className={`p-2 rounded-xl transition-all ${graphType === 'line' ? 'bg-white/10 text-accent' : 'text-text-secondary'}`} title="Line Chart"><Icon name="line-chart" size={14} /></button>
+                                </div>
+                            </div>
+                        </div>
+                        <div className="h-64 mt-4">
+                            <ResponsiveContainer width="100%" height="100%">
+                                {graphType === 'bar' ? (
+                                    <BarChart data={graphData}>
+                                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--border-color)" opacity={0.1} />
+                                        <XAxis dataKey="name" stroke="var(--text-secondary)" fontSize={9} tickLine={false} axisLine={false} />
+                                        <YAxis stroke="var(--text-secondary)" fontSize={9} tickLine={false} axisLine={false} />
+                                        <Tooltip contentStyle={{ backgroundColor: 'var(--card-bg)', borderColor: 'var(--border-color)', borderRadius: '12px' }} />
+                                        <Bar dataKey="users" fill="var(--accent)" radius={[4, 4, 0, 0]} />
+                                    </BarChart>
+                                ) : graphType === 'line' ? (
+                                    <LineChart data={graphData}>
+                                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--border-color)" opacity={0.1} />
+                                        <XAxis dataKey="name" stroke="var(--text-secondary)" fontSize={9} tickLine={false} axisLine={false} />
+                                        <YAxis stroke="var(--text-secondary)" fontSize={9} tickLine={false} axisLine={false} />
+                                        <Tooltip contentStyle={{ backgroundColor: 'var(--card-bg)', borderColor: 'var(--border-color)', borderRadius: '12px' }} />
+                                        <Line type="monotone" dataKey="users" stroke="var(--accent)" strokeWidth={3} dot={{ r: 4, fill: 'var(--accent)' }} />
+                                    </LineChart>
+                                ) : (
+                                    <AreaChart data={graphData}>
+                                        <defs>
+                                            <linearGradient id="colorUsers" x1="0" y1="0" x2="0" y2="1">
+                                                <stop offset="5%" stopColor="var(--accent)" stopOpacity={0.3}/>
+                                                <stop offset="95%" stopColor="var(--accent)" stopOpacity={0}/>
+                                            </linearGradient>
+                                        </defs>
+                                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--border-color)" opacity={0.2} />
+                                        <XAxis dataKey="name" stroke="var(--text-secondary)" fontSize={10} tickLine={false} axisLine={false} />
+                                        <YAxis stroke="var(--text-secondary)" fontSize={10} tickLine={false} axisLine={false} />
+                                        <Tooltip 
+                                            contentStyle={{ backgroundColor: 'var(--card-bg)', borderColor: 'var(--border-color)', borderRadius: '12px' }}
+                                            itemStyle={{ color: 'var(--accent)', fontSize: '12px', fontWeight: 'bold' }}
+                                        />
+                                        <Area type="monotone" dataKey="users" stroke="var(--accent)" fillOpacity={1} fill="url(#colorUsers)" strokeWidth={3} />
+                                    </AreaChart>
+                                )}
+                            </ResponsiveContainer>
+                        </div>
                     </div>
 
                     <div className="space-y-6 animate-in slide-in-from-bottom-2 duration-300">
@@ -660,6 +716,119 @@ export default function AdminDashboard() {
                     }}
                     onCancel={() => setEditModal(null)}
                 />
+            )}
+
+            {/* Complex Creation Modal */}
+            {createComplex && (
+                <div className="fixed inset-0 z-[1000] bg-black/80 backdrop-blur-md flex justify-center items-center p-4" onClick={() => setCreateComplex(null)}>
+                    <div className="bg-card-bg border border-border-color p-8 rounded-3xl shadow-2xl max-w-sm w-full animate-in zoom-in-95 duration-200" onClick={e => e.stopPropagation()}>
+                        <div className="flex items-center gap-3 mb-6">
+                            <div className="w-10 h-10 rounded-xl bg-accent/10 text-accent flex items-center justify-center">
+                                <Icon name={createComplex.type === 'habit' ? 'activity' : 'bell'} size={20} />
+                            </div>
+                            <h3 className="text-sm font-black uppercase tracking-widest text-text-primary">Create New {createComplex.type}</h3>
+                        </div>
+
+                        <div className="space-y-4">
+                            {createComplex.type === 'habit' ? (
+                                <>
+                                    <div className="space-y-1">
+                                        <label className="text-[10px] font-black uppercase tracking-widest text-text-secondary pl-1">Habit Name</label>
+                                        <input 
+                                            type="text" 
+                                            className="w-full bg-bg-main border border-border-color p-3 rounded-xl text-sm outline-none focus:border-accent"
+                                            value={createComplex.name}
+                                            onChange={(e) => setCreateComplex({...createComplex, name: e.target.value})}
+                                            placeholder="e.g. Read Books"
+                                            autoFocus
+                                        />
+                                    </div>
+                                    <div className="grid grid-cols-2 gap-3">
+                                        <div className="space-y-1">
+                                            <label className="text-[10px] font-black uppercase tracking-widest text-text-secondary pl-1">Type</label>
+                                            <select 
+                                                className="w-full bg-bg-main border border-border-color p-3 rounded-xl text-xs outline-none focus:border-accent appearance-none"
+                                                value={createComplex.habitType}
+                                                onChange={(e) => setCreateComplex({...createComplex, habitType: e.target.value})}
+                                            >
+                                                <option value="Good">Good</option>
+                                                <option value="Bad">Bad</option>
+                                            </select>
+                                        </div>
+                                        <div className="space-y-1">
+                                            <label className="text-[10px] font-black uppercase tracking-widest text-text-secondary pl-1">Mode</label>
+                                            <select 
+                                                className="w-full bg-bg-main border border-border-color p-3 rounded-xl text-xs outline-none focus:border-accent appearance-none"
+                                                value={createComplex.mode}
+                                                onChange={(e) => setCreateComplex({...createComplex, mode: e.target.value})}
+                                            >
+                                                <option value="quick">Quick</option>
+                                                <option value="count">Count</option>
+                                                <option value="timer">Timer</option>
+                                                <option value="rating">Rating</option>
+                                                <option value="choice">Choice</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                </>
+                            ) : (
+                                <>
+                                    <div className="space-y-1">
+                                        <label className="text-[10px] font-black uppercase tracking-widest text-text-secondary pl-1">Reminder Title</label>
+                                        <input 
+                                            type="text" 
+                                            className="w-full bg-bg-main border border-border-color p-3 rounded-xl text-sm outline-none focus:border-accent"
+                                            value={createComplex.title}
+                                            onChange={(e) => setCreateComplex({...createComplex, title: e.target.value})}
+                                            placeholder="e.g. Morning Meditation"
+                                            autoFocus
+                                        />
+                                    </div>
+                                    <div className="space-y-1">
+                                        <label className="text-[10px] font-black uppercase tracking-widest text-text-secondary pl-1">Scheduled Time</label>
+                                        <input 
+                                            type="time" 
+                                            className="w-full bg-bg-main border border-border-color p-3 rounded-xl text-sm outline-none focus:border-accent"
+                                            value={createComplex.time}
+                                            onChange={(e) => setCreateComplex({...createComplex, time: e.target.value})}
+                                        />
+                                    </div>
+                                </>
+                            )}
+                        </div>
+
+                        <div className="flex gap-3 mt-8">
+                            <Button variant="outline" className="flex-1" onClick={() => setCreateComplex(null)}>Cancel</Button>
+                            <Button className="flex-1" onClick={async () => {
+                                try {
+                                    if (createComplex.type === 'habit') {
+                                        if (!createComplex.name.trim()) return;
+                                        await addDoc(collection(db, "users", selectedUser, "habits"), { 
+                                            name: createComplex.name.trim(), 
+                                            type: createComplex.habitType, 
+                                            mode: createComplex.mode, 
+                                            createdAt: new Date().toISOString(), 
+                                            adminCreated: true 
+                                        });
+                                    } else {
+                                        if (!createComplex.title.trim()) return;
+                                        await addDoc(collection(db, "users", selectedUser, "reminders"), { 
+                                            title: createComplex.title.trim(), 
+                                            time: createComplex.time, 
+                                            createdAt: new Date().toISOString(), 
+                                            adminCreated: true 
+                                        });
+                                    }
+                                    addToast(`New ${createComplex.type} created for user`, "success");
+                                    setCreateComplex(null);
+                                    loadUserData(selectedUser);
+                                } catch(e) {
+                                    addToast(e.message, "error");
+                                }
+                            }}>Create Entry</Button>
+                        </div>
+                    </div>
+                </div>
             )}
 
             {/* Success/Error Feedback Modal */}
