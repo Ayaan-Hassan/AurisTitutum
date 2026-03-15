@@ -289,7 +289,6 @@ export default function AdminDashboard() {
                         <MetricCard title="Reminders Set" value={stats.reminders} icon="bell" />
                         <MetricCard title="Total Notes" value={stats.notes} icon="file-text" />
                     </div>
-                    </div>
 
                     {activeTab === "users" ? (
                     <div className="flex flex-col lg:flex-row gap-6 h-[720px]">
