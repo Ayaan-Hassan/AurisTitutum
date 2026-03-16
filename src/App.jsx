@@ -675,7 +675,7 @@ function AppContent() {
 
   const [dailyInsight] = useState(() => getDailyInsight());
 
-  const displayHabits = habits;
+
 
   // Curated aesthetic emoji list — only proper emoji, grayscale-filtered to match dark/gray theme
   const THEMED_EMOJIS = [

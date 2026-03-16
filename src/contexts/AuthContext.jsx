@@ -30,18 +30,26 @@ import {
   getUserSetting,
   updateUserPresence,
   updateGuestPresence,
+  upsertCollectionDoc,
+  deleteCollectionDoc,
 } from "../services/firestoreService";
 import {
   aggregateHabitsFromDocs,
   replaceHabits,
   subscribeHabits,
+  createHabit,
+  updateHabit as serviceUpdateHabit,
+  deleteHabit as serviceDeleteHabit,
 } from "../services/habitService";
-import { replaceLogs, serializeLogsFromHabits, subscribeLogs } from "../services/logService";
+import { 
+  replaceLogs, 
+  serializeLogsFromHabits, 
+  subscribeLogs,
+  createLog,
+  deleteLog as serviceDeleteLog,
+} from "../services/logService";
 import { replaceReminders, subscribeReminders } from "../services/reminderService";
 import { identifyUser, trackEvent } from "../utils/telemetry";
-import { createHabit, updateHabit as serviceUpdateHabit, deleteHabit as serviceDeleteHabit } from "../services/habitService";
-import { createLog, deleteLog as serviceDeleteLog } from "../services/logService";
-import { upsertCollectionDoc, deleteCollectionDoc, USER_SUBCOLLECTIONS } from "../services/firestoreService";
 
 const AuthContext = createContext(null);
 let redirectUser = null;
