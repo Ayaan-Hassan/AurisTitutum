@@ -12,7 +12,7 @@ import { useHabitNotifications } from "../hooks/useHabitNotifications";
 export default function AdminDashboard() {
     const { user } = useAuth();
     const { addToast } = useHabitNotifications([]);
-    const [stats, setStats] = useState(null);
+    const [stats, setStats] = useState({ users: 0, habits: 0, reminders: 0, notes: 0 });
     const [usersList, setUsersList] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
@@ -70,9 +70,11 @@ export default function AdminDashboard() {
             setLoading(true);
             setError(null);
             // Initial fetch if needed, though snapshots will handle it
-            const habitsSnapshot = await getCountFromServer(collectionGroup(db, "habits"));
-            const remindersSnapshot = await getCountFromServer(collectionGroup(db, "reminders"));
-            const notesSnapshot = await getCountFromServer(collectionGroup(db, "notes"));
+            const [habitsSnapshot, remindersSnapshot, notesSnapshot] = await Promise.all([
+                getCountFromServer(collectionGroup(db, "habits")),
+                getCountFromServer(collectionGroup(db, "reminders")),
+                getCountFromServer(collectionGroup(db, "notes"))
+            ]);
 
             setStats({
                 users: usersList.length,
@@ -127,6 +129,7 @@ export default function AdminDashboard() {
             setStats(prev => ({ ...prev, notes: snapshot.size }));
         });
 
+        fetchStats();
         return () => { unsubUsers(); unsubInquiries(); unsubGuests(); unsubHabits(); unsubReminders(); unsubNotes(); };
     }, [isAdmin]);
 
