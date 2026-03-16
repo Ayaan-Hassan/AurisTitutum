@@ -69,15 +69,15 @@ export default function AdminDashboard() {
         try {
             setLoading(true);
             setError(null);
-            // Initial fetch if needed, though snapshots will handle it
-            const [habitsSnapshot, remindersSnapshot, notesSnapshot] = await Promise.all([
+            const [usersSnapshot, habitsSnapshot, remindersSnapshot, notesSnapshot] = await Promise.all([
+                getCountFromServer(collection(db, "users")),
                 getCountFromServer(collectionGroup(db, "habits")),
                 getCountFromServer(collectionGroup(db, "reminders")),
                 getCountFromServer(collectionGroup(db, "notes"))
             ]);
 
             setStats({
-                users: usersList.length,
+                users: usersSnapshot.data().count,
                 habits: habitsSnapshot.data().count,
                 reminders: remindersSnapshot.data().count,
                 notes: notesSnapshot.data().count
@@ -104,13 +104,12 @@ export default function AdminDashboard() {
         });
         const unsubGuests = onSnapshot(collection(db, "guest_presence"), (snapshot) => {
             let count = 0;
-            const threshold = 30000; // 30 seconds threshold for strict real-time
+            const threshold = 60000; // Increased to 60s for better reliability with 20s intervals
             const now = new Date();
             snapshot.forEach(d => {
                 const data = d.data();
                 const lastActive = data.lastActive;
-                // Strict: Must have isOnline true AND be within threshold
-                if (data.isOnline && lastActive && (now - new Date(lastActive)) < threshold) {
+                if (lastActive && (now - new Date(lastActive)) < threshold) {
                     count++;
                 }
             });
@@ -170,12 +169,13 @@ export default function AdminDashboard() {
                     const snap = await getDocs(q);
                     snap.forEach(d => deleteDoc(d.ref));
                 }
+                await updateDoc(doc(db, "users", id), { isWiped: true });
                 addToast("User data wiped", "info");
             } else if (action === "ban") {
                 await updateDoc(doc(db, "users", id), { isBanned: true });
                 addToast("User banned", "warning");
             } else if (action === "unban") {
-                await updateDoc(doc(db, "users", id), { isBanned: false });
+                await updateDoc(doc(db, "users", id), { isBanned: false, isWiped: false });
                 addToast("User access restored", "success");
             } else if (action === "delete") {
                 if (type === "inquiry") {
@@ -533,15 +533,29 @@ export default function AdminDashboard() {
                                                                                 {sortedDates.map((dateStr, idx) => (
                                                                                     <div key={idx} className="relative pl-3 border-l-[1px] border-border-color">
                                                                                         <p className="text-[9px] font-black text-text-secondary opacity-50 mb-2 uppercase tracking-tighter">{dateStr}</p>
-                                                                                        <div className="space-y-1.5">
-                                                                                            {grouped[dateStr].map((e, i) => (
-                                                                                                <div key={i} className="flex justify-between items-center text-[11px] p-2 bg-bg-main/40 rounded-lg border border-border-color/20">
-                                                                                                    <span className="font-medium text-text-primary">{e.mode === 'count' ? `${e.amount} ${e.unit || ''}` : e.mode === 'time' ? e.time : 'Logged'}</span>
-                                                                                                    <div className="flex gap-2">
-                                                                                                        <button onClick={() => setConfirmAction({ type: "logs", action: "delete", id: e.id })} className="text-danger opacity-50 hover:opacity-100 transition-opacity"><Icon name="trash" size={10} /></button>
-                                                                                                    </div>
-                                                                                                </div>
-                                                                                            ))}
+                                                                                        <div className="space-y-1.5">                                                                                             {grouped[dateStr].map((e, i) => (
+                                                                                                 <div key={i} className="flex flex-col gap-2 p-3 bg-bg-main/40 rounded-xl border border-border-color/20">
+                                                                                                     <div className="flex justify-between items-center text-[11px]">
+                                                                                                         <span className="font-medium text-text-primary">
+                                                                                                             {e.mode === 'count' ? `${e.amount} ${e.unit || ''}` : e.mode === 'timer' ? e.time : e.mode === 'upload' ? 'Photo Log' : 'Logged'}
+                                                                                                         </span>
+                                                                                                         <div className="flex gap-2">
+                                                                                                             <button onClick={() => setConfirmAction({ type: "logs", action: "delete", id: e.id })} className="text-danger opacity-50 hover:opacity-100 transition-opacity"><Icon name="trash" size={10} /></button>
+                                                                                                         </div>
+                                                                                                     </div>
+                                                                                                     {e.photoData && (
+                                                                                                         <div className="relative group/img overflow-hidden rounded-lg aspect-square w-full sm:w-24 border border-border-color/50">
+                                                                                                             <img src={e.photoData} alt="Log" className="w-full h-full object-cover transition-transform group-hover/img:scale-110" />
+                                                                                                             <div 
+                                                                                                                className="absolute inset-0 bg-black/0 group-hover/img:bg-black/40 flex items-center justify-center opacity-0 group-hover/img:opacity-100 transition-all cursor-pointer"
+                                                                                                                onClick={() => window.open(e.photoData, '_blank')}
+                                                                                                             >
+                                                                                                                <Icon name="maximize" size={14} className="text-white" />
+                                                                                                             </div>
+                                                                                                         </div>
+                                                                                                     )}
+                                                                                                 </div>
+                                                                                             ))}}
                                                                                         </div>
                                                                                     </div>
                                                                                 ))}

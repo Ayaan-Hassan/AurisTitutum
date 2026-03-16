@@ -544,7 +544,7 @@ function AppContent() {
       } finally {
         isSavingToCloudRef.current = false;
       }
-    }, 400);
+    }, 50);
 
     return () => {
       if (cloudSaveTimerRef.current) {
@@ -1156,22 +1156,27 @@ function AppContent() {
                             Leave
                         </button>
                     ) : (
-                        <button
-                            onClick={() => setConfirmAction(null)}
-                            className="w-full py-4 rounded-2xl bg-accent text-bg-main text-xs font-black uppercase tracking-[0.2em] transition-all hover:scale-[1.02] active:scale-[0.98]"
-                        >
-                            Continue to App
-                        </button>
+                        <Button onClick={() => window.location.reload()} variant="primary" className="w-full py-4 tracking-widest">Continue to Web</Button>
                     )}
                 </div>
             </div>
         </div>
       )}
 
-      <AdminMessageModal 
-        message={activeSystemMsg} 
-        onClose={() => setActiveSystemMsg(null)} 
-      />
+      {authContext.isBanned && (
+        <BannedMessageModal />
+      )}
+
+      {authContext.isWiped && (
+        <WipeMessageModal />
+      )}
+
+      {currentAdminMessage && (
+        <AdminMessageModal 
+          message={currentAdminMessage.message} 
+          onClear={clearCurrentAdminMessage} 
+        />
+      )}
     </>
   );
 }
@@ -1186,103 +1191,103 @@ function App() {
   );
 }
 
-function AdminMessageModal({ message, onClose }) {
-  const { user } = useAuth();
-  const [reply, setReply] = useState("");
-  const [isReplying, setIsReplying] = useState(false);
-  const [isSending, setIsSending] = useState(false);
+const AdminMessageModal = ({ message, onClear }) => {
+    const [reply, setReply] = useState("");
+    const [sending, setSending] = useState(false);
+    const { user } = useAuth();
+    const { addToast } = useHabitNotifications([]);
 
-  const handleSendReply = async () => {
-    if (!reply.trim()) return;
-    setIsSending(true);
-    try {
-      await addDoc(collection(db, "inquiries"), {
-        uid: user.uid,
-        email: user.email,
-        displayName: user.displayName || "User",
-        type: "Message Reply",
-        message: `RE: Admin Message\n\nOriginal: ${message}\n\nReply: ${reply}`,
-        createdAt: new Date().toISOString(),
-        status: "open"
-      });
-      setIsReplying(false);
-      setReply("");
-      onClose();
-    } catch (e) {
-      console.error(e);
-    } finally {
-      setIsSending(false);
-    }
-  };
+    const handleReply = async () => {
+        if (!reply.trim()) return;
+        setSending(true);
+        try {
+            const { db } = await import("./firebase.config");
+            const { collection, addDoc } = await import("firebase/firestore");
+            await addDoc(collection(db, "inquiries"), {
+                uid: user.uid,
+                name: user.displayName || "User",
+                email: user.email,
+                topic: "Admin Reply",
+                priority: "Normal",
+                subject: "Reply to Admin Message",
+                message: reply,
+                createdAt: new Date().toISOString(),
+                status: "pending"
+            });
+            addToast("Reply sent to admin", "success");
+            onClear();
+        } catch (e) {
+            addToast("Failed to send reply", "error");
+        } finally {
+            setSending(false);
+        }
+    };
 
-  if (!message) return null;
+    return (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-bg-main/90 backdrop-blur-xl animate-in fade-in duration-300">
+            <div className="w-full max-w-lg bg-card-bg border border-border-color rounded-[2.5rem] p-8 shadow-2xl relative overflow-hidden group">
+                <div className="absolute top-0 right-0 w-32 h-32 bg-accent/5 blur-3xl rounded-full" />
+                <div className="relative z-10 flex flex-col items-center text-center">
+                    <div className="w-16 h-16 rounded-2xl bg-accent/10 flex items-center justify-center text-accent mb-6 animate-bounce">
+                        <Icon name="mail" size={32} />
+                    </div>
+                    <h3 className="text-xl font-bold tracking-tight text-text-primary mb-2">Admin sent you a message</h3>
+                    <div className="w-full bg-bg-main/50 border border-border-color/50 rounded-2xl p-4 text-sm text-text-secondary leading-relaxed mb-6 italic">
+                        "{message}"
+                    </div>
+                    
+                    <textarea 
+                        value={reply}
+                        onChange={(e) => setReply(e.target.value)}
+                        placeholder="Type your reply here..."
+                        className="w-full bg-bg-main border border-border-color rounded-xl p-3 text-xs text-text-primary outline-none focus:border-accent mb-4 resize-none transition-all"
+                        rows={3}
+                    />
 
-  return (
-    <div className="fixed inset-0 bg-black/80 backdrop-blur-xl flex items-center justify-center z-[200] p-4 text-center">
-      <div className="glass-card w-full max-w-sm p-8 rounded-[3rem] border-white/10 relative overflow-hidden shadow-2xl">
-        <div className="absolute -top-24 -right-24 w-48 h-48 bg-accent/20 rounded-full blur-[80px]" />
-        
-        <div className="w-16 h-16 mx-auto rounded-2xl bg-accent/10 text-accent flex items-center justify-center mb-6 border border-white/5">
-          <Icon name="mail" size={32} />
-        </div>
-
-        <h3 className="text-xl font-bold tracking-tight text-text-primary mb-2">
-          Admin sent you a message
-        </h3>
-        
-        <div className="bg-white/5 border border-white/10 rounded-2xl p-5 mb-6 text-left relative group">
-          <p className="text-sm text-text-secondary leading-relaxed whitespace-pre-wrap">
-            {message}
-          </p>
-        </div>
-
-        {isReplying ? (
-          <div className="mb-6 animate-in slide-in-from-top-2">
-            <textarea
-              value={reply}
-              onChange={(e) => setReply(e.target.value)}
-              placeholder="Type your reply here..."
-              className="w-full h-32 bg-bg-main border border-border-color rounded-2xl p-4 text-sm text-text-primary outline-none focus:border-accent transition-all resize-none mb-3"
-              disabled={isSending}
-            />
-            <div className="flex gap-3">
-              <Button 
-                onClick={() => setIsReplying(false)} 
-                variant="outline" 
-                className="flex-1 rounded-xl py-3"
-                disabled={isSending}
-              >
-                Cancel
-              </Button>
-              <Button 
-                onClick={handleSendReply} 
-                variant="primary" 
-                className="flex-1 rounded-xl py-3 whitespace-nowrap"
-                disabled={isSending || !reply.trim()}
-              >
-                {isSending ? "Sending..." : "Send"}
-              </Button>
+                    <div className="flex gap-3 w-full">
+                        <button 
+                            onClick={onClear} 
+                            className="flex-1 py-3 px-6 bg-white/5 hover:bg-white/10 text-white text-[10px] font-black uppercase tracking-widest rounded-xl transition-all"
+                        >
+                            Ok
+                        </button>
+                        <button 
+                            onClick={handleReply}
+                            disabled={sending || !reply.trim()}
+                            className="flex-1 py-3 px-6 bg-accent text-bg-main text-[10px] font-black uppercase tracking-widest rounded-xl hover:opacity-90 active:scale-95 transition-all shadow-lg disabled:opacity-50"
+                        >
+                            {sending ? "Sending..." : "Reply"}
+                        </button>
+                    </div>
+                </div>
             </div>
-          </div>
-        ) : (
-          <div className="flex gap-3">
-            <button
-               onClick={() => setIsReplying(true)}
-               className="flex-1 py-4 rounded-2xl bg-white/5 text-text-secondary text-[10px] font-black uppercase tracking-[0.2em] transition-all hover:bg-white/10 border border-white/10"
-            >
-              Reply
-            </button>
-            <button
-              onClick={onClose}
-              className="flex-1 py-4 rounded-2xl bg-accent text-bg-main text-[10px] font-black uppercase tracking-[0.2em] transition-all hover:scale-[1.02] active:scale-[0.98] shadow-lg shadow-accent/20"
-            >
-              Ok
-            </button>
-          </div>
-        )}
-      </div>
-    </div>
-  );
-}
+        </div>
+    );
+};
+
+const WipeMessageModal = () => {
+    return (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-bg-main/95 backdrop-blur-2xl animate-in fade-in duration-500">
+            <div className="w-full max-w-md bg-card-bg border border-border-color rounded-[2.5rem] p-10 shadow-2xl text-center relative overflow-hidden">
+                <div className="absolute -top-10 -right-10 w-40 h-40 bg-danger/10 blur-3xl rounded-full" />
+                <div className="relative z-10 flex flex-col items-center">
+                    <div className="w-20 h-20 rounded-[2rem] bg-danger/10 flex items-center justify-center text-danger mb-8 border border-danger/20">
+                        <Icon name="refresh-cw" size={40} className="animate-spin" />
+                    </div>
+                    <h3 className="text-2xl font-bold tracking-tighter text-text-primary mb-4 uppercase">Data Environment Reset</h3>
+                    <p className="text-sm text-text-secondary leading-relaxed mb-8 opacity-80">
+                        The administrator has performed a complete system wipe on your workspace. All habits, logs, and stored configurations have been permanently erased.
+                    </p>
+                    <button 
+                        onClick={() => window.location.reload()}
+                        className="w-full py-4 bg-danger text-white text-[10px] font-black uppercase tracking-[0.2em] rounded-2xl hover:bg-danger/90 active:scale-95 transition-all shadow-2xl shadow-danger/20"
+                    >
+                        Acknowledge & Refresh
+                    </button>
+                </div>
+            </div>
+        </div>
+    );
+};
 
 export default App;

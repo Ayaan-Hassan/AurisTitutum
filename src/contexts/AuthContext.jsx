@@ -162,6 +162,7 @@ export const AuthProvider = ({ children }) => {
   const [dataLoading, setDataLoading] = useState(false);
   const [error, setError] = useState(null);
   const [isBanned, setIsBanned] = useState(false);
+  const [isWiped, setIsWiped] = useState(false);
   const [banReason, setBanReason] = useState("");
   const [showBanModal, setShowBanModal] = useState(false);
 
@@ -367,10 +368,13 @@ export const AuthProvider = ({ children }) => {
           if (authCycleRef.current !== cycleId) return;
           const data = snap.exists() ? snap.data() : {};
           const banned = data.isBanned === true;
+          const wiped = data.isWiped === true;
           const reason = data.banReason || "Your account is temporarily banned due to system protocol violations.";
           
+          setIsBanned(banned);
+          setIsWiped(wiped);
+
           if (banned && lastBannedState.current === false) {
-              setIsBanned(true);
               setBanReason(reason);
               setShowBanModal(true);
               
@@ -770,6 +774,7 @@ export const AuthProvider = ({ children }) => {
     logout,
     isAuthenticated: !!user,
     isBanned,
+    isWiped,
     banReason,
     showBanModal,
     setShowBanModal,

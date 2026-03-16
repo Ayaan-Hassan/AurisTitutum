@@ -50,6 +50,7 @@ const Contact = () => {
 
       setStatus("success");
       setForm({ type: "General Inquiry", subject: "", message: "", priority: "Normal" });
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     } catch (err) {
       console.error("Firestore inquiry error:", err);
       setStatus("error");
@@ -131,20 +132,20 @@ const Contact = () => {
                     <label className="text-[10px] font-black text-text-secondary uppercase tracking-[0.3em]">
                       Topic
                     </label>
-                    <div className="relative">
+                    <div className="relative group/select">
                       <select
                         name="type"
                         value={form.type}
                         onChange={handleChange}
-                        className="w-full h-[56px] appearance-none bg-bg-main border border-border-color px-4 rounded-xl outline-none focus:border-accent text-sm text-text-primary transition-all"
+                        className="w-full h-[56px] appearance-none bg-bg-main border border-border-color px-4 rounded-xl outline-none focus:border-accent text-sm text-text-primary transition-all cursor-pointer hover:border-accent/40"
                       >
-                        <option value="General Inquiry">General Inquiry</option>
-                        <option value="Bug Report">Bug Report</option>
-                        <option value="Feature Request">Feature Request</option>
-                        <option value="Partnership">Partnership</option>
-                        <option value="Account Issue">Account Issue</option>
+                        <option value="General Inquiry" className="bg-bg-sidebar">General Inquiry</option>
+                        <option value="Bug Report" className="bg-bg-sidebar">Bug Report</option>
+                        <option value="Feature Request" className="bg-bg-sidebar">Feature Request</option>
+                        <option value="Partnership" className="bg-bg-sidebar">Partnership</option>
+                        <option value="Account Issue" className="bg-bg-sidebar">Account Issue</option>
                       </select>
-                      <div className="absolute right-4 top-1/2 -translate-y-1/2 text-text-secondary pointer-events-none">
+                      <div className="absolute right-4 top-1/2 -translate-y-1/2 text-text-secondary pointer-events-none group-hover/select:text-accent transition-colors">
                         <Icon name="chevron-down" size={16} />
                       </div>
                     </div>

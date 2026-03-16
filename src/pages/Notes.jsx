@@ -240,7 +240,7 @@ const Notes = ({ notes, setNotes }) => {
                                 ) : (
                                     <>
                                         <div className="flex items-start justify-between gap-3 mb-3">
-                                            <h4 className={`text-base font-bold line-clamp-2 leading-tight flex-1 ${note.adminCreated ? 'text-black' : 'text-text-primary'}`}>{note.title}</h4>
+                                            <h4 className="text-base font-bold line-clamp-2 leading-tight flex-1" style={note.adminCreated ? { color: '#000000' } : {}}>{note.title}</h4>
                                             <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity shrink-0 bg-bg-main/60 backdrop-blur-md rounded-lg p-0.5 border border-border-color/50 shadow-sm">
                                                 <button onClick={() => togglePin(note.id)} className={`w-8 h-8 rounded-md flex items-center justify-center transition-colors ${note.pinned ? 'text-amber-400 bg-amber-400/10' : 'text-text-secondary hover:text-text-primary hover:bg-white/5'}`}>
                                                     <Icon name="pin" size={14} className={note.pinned ? 'fill-amber-400/30' : ''} />
@@ -259,7 +259,10 @@ const Notes = ({ notes, setNotes }) => {
                                                 onClick={() => setExpandedNoteId(note.id)}
                                                 title="Click to expand"
                                             >
-                                                <p className={`text-[13px] leading-relaxed whitespace-pre-wrap line-clamp-6 transition-colors ${note.adminCreated ? 'text-black/80 font-medium' : 'text-text-secondary/90 group-hover/body:text-text-primary'}`}>
+                                                <p 
+                                                    className={`text-[13px] leading-relaxed whitespace-pre-wrap line-clamp-6 transition-colors ${note.adminCreated ? 'font-medium' : 'text-text-secondary/90 group-hover/body:text-text-primary'}`}
+                                                    style={note.adminCreated ? { color: '#000000' } : {}}
+                                                >
                                                     {note.body}
                                                 </p>
                                             </div>
