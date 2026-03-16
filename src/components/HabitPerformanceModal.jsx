@@ -229,19 +229,7 @@ const HabitPerformanceModal = ({ open, habit, onClose }) => {
             </div>
           </div>
 
-          {/* Weekly Streak Progress Bar */}
-          <div className="mb-6 space-y-2 relative z-10 w-full">
-             <div className="flex justify-between items-center text-[10px] font-black uppercase tracking-[0.25em] text-text-secondary">
-               <span>Weekly streak</span>
-               <span>{metrics.weeklyProgress.toFixed(0)}%</span>
-             </div>
-             <div className="w-full bg-border-color rounded-full h-3 overflow-hidden relative">
-               <div
-                  className={`h-full transition-[width] duration-1000 ease-out flex items-center justify-end pr-2 ${isBad ? "bg-danger" : "bg-success"}`}
-                  style={{ width: `${metrics.weeklyProgress}%` }}
-               />
-             </div>
-          </div>
+
 
           {/* Analytics Chart */}
           <div className="rounded-2xl border border-border-color p-4 mb-6">

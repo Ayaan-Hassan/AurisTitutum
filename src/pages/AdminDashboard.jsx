@@ -69,6 +69,7 @@ export default function AdminDashboard() {
         try {
             setLoading(true);
             setError(null);
+            // Initial fetch if needed, though snapshots will handle it
             const habitsSnapshot = await getCountFromServer(collectionGroup(db, "habits"));
             const remindersSnapshot = await getCountFromServer(collectionGroup(db, "reminders"));
             const notesSnapshot = await getCountFromServer(collectionGroup(db, "notes"));
@@ -82,9 +83,9 @@ export default function AdminDashboard() {
             setLoading(false);
         } catch (err) {
             console.error(err);
-            setError("Platform analytics mismatch. Protocol authentication failed.");
-            setLoading(false);
+            // Don't show total error for background stats
         }
+        setLoading(false);
     };
 
     useEffect(() => {
@@ -101,19 +102,32 @@ export default function AdminDashboard() {
         });
         const unsubGuests = onSnapshot(collection(db, "guest_presence"), (snapshot) => {
             let count = 0;
-            const threshold = 90000; // 90 seconds threshold
+            const threshold = 30000; // 30 seconds threshold for strict real-time
             const now = new Date();
             snapshot.forEach(d => {
-                const lastActive = d.data().lastActive;
-                if (lastActive && (now - new Date(lastActive)) < threshold) {
+                const data = d.data();
+                const lastActive = data.lastActive;
+                // Strict: Must have isOnline true AND be within threshold
+                if (data.isOnline && lastActive && (now - new Date(lastActive)) < threshold) {
                     count++;
                 }
             });
             setGuestOnlineCount(count);
         });
 
-        fetchStats();
-        return () => { unsubUsers(); unsubInquiries(); unsubGuests(); };
+        const unsubHabits = onSnapshot(query(collectionGroup(db, "habits")), (snapshot) => {
+            setStats(prev => ({ ...prev, habits: snapshot.size }));
+        });
+
+        const unsubReminders = onSnapshot(query(collectionGroup(db, "reminders")), (snapshot) => {
+            setStats(prev => ({ ...prev, reminders: snapshot.size }));
+        });
+
+        const unsubNotes = onSnapshot(query(collectionGroup(db, "notes")), (snapshot) => {
+            setStats(prev => ({ ...prev, notes: snapshot.size }));
+        });
+
+        return () => { unsubUsers(); unsubInquiries(); unsubGuests(); unsubHabits(); unsubReminders(); unsubNotes(); };
     }, [isAdmin]);
 
     useEffect(() => {
@@ -482,7 +496,7 @@ export default function AdminDashboard() {
                                             <div className="bg-card-bg border border-border-color rounded-2xl p-6 shadow-sm space-y-4">
                                                 <div className="flex items-center justify-between border-b border-border-color pb-3">
                                                     <h4 className="text-[11px] font-black uppercase tracking-[0.2em] text-text-secondary">User Habits</h4>
-                                                    <button onClick={() => setCreateComplex({ type: 'habit', name: '', mode: 'quick', habitType: 'Good' })} className="w-5 h-5 rounded bg-accent/10 text-accent hover:bg-accent hover:text-bg-main flex items-center justify-center transition-all"><Icon name="plus" size={10} /></button>
+                                                    <button onClick={() => setCreateComplex({ type: 'habit', name: '', mode: 'quick', habitType: 'Good', unit: '' })} className="w-5 h-5 rounded bg-accent/10 text-accent hover:bg-accent hover:text-bg-main flex items-center justify-center transition-all"><Icon name="plus" size={10} /></button>
                                                 </div>
                                                 <div className="space-y-3">
                                                     {userData.habits?.length > 0 ? userData.habits.map(h => (
@@ -546,15 +560,15 @@ export default function AdminDashboard() {
                                                     </div>
                                                     <div className="space-y-3 max-h-[220px] overflow-y-auto custom-scrollbar pr-2">
                                                         {userData.notes?.length > 0 ? userData.notes.map(n => (
-                                                            <div key={n.id} className={`p-4 rounded-xl border group ${n.adminCreated ? 'bg-white border-white/20' : 'bg-bg-sidebar border-border-color'}`}>
+                                                            <div key={n.id} className="p-4 bg-bg-sidebar rounded-xl border border-border-color group">
                                                                 <div className="flex justify-between items-start mb-2">
-                                                                    <p className={`text-xs font-bold ${n.adminCreated ? 'text-black' : 'text-text-primary'}`}>{n.title || "Untitled Note"}</p>
+                                                                    <p className="text-xs font-bold text-text-primary">{n.title || "Untitled Note"}</p>
                                                                     <div className="flex gap-2">
-                                                                        <button onClick={() => setEditModal({ type: "notes", action: "updateNote", id: n.id, initialValue: n.body, label: "Edit Note Body" })} className={`opacity-0 group-hover:opacity-100 transition-all ${n.adminCreated ? 'text-black/60 hover:text-black' : 'text-accent'}`}><Icon name="edit" size={12} /></button>
-                                                                        <button onClick={() => setConfirmAction({ type: "notes", action: "delete", id: n.id })} className={`opacity-0 group-hover:opacity-100 transition-all ${n.adminCreated ? 'text-danger hover:text-red-700' : 'text-danger'}`}><Icon name="trash" size={12} /></button>
+                                                                        <button onClick={() => setEditModal({ type: "notes", action: "updateNote", id: n.id, initialValue: n.body, label: "Edit Note Body" })} className="opacity-0 group-hover:opacity-100 text-accent transition-all"><Icon name="edit" size={12} /></button>
+                                                                        <button onClick={() => setConfirmAction({ type: "notes", action: "delete", id: n.id })} className="opacity-0 group-hover:opacity-100 text-danger transition-all"><Icon name="trash" size={12} /></button>
                                                                     </div>
                                                                 </div>
-                                                                <p className={`text-[11px] leading-relaxed line-clamp-3 ${n.adminCreated ? 'text-black/80 font-medium' : 'text-text-secondary'}`}>{n.body}</p>
+                                                                <p className="text-[11px] text-text-secondary leading-relaxed line-clamp-3">{n.body}</p>
                                                             </div>
                                                         )) : <p className="text-[10px] text-text-secondary text-center">No notes written.</p>}
                                                     </div>
@@ -861,7 +875,11 @@ export default function AdminDashboard() {
                                             <select 
                                                 className="w-full bg-bg-main border border-border-color p-3 rounded-xl text-xs outline-none focus:border-accent appearance-none"
                                                 value={createComplex.mode}
-                                                onChange={(e) => setCreateComplex({...createComplex, mode: e.target.value})}
+                                                onChange={(e) => {
+                                                    const mode = e.target.value;
+                                                    const unit = mode === "upload" ? "IMG" : (mode === "timer" ? "min" : (mode === "count" ? createComplex.unit : ""));
+                                                    setCreateComplex({...createComplex, mode, unit});
+                                                }}
                                             >
                                                 <option value="quick">Quick (Tap)</option>
                                                 <option value="count">Count (Input)</option>

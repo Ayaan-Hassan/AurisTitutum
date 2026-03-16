@@ -959,26 +959,40 @@ function AppContent() {
                     <label className="text-[10px] font-black text-text-secondary uppercase tracking-[0.3em]">
                         Tracking Mode
                     </label>
-                    <div className="relative group inline-flex items-center ml-2">
-                      <Icon name="info" size={14} className="text-text-secondary cursor-pointer hover:text-text-primary transition-colors" />
-                      <div className="absolute left-full ml-3 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 pointer-events-none transition-[opacity,transform] duration-200 z-50 translate-x-[-10px] group-hover:translate-x-0">
-                        <div className="bg-bg-sidebar border border-border-color text-[10px] p-3 rounded-lg shadow-2xl w-[220px] relative">
-                          <div className="absolute top-1/2 -left-1.5 -translate-y-1/2 w-3 h-3 bg-bg-sidebar border-l border-b border-border-color transform rotate-45" />
-                          <span className="relative z-10 block font-mono text-text-secondary"><span className="text-text-primary font-bold">Tap:</span> Quick +/- counter<br/><span className="text-text-primary font-bold">Count:</span> Specify number & unit<br/><span className="text-text-primary font-bold">Check:</span> Once per day<br/><span className="text-text-primary font-bold">Timer:</span> Built-in stopwatch<br/><span className="text-text-primary font-bold">Rating:</span> 1-5 star scale<br/><span className="text-text-primary font-bold">Upload:</span> Photo/image logs</span>
-                        </div>
-                      </div>
-                    </div>
+
                   </div>
                   
                   <div className="grid grid-cols-2 gap-3">
-                    {["quick", "count", "check", "timer", "rating", "upload"].map((m) => (
+                    {[
+                      { id: "quick", label: "Tap", info: "Quick +/- counter for fast logging." },
+                      { id: "count", label: "Count", info: "Log specific values with units (reps, kg, pages)." },
+                      { id: "check", label: "Check", info: "Simple completion checkbox once per day." },
+                      { id: "timer", label: "Timer", info: "Integrated stopwatch to track duration." },
+                      { id: "rating", label: "Rating", info: "Evaluate performance on a 1-5 star scale." },
+                      { id: "upload", label: "Upload", info: "Keep a visual progress log with photos." }
+                    ].map((m) => (
+                      <div key={m.id} className="relative group/mode">
                         <button
-                            key={m}
-                            onClick={() => setNewHabit({ ...newHabit, mode: m, unit: m === "count" ? newHabit.unit : m==="timer"?"min":"" })}
-                            className={`py-4 rounded-2xl text-[10px] font-bold uppercase tracking-[0.2em] border transition-all ${newHabit.mode === m ? "bg-accent text-bg-main border-accent scale-[1.02]" : "bg-bg-main/30 border-white/10 text-text-secondary hover:border-white/20 hover:scale-[1.02]"}`}
+                          onClick={() => setNewHabit({ 
+                            ...newHabit, 
+                            mode: m.id, 
+                            unit: m.id === "count" ? newHabit.unit : m.id === "timer" ? "min" : m.id === "upload" ? "IMG" : "" 
+                          })}
+                          className={`w-full py-4 rounded-2xl text-[10px] font-bold uppercase tracking-[0.2em] border transition-all ${newHabit.mode === m.id ? "bg-accent text-bg-main border-accent scale-[1.02]" : "bg-bg-main/30 border-white/10 text-text-secondary hover:border-white/20 hover:scale-[1.02]"}`}
                         >
-                            {m === "quick" ? "Tap" : m.charAt(0).toUpperCase() + m.slice(1)}
+                          {m.label}
                         </button>
+                        <div className="absolute right-2 top-2 z-20">
+                           <div className="relative group/info">
+                              <Icon name="info" size={10} className={`${newHabit.mode === m.id ? "text-bg-main/60" : "text-text-secondary/50"} cursor-help hover:text-text-primary transition-colors`} />
+                              <div className="absolute bottom-full right-0 mb-2 opacity-0 group-hover/info:opacity-100 pointer-events-none transition-all duration-200 z-[60] translate-y-1 group-hover/info:translate-y-0">
+                                <div className="bg-bg-sidebar border border-border-color text-[9px] p-2 rounded-lg shadow-2xl w-32 text-center normal-case font-mono leading-tight">
+                                  {m.info}
+                                </div>
+                              </div>
+                           </div>
+                        </div>
+                      </div>
                     ))}
                   </div>
                   
