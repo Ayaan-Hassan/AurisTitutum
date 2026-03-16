@@ -1208,13 +1208,14 @@ const BannedMessageModal = () => {
 
 const AdminMessageModal = ({ message, onClear }) => {
     const [reply, setReply] = useState("");
-    const [sending, setSending] = useState(false);
+    const [isReplying, setIsReplying] = useState(false);
+    const [isSending, setIsSending] = useState(false);
     const { user } = useAuth();
     const { addToast } = useHabitNotifications([]);
 
-    const handleReply = async () => {
+    const handleSendReply = async () => {
         if (!reply.trim()) return;
-        setSending(true);
+        setIsSending(true);
         try {
             const { db } = await import("./firebase.config");
             const { collection, addDoc } = await import("firebase/firestore");
@@ -1234,46 +1235,68 @@ const AdminMessageModal = ({ message, onClear }) => {
         } catch (e) {
             addToast("Failed to send reply", "error");
         } finally {
-            setSending(false);
+            setIsSending(false);
         }
     };
 
+    if (!message) return null;
+
     return (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-bg-main/90 backdrop-blur-xl animate-in fade-in duration-300">
-            <div className="w-full max-w-lg bg-card-bg border border-border-color rounded-[2.5rem] p-8 shadow-2xl relative overflow-hidden group">
-                <div className="absolute top-0 right-0 w-32 h-32 bg-accent/5 blur-3xl rounded-full" />
+            <div className="glass-card w-full max-w-sm p-8 rounded-[3rem] border-white/10 relative overflow-hidden shadow-2xl">
+                <div className="absolute -top-24 -right-24 w-48 h-48 bg-accent/20 rounded-full blur-[80px]" />
                 <div className="relative z-10 flex flex-col items-center text-center">
                     <div className="w-16 h-16 rounded-2xl bg-accent/10 flex items-center justify-center text-accent mb-6 animate-bounce">
                         <Icon name="mail" size={32} />
                     </div>
                     <h3 className="text-xl font-bold tracking-tight text-text-primary mb-2">Admin sent you a message</h3>
-                    <div className="w-full bg-bg-main/50 border border-border-color/50 rounded-2xl p-4 text-sm text-text-secondary leading-relaxed mb-6 italic">
+                    <div className="w-full bg-white/5 border border-white/10 rounded-2xl p-4 text-sm text-text-secondary leading-relaxed mb-6 italic text-left">
                         "{message}"
                     </div>
                     
-                    <textarea 
-                        value={reply}
-                        onChange={(e) => setReply(e.target.value)}
-                        placeholder="Type your reply here..."
-                        className="w-full bg-bg-main border border-border-color rounded-xl p-3 text-xs text-text-primary outline-none focus:border-accent mb-4 resize-none transition-all"
-                        rows={3}
-                    />
-
-                    <div className="flex gap-3 w-full">
-                        <button 
-                            onClick={onClear} 
-                            className="flex-1 py-3 px-6 bg-white/5 hover:bg-white/10 text-white text-[10px] font-black uppercase tracking-widest rounded-xl transition-all"
-                        >
-                            Ok
-                        </button>
-                        <button 
-                            onClick={handleReply}
-                            disabled={sending || !reply.trim()}
-                            className="flex-1 py-3 px-6 bg-accent text-bg-main text-[10px] font-black uppercase tracking-widest rounded-xl hover:opacity-90 active:scale-95 transition-all shadow-lg disabled:opacity-50"
-                        >
-                            {sending ? "Sending..." : "Reply"}
-                        </button>
-                    </div>
+                    {isReplying ? (
+                        <div className="w-full animate-in slide-in-from-top-2">
+                            <textarea 
+                                value={reply}
+                                onChange={(e) => setReply(e.target.value)}
+                                placeholder="Type your reply here..."
+                                className="w-full bg-bg-main border border-border-color rounded-xl p-3 text-xs text-text-primary outline-none focus:border-accent mb-4 resize-none transition-all"
+                                rows={3}
+                                disabled={isSending}
+                            />
+                            <div className="flex gap-3">
+                                <button 
+                                    onClick={() => setIsReplying(false)} 
+                                    className="flex-1 py-3 px-6 bg-white/5 hover:bg-white/10 text-white text-[10px] font-black uppercase tracking-widest rounded-xl transition-all"
+                                    disabled={isSending}
+                                >
+                                    Cancel
+                                </button>
+                                <button 
+                                    onClick={handleSendReply}
+                                    disabled={isSending || !reply.trim()}
+                                    className="flex-1 py-3 px-6 bg-accent text-bg-main text-[10px] font-black uppercase tracking-widest rounded-xl hover:opacity-90 active:scale-95 transition-all shadow-lg shadow-accent/20"
+                                >
+                                    {isSending ? "Sending..." : "Send"}
+                                </button>
+                            </div>
+                        </div>
+                    ) : (
+                        <div className="flex gap-3 w-full">
+                            <button 
+                                onClick={() => setIsReplying(true)} 
+                                className="flex-1 py-4 rounded-2xl bg-white/5 text-text-secondary text-[10px] font-black uppercase tracking-[0.2em] transition-all hover:bg-white/10 border border-white/10"
+                            >
+                                Reply
+                            </button>
+                            <button 
+                                onClick={onClear} 
+                                className="flex-1 py-4 rounded-2xl bg-accent text-bg-main text-[10px] font-black uppercase tracking-[0.2em] transition-all hover:scale-[1.02] active:scale-[0.98] shadow-lg shadow-accent/20"
+                            >
+                                Ok
+                            </button>
+                        </div>
+                    )}
                 </div>
             </div>
         </div>
