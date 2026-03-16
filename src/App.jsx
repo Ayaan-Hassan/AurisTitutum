@@ -964,12 +964,12 @@ function AppContent() {
                   
                   <div className="grid grid-cols-2 gap-3">
                     {[
-                      { id: "quick", label: "Tap", info: "Quick +/- counter for fast logging." },
-                      { id: "count", label: "Count", info: "Log specific values with units (reps, kg, pages)." },
-                      { id: "check", label: "Check", info: "Simple completion checkbox once per day." },
-                      { id: "timer", label: "Timer", info: "Integrated stopwatch to track duration." },
-                      { id: "rating", label: "Rating", info: "Evaluate performance on a 1-5 star scale." },
-                      { id: "upload", label: "Upload", info: "Keep a visual progress log with photos." }
+                      { id: "quick", label: "Tap", info: "Quick +/- counter for fast logging.", icon: "zap" },
+                      { id: "count", label: "Count", info: "Log specific values with units (reps, kg, pages).", icon: "hash" },
+                      { id: "check", label: "Check", info: "Simple completion checkbox once per day.", icon: "check-circle" },
+                      { id: "timer", label: "Timer", info: "Integrated stopwatch to track duration.", icon: "clock" },
+                      { id: "rating", label: "Rating", info: "Evaluate performance on a 1-5 star scale.", icon: "star" },
+                      { id: "upload", label: "Upload", info: "Keep a visual progress log with photos.", icon: "image" }
                     ].map((m) => (
                       <div key={m.id} className="relative group/mode">
                         <button
@@ -984,7 +984,7 @@ function AppContent() {
                         </button>
                         <div className="absolute right-2 top-2 z-20">
                            <div className="relative group/info">
-                              <Icon name="info" size={10} className={`${newHabit.mode === m.id ? "text-bg-main/60" : "text-text-secondary/50"} cursor-help hover:text-text-primary transition-colors`} />
+                              <Icon name={m.icon} size={10} className={`${newHabit.mode === m.id ? "text-bg-main/60" : "text-text-secondary/50"} cursor-help hover:text-text-primary transition-colors`} />
                               <div className="absolute bottom-full right-0 mb-2 opacity-0 group-hover/info:opacity-100 pointer-events-none transition-all duration-200 z-[60] translate-y-1 group-hover/info:translate-y-0">
                                 <div className="bg-bg-sidebar border border-border-color text-[9px] p-2 rounded-lg shadow-2xl w-32 text-center normal-case font-mono leading-tight">
                                   {m.info}

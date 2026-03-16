@@ -37,6 +37,7 @@ export default function AdminDashboard() {
     const [adminMessage, setAdminMessage] = useState(null);
     const [editModal, setEditModal] = useState(null);
     const [liveTick, setLiveTick] = useState(0);
+    const [zoomedImg, setZoomedImg] = useState(null);
 
     const [graphRange, setGraphRange] = useState("30d");
     const [graphType, setGraphType] = useState("area");
@@ -550,14 +551,14 @@ export default function AdminDashboard() {
                                                                                                              <img src={e.photoData} alt="Log" className="w-full h-full object-cover transition-transform group-hover/img:scale-110" />
                                                                                                              <div 
                                                                                                                 className="absolute inset-0 bg-black/0 group-hover/img:bg-black/40 flex items-center justify-center opacity-0 group-hover/img:opacity-100 transition-all cursor-pointer"
-                                                                                                                onClick={() => window.open(e.photoData, '_blank')}
+                                                                                                                onClick={() => setZoomedImg(e.photoData)}
                                                                                                              >
                                                                                                                 <Icon name="maximize" size={14} className="text-white" />
                                                                                                              </div>
                                                                                                          </div>
                                                                                                      )}
                                                                                                  </div>
-                                                                                             ))}}
+                                                                                             ))}
                                                                                         </div>
                                                                                     </div>
                                                                                 ))}
@@ -1007,6 +1008,17 @@ export default function AdminDashboard() {
                         <h3 className="text-xl font-bold text-text-primary mb-2 tracking-tighter uppercase italic">{adminMessage.title}</h3>
                         <p className="text-xs text-text-secondary mb-8 font-mono leading-relaxed">{adminMessage.body}</p>
                         <Button onClick={() => setAdminMessage(null)} className="w-full bg-accent text-bg-main font-black uppercase tracking-widest h-12 rounded-xl">Acknowledged</Button>
+                    </div>
+                </div>
+            )}
+
+            {zoomedImg && (
+                <div className="fixed inset-0 z-[2000] flex items-center justify-center p-4 bg-black/90 backdrop-blur-md animate-in fade-in duration-300" onClick={() => setZoomedImg(null)}>
+                    <div className="relative max-w-5xl w-full h-full flex items-center justify-center" onClick={e => e.stopPropagation()}>
+                        <img src={zoomedImg} alt="Zoomed Log" className="max-w-full max-h-full object-contain rounded-2xl shadow-2xl border border-white/10" />
+                        <button onClick={() => setZoomedImg(null)} className="absolute top-4 right-4 w-12 h-12 rounded-2xl bg-white/10 border border-white/20 flex items-center justify-center text-white hover:bg-white/20 transition-all">
+                            <Icon name="x" size={24} />
+                        </button>
                     </div>
                 </div>
             )}

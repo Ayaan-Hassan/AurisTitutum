@@ -114,15 +114,6 @@ const HabitPerformanceModal = ({ open, habit, onClose }) => {
       if (activeDateSet.has(getDateKey(d))) activeIn30 += 1;
     }
 
-    const weeklyLogs = Array.from({ length: 7 }).map((_, i) => {
-      const d = new Date();
-      d.setDate(d.getDate() - (6 - i));
-      const dateStr = getDateKey(d);
-      return activeDateSet.has(dateStr);
-    });
-    const weeklyTotal = weeklyLogs.filter(Boolean).length;
-    const weeklyProgress = (weeklyTotal / 7) * 100;
-
     return {
       activeDateSet,
       currentStreak,
@@ -131,8 +122,7 @@ const HabitPerformanceModal = ({ open, habit, onClose }) => {
       totalEvents,
       activeDays,
       lastDate,
-      consistency30: Math.round((activeIn30 / 30) * 100),
-      weeklyProgress
+      consistency30: Math.round((activeIn30 / 30) * 100)
     };
   }, [habit]);
 
