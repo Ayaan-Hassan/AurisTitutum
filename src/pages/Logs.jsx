@@ -164,7 +164,7 @@ const Logs = ({ habits, setHabits }) => {
           const isCount = typeof entry === "string" && entry.includes("|") && !isPhotoEntry;
           const [time, value, unit] = isCount
             ? entry.split("|")
-            : [isPhotoEntry ? '__photo__' : entry, null, null];
+            : [entry, null, null];
           all.push({
             habit: h.name,
             habitId: h.id,
@@ -172,7 +172,8 @@ const Logs = ({ habits, setHabits }) => {
             type: h.type,
             mode: h.mode,
             date: day.date,
-            time,
+            time: isPhotoEntry ? '__photo__' : time,
+            photoData: isPhotoEntry ? entry : null,
             value: value != null ? value : null,
             unit: unit || null,
             isPhoto: isPhotoEntry,
@@ -489,9 +490,14 @@ const Logs = ({ habits, setHabits }) => {
                   </td>
                   <td className="py-3 px-4 text-xs font-mono text-text-secondary whitespace-nowrap">
                     {log.isPhoto ? (
-                      <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-lg bg-accent/10 border border-accent/20 text-[10px] font-bold text-accent/80 uppercase tracking-widest">
-                        📷 Photo
-                      </span>
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-lg overflow-hidden border border-border-color bg-bg-sidebar shrink-0">
+                          <img src={log.photoData} alt="Log" className="w-full h-full object-cover" />
+                        </div>
+                        <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-lg bg-accent/10 border border-accent/20 text-[9px] font-bold text-accent/80 uppercase tracking-widest leading-none">
+                          📷 Image
+                        </span>
+                      </div>
                     ) : (
                       <>
                         {log.time}

@@ -20,7 +20,9 @@ import { AuthProvider, useAuth } from "./contexts/AuthContext";
 import { useHabitNotifications } from "./hooks/useHabitNotifications";
 import { useReminderNotifications } from "./hooks/useReminderNotifications";
 import ToastContainer from "./components/Toast";
-import TourGuide from "./components/TourGuide";
+import { db } from "./firebase.config";
+import { collection, addDoc } from "firebase/firestore";
+import { Button } from "./components/ui/Button";
 
 const DAILY_INSIGHTS = [
   {
@@ -525,20 +527,23 @@ function AppContent() {
     }
 
     cloudSaveTimerRef.current = setTimeout(async () => {
-      cloudSaveTimerRef.current = null; // Important: Clear the timer ID so we don't lock future updates
+      cloudSaveTimerRef.current = null;
       try {
         isSavingToCloudRef.current = true;
-        await replaceHabitsState(habits);
-        await replaceNotesState(notes);
-        await replaceRemindersState(reminders);
-        await updateUserConfig(userConfig);
-        cloudStateRef.current = currentState; // Mark as synced
+        // Sync in parallel for better performance and reliability
+        await Promise.all([
+          replaceHabitsState(habits),
+          replaceNotesState(notes),
+          replaceRemindersState(reminders),
+          updateUserConfig(userConfig)
+        ]);
+        cloudStateRef.current = currentState;
       } catch (error) {
         console.error("[firebase-sync] Failed to persist cloud state:", error);
       } finally {
         isSavingToCloudRef.current = false;
       }
-    }, 900);
+    }, 400);
 
     return () => {
       if (cloudSaveTimerRef.current) {
@@ -721,17 +726,7 @@ function AppContent() {
 
   const [dailyInsight] = useState(() => getDailyInsight());
 
-  const displayHabits = habits.length === 0 ? [{
-    id: "example-habit",
-    name: "Example: Read 10 pages",
-    type: "Good",
-    mode: "check",
-    unit: "",
-    emoji: "📖",
-    logs: [],
-    totalLogs: 0,
-    createdAt: new Date().toISOString()
-  }] : habits;
+  const displayHabits = habits;
 
   // Curated aesthetic emoji list — only proper emoji, grayscale-filtered to match dark/gray theme
   const THEMED_EMOJIS = [
@@ -1143,7 +1138,7 @@ function AppContent() {
                             }}
                             className="w-full py-4 rounded-2xl bg-white/5 text-text-secondary text-xs font-black uppercase tracking-[0.2em] transition-all hover:bg-white/10"
                         >
-                            Leave Website
+                            Leave
                         </button>
                     ) : (
                         <button
@@ -1158,30 +1153,10 @@ function AppContent() {
         </div>
       )}
 
-      {activeSystemMsg && (
-        <div className="fixed inset-0 bg-black/80 backdrop-blur-xl flex items-center justify-center z-[200] p-4 text-center">
-            <div className="glass-card w-full max-w-sm p-8 rounded-[3rem] border-white/10 relative overflow-hidden shadow-2xl">
-                <div className="absolute -top-24 -right-24 w-48 h-48 bg-accent/20 rounded-full blur-[80px]" />
-                <div className="w-24 h-24 mx-auto rounded-[2rem] bg-accent/10 text-accent flex items-center justify-center mb-8 border border-white/5">
-                    <Icon name="mail" size={48} />
-                </div>
-                <h3 className="text-2xl font-bold tracking-tight text-text-primary mb-3">
-                    Admin Message
-                </h3>
-                <div className="bg-white/5 border border-white/10 rounded-2xl p-6 mb-10">
-                    <p className="text-sm text-text-secondary leading-relaxed whitespace-pre-wrap">
-                        {activeSystemMsg}
-                    </p>
-                </div>
-                <button
-                    onClick={() => setActiveSystemMsg(null)}
-                    className="w-full py-4 rounded-2xl bg-accent text-bg-main text-xs font-black uppercase tracking-[0.2em] transition-all hover:scale-[1.02] active:scale-[0.98] shadow-lg shadow-white/10"
-                >
-                    Acknowledge
-                </button>
-            </div>
-        </div>
-      )}
+      <AdminMessageModal 
+        message={activeSystemMsg} 
+        onClose={() => setActiveSystemMsg(null)} 
+      />
     </>
   );
 }
@@ -1193,6 +1168,105 @@ function App() {
         <AppContent />
       </ThemeProvider>
     </AuthProvider>
+  );
+}
+
+function AdminMessageModal({ message, onClose }) {
+  const { user } = useAuth();
+  const [reply, setReply] = useState("");
+  const [isReplying, setIsReplying] = useState(false);
+  const [isSending, setIsSending] = useState(false);
+
+  const handleSendReply = async () => {
+    if (!reply.trim()) return;
+    setIsSending(true);
+    try {
+      await addDoc(collection(db, "inquiries"), {
+        uid: user.uid,
+        email: user.email,
+        displayName: user.displayName || "User",
+        type: "Message Reply",
+        message: `RE: Admin Message\n\nOriginal: ${message}\n\nReply: ${reply}`,
+        createdAt: new Date().toISOString(),
+        status: "open"
+      });
+      setIsReplying(false);
+      setReply("");
+      onClose();
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setIsSending(false);
+    }
+  };
+
+  if (!message) return null;
+
+  return (
+    <div className="fixed inset-0 bg-black/80 backdrop-blur-xl flex items-center justify-center z-[200] p-4 text-center">
+      <div className="glass-card w-full max-w-sm p-8 rounded-[3rem] border-white/10 relative overflow-hidden shadow-2xl">
+        <div className="absolute -top-24 -right-24 w-48 h-48 bg-accent/20 rounded-full blur-[80px]" />
+        
+        <div className="w-16 h-16 mx-auto rounded-2xl bg-accent/10 text-accent flex items-center justify-center mb-6 border border-white/5">
+          <Icon name="mail" size={32} />
+        </div>
+
+        <h3 className="text-xl font-bold tracking-tight text-text-primary mb-2">
+          Admin sent you a message
+        </h3>
+        
+        <div className="bg-white/5 border border-white/10 rounded-2xl p-5 mb-6 text-left relative group">
+          <p className="text-sm text-text-secondary leading-relaxed whitespace-pre-wrap">
+            {message}
+          </p>
+        </div>
+
+        {isReplying ? (
+          <div className="mb-6 animate-in slide-in-from-top-2">
+            <textarea
+              value={reply}
+              onChange={(e) => setReply(e.target.value)}
+              placeholder="Type your reply here..."
+              className="w-full h-32 bg-bg-main border border-border-color rounded-2xl p-4 text-sm text-text-primary outline-none focus:border-accent transition-all resize-none mb-3"
+              disabled={isSending}
+            />
+            <div className="flex gap-3">
+              <Button 
+                onClick={() => setIsReplying(false)} 
+                variant="outline" 
+                className="flex-1 rounded-xl py-3"
+                disabled={isSending}
+              >
+                Cancel
+              </Button>
+              <Button 
+                onClick={handleSendReply} 
+                variant="primary" 
+                className="flex-1 rounded-xl py-3 whitespace-nowrap"
+                disabled={isSending || !reply.trim()}
+              >
+                {isSending ? "Sending..." : "Send"}
+              </Button>
+            </div>
+          </div>
+        ) : (
+          <div className="flex gap-3">
+            <button
+               onClick={() => setIsReplying(true)}
+               className="flex-1 py-4 rounded-2xl bg-white/5 text-text-secondary text-[10px] font-black uppercase tracking-[0.2em] transition-all hover:bg-white/10 border border-white/10"
+            >
+              Reply
+            </button>
+            <button
+              onClick={onClose}
+              className="flex-1 py-4 rounded-2xl bg-accent text-bg-main text-[10px] font-black uppercase tracking-[0.2em] transition-all hover:scale-[1.02] active:scale-[0.98] shadow-lg shadow-accent/20"
+            >
+              Ok
+            </button>
+          </div>
+        )}
+      </div>
+    </div>
   );
 }
 

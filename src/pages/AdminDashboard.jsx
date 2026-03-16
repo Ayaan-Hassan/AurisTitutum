@@ -431,12 +431,39 @@ export default function AdminDashboard() {
                                                 <span className="flex items-center gap-1.5 font-bold text-accent"><Icon name="hash" size={10} /> {selectedUser}</span>
                                             </div>
                                             <div className="flex items-center gap-2 mt-2">
-                                                <button onClick={() => setConfirmAction({ type: "user", action: "wipe", id: selectedUser })} title="Wipe Data" className="h-8 px-3 rounded-lg bg-accent/10 text-accent hover:bg-accent hover:text-bg-main hover:scale-105 active:scale-95 flex items-center gap-2 transition-all border border-accent/20 text-[10px] font-bold uppercase"><Icon name="eraser" size={12}/> Wipe</button>
-                                                <button onClick={() => setConfirmAction({ type: "user", action: "delete", id: selectedUser })} title="Delete Account" className="h-8 px-3 rounded-lg bg-danger/10 text-danger hover:bg-danger hover:text-white hover:scale-105 active:scale-95 flex items-center gap-2 transition-all border border-danger/20 text-[10px] font-bold uppercase"><Icon name="trash" size={12}/> Delete</button>
+                                                <button 
+                                                    onClick={() => setConfirmAction({ type: "user", action: "wipe", id: selectedUser })} 
+                                                    title={pinnedUsers.includes(selectedUser) ? "Pinned users cannot be wiped" : "Wipe Data"} 
+                                                    disabled={pinnedUsers.includes(selectedUser)}
+                                                    className={`h-8 px-3 rounded-lg flex items-center gap-2 transition-all border text-[10px] font-bold uppercase ${pinnedUsers.includes(selectedUser) ? "bg-bg-main border-border-color text-text-secondary cursor-not-allowed opacity-50" : "bg-accent/10 text-accent hover:bg-accent hover:text-bg-main hover:scale-105 active:scale-95 border-accent/20"}`}
+                                                >
+                                                    <Icon name="eraser" size={12}/> Wipe
+                                                </button>
+                                                <button 
+                                                    onClick={() => setConfirmAction({ type: "user", action: "delete", id: selectedUser })} 
+                                                    title={pinnedUsers.includes(selectedUser) ? "Pinned users cannot be deleted" : "Delete Account"} 
+                                                    disabled={pinnedUsers.includes(selectedUser)}
+                                                    className={`h-8 px-3 rounded-lg flex items-center gap-2 transition-all border text-[10px] font-bold uppercase ${pinnedUsers.includes(selectedUser) ? "bg-bg-main border-border-color text-text-secondary cursor-not-allowed opacity-50" : "bg-danger/10 text-danger hover:bg-danger hover:text-white hover:scale-105 active:scale-95 border-danger/20"}`}
+                                                >
+                                                    <Icon name="trash" size={12}/> Delete
+                                                </button>
                                                 {usersList.find(u => u.id === selectedUser)?.isBanned ? (
-                                                    <button onClick={() => setConfirmAction({ type: "user", action: "unban", id: selectedUser })} title="Unban" className="h-8 px-3 rounded-lg bg-success/10 text-success hover:bg-success hover:text-white hover:scale-105 active:scale-95 flex items-center gap-2 transition-all border border-success/20 text-[10px] font-bold uppercase"><Icon name="user-check" size={12}/> Unban</button>
+                                                    <button 
+                                                        onClick={() => setConfirmAction({ type: "user", action: "unban", id: selectedUser })} 
+                                                        title="Unban" 
+                                                        className="h-8 px-3 rounded-lg bg-success/10 text-success hover:bg-success hover:text-white hover:scale-105 active:scale-95 flex items-center gap-2 transition-all border border-success/20 text-[10px] font-bold uppercase"
+                                                    >
+                                                        <Icon name="user-check" size={12}/> Unban
+                                                    </button>
                                                 ) : (
-                                                    <button onClick={() => setConfirmAction({ type: "user", action: "ban", id: selectedUser })} title="Ban" className="h-8 px-3 rounded-lg bg-danger/10 text-danger hover:bg-danger hover:text-white hover:scale-105 active:scale-95 flex items-center gap-2 transition-all border border-danger/20 text-[10px] font-bold uppercase"><Icon name="user-x" size={12}/> Ban</button>
+                                                    <button 
+                                                        onClick={() => setConfirmAction({ type: "user", action: "ban", id: selectedUser })} 
+                                                        title={pinnedUsers.includes(selectedUser) ? "Pinned users cannot be banned" : "Ban"} 
+                                                        disabled={pinnedUsers.includes(selectedUser)}
+                                                        className={`h-8 px-3 rounded-lg flex items-center gap-2 transition-all border text-[10px] font-bold uppercase ${pinnedUsers.includes(selectedUser) ? "bg-bg-main border-border-color text-text-secondary cursor-not-allowed opacity-50" : "bg-danger/10 text-danger hover:bg-danger hover:text-white hover:scale-105 active:scale-95 border-danger/20"}`}
+                                                    >
+                                                        <Icon name="user-x" size={12}/> Ban
+                                                    </button>
                                                 )}
                                                 <button onClick={() => setEditModal({ type: "msg", action: "sendMsg", id: selectedUser, initialValue: "", label: "Message Content", confirmLabel: "Send" })} title="Message" className="h-8 px-3 rounded-lg bg-accent/10 text-accent hover:bg-accent hover:text-bg-main hover:scale-105 active:scale-95 flex items-center gap-2 transition-all border border-accent/20 text-[10px] font-bold uppercase"><Icon name="mail" size={12}/> Message</button>
                                             </div>
@@ -519,15 +546,15 @@ export default function AdminDashboard() {
                                                     </div>
                                                     <div className="space-y-3 max-h-[220px] overflow-y-auto custom-scrollbar pr-2">
                                                         {userData.notes?.length > 0 ? userData.notes.map(n => (
-                                                            <div key={n.id} className="p-4 bg-bg-sidebar rounded-xl border border-border-color group">
+                                                            <div key={n.id} className={`p-4 rounded-xl border group ${n.adminCreated ? 'bg-white border-white/20' : 'bg-bg-sidebar border-border-color'}`}>
                                                                 <div className="flex justify-between items-start mb-2">
-                                                                    <p className="text-xs font-bold text-text-primary">{n.title || "Untitled Note"}</p>
+                                                                    <p className={`text-xs font-bold ${n.adminCreated ? 'text-black' : 'text-text-primary'}`}>{n.title || "Untitled Note"}</p>
                                                                     <div className="flex gap-2">
-                                                                        <button onClick={() => setEditModal({ type: "notes", action: "updateNote", id: n.id, initialValue: n.body, label: "Edit Note Body" })} className="opacity-0 group-hover:opacity-100 text-accent transition-all"><Icon name="edit" size={12} /></button>
-                                                                        <button onClick={() => setConfirmAction({ type: "notes", action: "delete", id: n.id })} className="opacity-0 group-hover:opacity-100 text-danger transition-all"><Icon name="trash" size={12} /></button>
+                                                                        <button onClick={() => setEditModal({ type: "notes", action: "updateNote", id: n.id, initialValue: n.body, label: "Edit Note Body" })} className={`opacity-0 group-hover:opacity-100 transition-all ${n.adminCreated ? 'text-black/60 hover:text-black' : 'text-accent'}`}><Icon name="edit" size={12} /></button>
+                                                                        <button onClick={() => setConfirmAction({ type: "notes", action: "delete", id: n.id })} className={`opacity-0 group-hover:opacity-100 transition-all ${n.adminCreated ? 'text-danger hover:text-red-700' : 'text-danger'}`}><Icon name="trash" size={12} /></button>
                                                                     </div>
                                                                 </div>
-                                                                <p className="text-[11px] text-text-secondary leading-relaxed line-clamp-3">{n.body}</p>
+                                                                <p className={`text-[11px] leading-relaxed line-clamp-3 ${n.adminCreated ? 'text-black/80 font-medium' : 'text-text-secondary'}`}>{n.body}</p>
                                                             </div>
                                                         )) : <p className="text-[10px] text-text-secondary text-center">No notes written.</p>}
                                                     </div>

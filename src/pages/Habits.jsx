@@ -594,27 +594,27 @@ const Habits = ({ habits, setHabits, logActivity }) => {
                   )}
               </div>
               {/* Action buttons */}
-              <div className="absolute top-0 right-0 p-6 flex gap-2 z-10">
+              <div className="absolute top-0 right-0 p-6 flex gap-2 z-[30]">
                 <Button
-                  onClick={() => setPerformanceTarget(h.id)}
+                  onClick={(e) => { e.stopPropagation(); setPerformanceTarget(h.id); }}
                   variant="outline"
                   size="sm"
                   icon="bar-chart-2"
-                  className="w-8 h-8 p-0 rounded-lg flex items-center justify-center border border-border-color bg-bg-main"
+                  className="w-8 h-8 p-0 rounded-lg flex items-center justify-center border border-border-color bg-bg-main hover:border-accent hover:text-accent transition-all"
                 />
                 <Button
-                  onClick={() => setRenameTarget({ id: h.id, name: h.name })}
+                  onClick={(e) => { e.stopPropagation(); setRenameTarget({ id: h.id, name: h.name }); }}
                   variant="outline"
                   size="sm"
                   icon="pencil"
-                  className="w-8 h-8 p-0 rounded-lg flex items-center justify-center border border-border-color bg-bg-main"
+                  className="w-8 h-8 p-0 rounded-lg flex items-center justify-center border border-border-color bg-bg-main hover:border-accent hover:text-accent transition-all"
                 />
                 <Button
-                  onClick={() => setDeleteTarget(h.id)}
+                  onClick={(e) => { e.stopPropagation(); setDeleteTarget(h.id); }}
                   variant="danger"
                   size="sm"
                   icon="trash"
-                  className="w-8 h-8 p-0 rounded-lg flex items-center justify-center border border-border-color bg-bg-main"
+                  className="w-8 h-8 p-0 rounded-lg flex items-center justify-center border border-border-color bg-bg-main hover:bg-danger/10 hover:text-danger transition-all"
                 />
               </div>
 

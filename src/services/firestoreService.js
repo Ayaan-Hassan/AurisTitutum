@@ -89,10 +89,15 @@ export const updateGuestPresence = async (sessionId, isOnline) => {
   try {
     if (!sessionId) return;
     const ref = doc(db, "guest_presence", sessionId);
-    if (!isOnline) {
-      await deleteDoc(ref).catch(()=>{});
+    // Don't delete doc when "offline", just let the 90s threshold in AdminDashboard handle it
+    // This ensures guests show up even if the visibility signal briefly drops
+    if (isOnline) {
+      await setDoc(ref, { 
+        lastActive: new Date().toISOString(),
+        isOnline: true 
+      }, { merge: true });
     } else {
-      await setDoc(ref, { lastActive: new Date().toISOString() }, { merge: true });
+      await updateDoc(ref, { isOnline: false }).catch(() => {});
     }
   } catch(e) { /* ignore */ }
 };
