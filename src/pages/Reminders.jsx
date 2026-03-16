@@ -226,7 +226,7 @@ const ReminderCard = ({ reminder, onDelete, onEdit, onMarkDone }) => {
 
 // ─── Main Reminders Page ──────────────────────────────────────────────────────
 const Reminders = ({ reminders, setReminders }) => {
-  const { user } = useAuth();
+  const { user, upsertReminder, deleteReminder: remoteDeleteReminder } = useAuth();
   const [showAdd, setShowAdd] = useState(false);
   const [editTarget, setEditTarget] = useState(null); // reminder object being edited
   const [deleteTarget, setDeleteTarget] = useState(null);
@@ -268,41 +268,56 @@ const Reminders = ({ reminders, setReminders }) => {
       done: false,
       createdAt: new Date().toISOString(),
     };
-    // Immediately add the reminder (instant, no waiting for permission)
-    setReminders((prev) => [...prev, reminder]);
-    trackEvent("reminder_created", { repeat: data.repeat });
-    // Request notification permission in the background
-    requestPermissionInBackground();
-    // Register with Firestore
+    
     if (user) {
+      await upsertReminder(reminder);
       try { await registerScheduledReminder(user.uid, reminder); } catch (err) { console.error(err); }
+    } else {
+      setReminders((prev) => [...prev, reminder]);
     }
+
+    trackEvent("reminder_created", { repeat: data.repeat });
+    requestPermissionInBackground();
   };
 
   const handleEdit = async (data) => {
     if (!editTarget) return;
     const updated = { ...editTarget, ...data, updatedAt: new Date().toISOString() };
-    setReminders((prev) => prev.map((r) => r.id === editTarget.id ? updated : r));
-    setEditTarget(null);
+    
     if (user) {
+      await upsertReminder(updated);
       try {
         await unregisterScheduledReminder(user.uid, editTarget.id);
         await registerScheduledReminder(user.uid, updated);
       } catch (err) { console.error(err); }
+    } else {
+      setReminders((prev) => prev.map((r) => r.id === editTarget.id ? updated : r));
     }
+    setEditTarget(null);
   };
 
   const handleDelete = (id) => setDeleteTarget(id);
   const confirmDelete = async () => {
     if (!deleteTarget) return;
-    if (user) { try { await unregisterScheduledReminder(user.uid, deleteTarget); } catch (err) { console.error(err); } }
-    setReminders((prev) => prev.filter((r) => r.id !== deleteTarget));
+    if (user) { 
+      await remoteDeleteReminder(deleteTarget);
+      try { await unregisterScheduledReminder(user.uid, deleteTarget); } catch (err) { console.error(err); } 
+    } else {
+      setReminders((prev) => prev.filter((r) => r.id !== deleteTarget));
+    }
     trackEvent("reminder_deleted");
     setDeleteTarget(null);
   };
 
-  const handleMarkDone = (id) => {
-    setReminders((prev) => prev.map((r) => r.id === id ? { ...r, done: true } : r));
+  const handleMarkDone = async (id) => {
+    const reminder = reminders.find(r => r.id === id);
+    if (!reminder) return;
+    const updated = { ...reminder, done: true };
+    if (user) {
+      await upsertReminder(updated);
+    } else {
+      setReminders((prev) => prev.map((r) => r.id === id ? updated : r));
+    }
   };
 
   // Sort: upcoming (not past) sorted by date/time, then past (most recent first)

@@ -39,6 +39,9 @@ import {
 import { replaceLogs, serializeLogsFromHabits, subscribeLogs } from "../services/logService";
 import { replaceReminders, subscribeReminders } from "../services/reminderService";
 import { identifyUser, trackEvent } from "../utils/telemetry";
+import { createHabit, updateHabit as serviceUpdateHabit, deleteHabit as serviceDeleteHabit } from "../services/habitService";
+import { createLog, deleteLog as serviceDeleteLog } from "../services/logService";
+import { upsertCollectionDoc, deleteCollectionDoc, USER_SUBCOLLECTIONS } from "../services/firestoreService";
 
 const AuthContext = createContext(null);
 let redirectUser = null;
@@ -178,6 +181,15 @@ export const AuthProvider = ({ children }) => {
 
   const listenersRef = useRef([]);
   const authCycleRef = useRef(0);
+  const writeQueueRef = useRef(Promise.resolve());
+
+  const queueWrite = (operation) => {
+    writeQueueRef.current = writeQueueRef.current.then(operation).catch((err) => {
+      console.error("[WriteQueue] Operation failed:", err);
+      throw err;
+    });
+    return writeQueueRef.current;
+  };
 
   const clearAllSyncedState = () => {
     setHabitDocs([]);
@@ -732,27 +744,74 @@ export const AuthProvider = ({ children }) => {
     if (!user?.uid) return;
     const nextConfig =
       typeof updater === "function" ? updater(userConfig) : updater || userConfig;
-    await upsertUserSetting(
+    return queueWrite(() => upsertUserSetting(
       user.uid,
       "profile",
       mergeUserIdentityIntoConfig(normalizeUserConfig(nextConfig), user),
       true,
-    );
+    ));
   };
 
   const replaceHabitsState = async (nextHabits) => {
     if (!user?.uid) return;
-    await replaceHabitsAndLogs(user.uid, nextHabits);
+    return queueWrite(() => replaceHabitsAndLogs(user.uid, nextHabits));
   };
 
   const replaceNotesState = async (nextNotes) => {
     if (!user?.uid) return;
-    await replaceNotes(user.uid, nextNotes);
+    return queueWrite(() => replaceNotes(user.uid, nextNotes));
   };
 
   const replaceRemindersState = async (nextReminders) => {
     if (!user?.uid) return;
-    await replaceUserReminders(user.uid, nextReminders);
+    return queueWrite(() => replaceUserReminders(user.uid, nextReminders));
+  };
+
+  const addHabit = async (payload) => {
+    if (!user?.uid) return;
+    return queueWrite(() => createHabit(user.uid, payload));
+  };
+
+  const updateHabit = async (habitId, payload) => {
+    if (!user?.uid) return;
+    return queueWrite(() => serviceUpdateHabit(user.uid, habitId, payload));
+  };
+
+  const deleteHabit = async (habitId) => {
+    if (!user?.uid) return;
+    return queueWrite(() => serviceDeleteHabit(user.uid, habitId));
+  };
+
+  const addLog = async (payload) => {
+    if (!user?.uid) return;
+    return queueWrite(() => createLog(user.uid, payload));
+  };
+
+  const deleteLog = async (logId) => {
+    if (!user?.uid) return;
+    return queueWrite(() => serviceDeleteLog(user.uid, logId));
+  };
+
+  const upsertNote = async (payload) => {
+    if (!user?.uid) return;
+    const normalized = normalizeNote(payload);
+    return queueWrite(() => upsertCollectionDoc(user.uid, USER_SUBCOLLECTIONS.notes, normalized.id, normalized, true));
+  };
+
+  const deleteNote = async (noteId) => {
+    if (!user?.uid) return;
+    return queueWrite(() => deleteCollectionDoc(user.uid, USER_SUBCOLLECTIONS.notes, noteId));
+  };
+
+  const upsertReminder = async (payload) => {
+    if (!user?.uid) return;
+    const normalized = normalizeReminder(payload);
+    return queueWrite(() => upsertCollectionDoc(user.uid, USER_SUBCOLLECTIONS.reminders, normalized.id, normalized, true));
+  };
+
+  const deleteReminder = async (reminderId) => {
+    if (!user?.uid) return;
+    return queueWrite(() => deleteCollectionDoc(user.uid, USER_SUBCOLLECTIONS.reminders, reminderId));
   };
 
   const upsertSheetsConnectionState = async (payload) => {
@@ -781,6 +840,7 @@ export const AuthProvider = ({ children }) => {
     setShowBanModal,
 
     habits,
+    logDocs,
     notes,
     reminders,
     userConfig,
@@ -791,6 +851,16 @@ export const AuthProvider = ({ children }) => {
     replaceRemindersState,
     updateUserConfig,
     upsertSheetsConnectionState,
+
+    addHabit,
+    updateHabit,
+    deleteHabit,
+    addLog,
+    deleteLog,
+    upsertNote,
+    deleteNote,
+    upsertReminder,
+    deleteReminder,
   };
 
   return (

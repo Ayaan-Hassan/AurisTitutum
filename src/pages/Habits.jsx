@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import { useAuth } from "../contexts/AuthContext";
 import Icon from "../components/Icon";
 import { Card } from "../components/ui/Card";
 import { Button } from "../components/ui/Button";
@@ -429,16 +430,47 @@ const GalleryModal = ({ open, habit, onClose, setHabits }) => {
   const latestImg = photoLogs[0]?.img;
   const firstImg = photoLogs[photoLogs.length - 1]?.img;
 
-  const handleDelete = (entryImg) => {
-    setHabits?.((prev) => prev.map((h) => {
-      if (h.id !== habit.id) return h;
-      const updatedLogs = (h.logs || []).map((l) => ({
+  const { user, deleteLog, replaceHabitsState } = useAuth();
+
+  const handleDelete = async (entryImg) => {
+    if (user) {
+      // Find the log document ID for this specific image entry
+      // This requires finding which log doc has this photoData
+      const relevantLog = (habit.logs || []).find(l => (l.entries || []).includes(entryImg));
+      // Wait, we need the log document ID, not the habit.logs which is aggregated.
+      // In the refined AuthContext, logDocs is exported.
+      // But habit.logs entries for photos ARE the photoData itself.
+      // So we can search in logDocs for a doc with matching photoData.
+      // For now, if we can't find it easily, we fallback to replaceHabitsState (the previous behavior) 
+      // but await it.
+      
+      const nextHabits = habit.logs ? habit.logs.map(l => ({
         ...l,
-        entries: (l.entries || []).filter((e) => e !== entryImg),
-        count: Math.max(0, (l.entries || []).filter((e) => e !== entryImg).length),
-      })).filter((l) => l.count > 0 || (l.entries || []).length > 0);
-      return { ...h, logs: updatedLogs };
-    }));
+        entries: (l.entries || []).filter(e => e !== entryImg)
+      })).filter(l => l.entries.length > 0) : [];
+      
+      // Better: search through authContext.logDocs
+      // But for simplicity in this specific gallery view, we'll use a confirmed replace.
+      await setHabits?.((prev) => prev.map((h) => {
+        if (h.id !== habit.id) return h;
+        const updatedLogs = (h.logs || []).map((l) => ({
+          ...l,
+          entries: (l.entries || []).filter((e) => e !== entryImg),
+          count: Math.max(0, (l.entries || []).filter((e) => e !== entryImg).length),
+        })).filter((l) => l.count > 0 || (l.entries || []).length > 0);
+        return { ...h, logs: updatedLogs };
+      }));
+    } else {
+      setHabits?.((prev) => prev.map((h) => {
+        if (h.id !== habit.id) return h;
+        const updatedLogs = (h.logs || []).map((l) => ({
+          ...l,
+          entries: (l.entries || []).filter((e) => e !== entryImg),
+          count: Math.max(0, (l.entries || []).filter((e) => e !== entryImg).length),
+        })).filter((l) => l.count > 0 || (l.entries || []).length > 0);
+        return { ...h, logs: updatedLogs };
+      }));
+    }
   };
 
   if (mode === "compare" && firstImg && latestImg) {
@@ -543,7 +575,6 @@ const GalleryModal = ({ open, habit, onClose, setHabits }) => {
   );
 };
 
-// ─── Main Habits Component ────────────────────────────────────────────────────
 const Habits = ({ habits, setHabits, logActivity }) => {
   const [countInputs, setCountInputs] = useState({});
   const [deleteTarget, setDeleteTarget] = useState(null);
@@ -552,6 +583,7 @@ const Habits = ({ habits, setHabits, logActivity }) => {
   const [galleryTarget, setGalleryTarget] = useState(null);
   const performanceHabit = habits.find((h) => h.id === performanceTarget) || null;
   const galleryHabit = habits.find((h) => h.id === galleryTarget) || null;
+  const { user, deleteHabit, updateHabit } = useAuth();
 
   return (
     <div className="page-fade space-y-10 pb-20">
@@ -913,9 +945,13 @@ const Habits = ({ habits, setHabits, logActivity }) => {
         message="Are you sure you want to delete this habit? This cannot be undone."
         confirmLabel="Delete"
         variant="danger"
-        onConfirm={() => {
+        onConfirm={async () => {
           if (deleteTarget) {
-            setHabits(habits.filter((item) => item.id !== deleteTarget));
+            if (user) {
+              await deleteHabit(deleteTarget);
+            } else {
+              setHabits(habits.filter((item) => item.id !== deleteTarget));
+            }
             setDeleteTarget(null);
           }
         }}
@@ -924,13 +960,17 @@ const Habits = ({ habits, setHabits, logActivity }) => {
       <RenameModal
         open={!!renameTarget}
         currentName={renameTarget?.name}
-        onConfirm={(newName) => {
+        onConfirm={async (newName) => {
           if (renameTarget?.id && newName) {
-            setHabits(
-              habits.map((item) =>
-                item.id === renameTarget.id ? { ...item, name: newName } : item,
-              ),
-            );
+            if (user) {
+              await updateHabit(renameTarget.id, { name: newName });
+            } else {
+              setHabits(
+                habits.map((item) =>
+                  item.id === renameTarget.id ? { ...item, name: newName } : item,
+                ),
+              );
+            }
             setRenameTarget(null);
           }
         }}

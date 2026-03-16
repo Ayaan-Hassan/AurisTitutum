@@ -447,12 +447,14 @@ function AppContent() {
     setReminders(nextState.reminders);
   }, [activeScope, user]);
 
+  // Synchronize local guest state with localStorage
   useEffect(() => {
     if (loadedScopeRef.current !== activeScope) return;
     if (pendingScopeInitRef.current === activeScope) {
       pendingScopeInitRef.current = null;
       return;
     }
+    // Only write to localStorage for guest scope or as a backup
     writeScopedState(activeScope, {
       habits,
       userConfig,
@@ -461,102 +463,16 @@ function AppContent() {
     });
   }, [activeScope, habits, userConfig, notes, reminders]);
 
-  useEffect(() => {
-    cloudStateReadyRef.current = false;
-
-    if (!userKey) {
-      cloudStateReadyRef.current = true;
-      return undefined;
-    }
-
-    const remoteState = normalizeAppState({
-      habits: authContext.habits,
-      userConfig: authContext.userConfig,
-      notes: authContext.notes,
-      reminders: authContext.reminders,
-    });
-
-    if (!areAppStatesEqual(remoteState, cloudStateRef.current)) {
-      if (cloudSaveTimerRef.current || isSavingToCloudRef.current) {
-        // Prevent overwriting local state if we have a pending push to Firebase
-        return;
-      }
-
-      // Meaningful update from remote
-      const hasContent = remoteState.habits.length > 0 || remoteState.notes.length > 0 || remoteState.reminders.length > 0;
-      // Also prevent overwriting local state with completely empty state immediately after login
-      if (hasContent || !authContext.dataLoading) {
-        skipNextCloudSaveRef.current = true;
-        setHabits(remoteState.habits);
-        setUserConfig(mergeUserIdentityIntoConfig(remoteState.userConfig, user));
-        setNotes(remoteState.notes);
-        setReminders(remoteState.reminders);
-        writeScopedState(activeScope, remoteState);
-        cloudStateRef.current = remoteState;
-      }
-    }
-
-    cloudStateReadyRef.current = true;
-  }, [activeScope, user, userKey, authContext.habits, authContext.notes, authContext.reminders, authContext.userConfig, authContext.dataLoading]);
-
-  // Push local state to remote
-  useEffect(() => {
-    if (!userKey || !cloudStateReadyRef.current || authContext.dataLoading) {
-      return undefined;
-    }
-
-    if (skipNextCloudSaveRef.current) {
-      skipNextCloudSaveRef.current = false;
-      return undefined;
-    }
-
-    const currentState = normalizeAppState({
-      habits,
-      userConfig,
-      notes,
-      reminders,
-    });
-
-    // Don't push if nothing has functionally changed compared to the last cloud state
-    if (areAppStatesEqual(currentState, cloudStateRef.current)) {
-      return undefined;
-    }
-
-    if (cloudSaveTimerRef.current) {
-      clearTimeout(cloudSaveTimerRef.current);
-      cloudSaveTimerRef.current = null;
-    }
-
-    cloudSaveTimerRef.current = setTimeout(async () => {
-      cloudSaveTimerRef.current = null;
-      try {
-        isSavingToCloudRef.current = true;
-        // Sync in parallel for better performance and reliability
-        await Promise.all([
-          replaceHabitsState(habits),
-          replaceNotesState(notes),
-          replaceRemindersState(reminders),
-          updateUserConfig(userConfig)
-        ]);
-        cloudStateRef.current = currentState;
-      } catch (error) {
-        console.error("[firebase-sync] Failed to persist cloud state:", error);
-      } finally {
-        isSavingToCloudRef.current = false;
-      }
-    }, 50);
-
-    return () => {
-      if (cloudSaveTimerRef.current) {
-        clearTimeout(cloudSaveTimerRef.current);
-        cloudSaveTimerRef.current = null;
-      }
-    };
-  }, [habits, notes, reminders, userConfig, userKey, authContext.dataLoading]);
+  // Derived state that switches between local (guest) and remote (user)
+  const displayHabits = user ? authContext.habits : habits;
+  const displayNotes = user ? authContext.notes : notes;
+  const displayReminders = user ? authContext.reminders : reminders;
+  const displayUserConfig = user ? authContext.userConfig : userConfig;
+  const dataLoading = user ? authContext.dataLoading : false;
 
   const logInProgressRef = useRef(false);
 
-  const logActivity = useCallback((id, increment = true, amount = 1, unit = "", photoData = null) => {
+  const logActivity = useCallback(async (id, increment = true, amount = 1, unit = "", photoData = null) => {
     if (id === "example-habit") {
         const toastEvent = new CustomEvent("showToast", {
             detail: { message: "Create your own habit to start tracking!", type: "info", id: Date.now() },
@@ -574,6 +490,36 @@ function AppContent() {
     const todayKey = getLocalDateKey(now);
     const timestamp = now.toLocaleTimeString([], { hour12: false });
 
+    // Handle User Sync Mode
+    if (user) {
+      const habitObj = authContext.habits.find(h => h.id === id);
+      if (!habitObj) return;
+
+      if (increment) {
+        await authContext.addLog({
+          habitId: id,
+          date: todayKey,
+          time: timestamp,
+          amount: amt,
+          unit: unit || habitObj.unit || "",
+          mode: habitObj.mode,
+          type: habitObj.type,
+          photoData: photoData
+        });
+      } else {
+        // Find the most recent log for this habit on this date to remove
+        const relevantLogs = (authContext.logDocs || [])
+          .filter(l => l.habitId === id && l.date === todayKey)
+          .sort((a, b) => (b.createdAt || "").localeCompare(a.createdAt || ""));
+        
+        if (relevantLogs.length > 0) {
+          await authContext.deleteLog(relevantLogs[0].id);
+        }
+      }
+      return;
+    }
+
+    // Handle Local Guest Mode
     setHabits((prev) =>
       prev.map((h) => {
         if (h.id !== id) return h;
@@ -617,7 +563,6 @@ function AppContent() {
               });
             }
           } else if (h.mode === "upload") {
-            // Store the photo data URL as the entry string
             const entryStr = photoData || timestamp;
             updatedTotal += 1;
             if (existingDateIdx > -1) {
@@ -710,8 +655,7 @@ function AppContent() {
         return { ...h, logs: updatedLogs, totalLogs: updatedTotal };
       }),
     );
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [user, authContext]);
 
   const handleAvatarUpload = (e) => {
     const file = e.target.files[0];
@@ -719,7 +663,11 @@ function AppContent() {
     const reader = new FileReader();
     reader.onload = async (event) => {
       const compressed = await compressImage(event.target.result);
-      setUserConfig((prev) => ({ ...prev, avatar: compressed }));
+      if (user) {
+        await authContext.updateUserConfig({ avatar: compressed });
+      } else {
+        setUserConfig((prev) => ({ ...prev, avatar: compressed }));
+      }
     };
     reader.readAsDataURL(file);
     e.target.value = null;
@@ -785,7 +733,7 @@ function AppContent() {
           path="/app/*"
           element={
             <Layout
-              userConfig={userConfig}
+              userConfig={displayUserConfig}
               onAddHabit={handleAddHabitRequest}
               habits={displayHabits}
               notifications={notifications}
@@ -798,7 +746,7 @@ function AppContent() {
                   element={
                     <Dashboard
                       habits={displayHabits}
-                      setHabits={setHabits}
+                      setHabits={user ? authContext.replaceHabitsState : setHabits}
                       logActivity={logActivity}
                       insights={dailyInsight}
                     />
@@ -819,25 +767,25 @@ function AppContent() {
                   element={
                     <Habits
                       habits={displayHabits}
-                      setHabits={setHabits}
+                      setHabits={user ? authContext.replaceHabitsState : setHabits}
                       logActivity={logActivity}
                     />
                   }
                 />
                 <Route
                   path="logs"
-                  element={<Logs habits={displayHabits} setHabits={setHabits} />}
+                  element={<Logs habits={displayHabits} setHabits={user ? authContext.replaceHabitsState : setHabits} />}
                 />
                 <Route
                   path="notes"
-                  element={<Notes notes={notes} setNotes={setNotes} />}
+                  element={<Notes notes={displayNotes} setNotes={user ? authContext.replaceNotesState : setNotes} />}
                 />
                 <Route
                   path="reminders"
                   element={
                     <Reminders
-                      reminders={reminders}
-                      setReminders={setReminders}
+                      reminders={displayReminders}
+                      setReminders={user ? authContext.replaceRemindersState : setReminders}
                     />
                   }
                 />
@@ -845,11 +793,11 @@ function AppContent() {
                   path="settings"
                   element={
                     <Settings
-                      userConfig={userConfig}
-                      setUserConfig={setUserConfig}
+                      userConfig={displayUserConfig}
+                      setUserConfig={user ? authContext.updateUserConfig : setUserConfig}
                       handleAvatarUpload={handleAvatarUpload}
                       fileInputRef={fileInputRef}
-                      habits={habits}
+                      habits={displayHabits}
                     />
                   }
                 />
@@ -1050,9 +998,10 @@ function AppContent() {
                   <div className="flex justify-between mt-8 pt-4">
                     <button onClick={() => setAddHabitStep(3)} className="px-5 py-3 rounded-xl border border-border-color text-xs font-bold uppercase tracking-widest text-text-secondary hover:text-text-primary active:scale-95 transition-all">Back</button>
                     <button
-                        onClick={() => {
+                        onClick={async () => {
                           if (!newHabit.name.trim()) return;
-                          setHabits([...habits, {
+                          
+                          const habitPayload = {
                             id: Date.now().toString(),
                             name: newHabit.name,
                             type: newHabit.type,
@@ -1061,7 +1010,14 @@ function AppContent() {
                             emoji: newHabit.emoji || "",
                             totalLogs: 0,
                             logs: [],
-                          }]);
+                          };
+
+                          if (user) {
+                             await authContext.addHabit(habitPayload);
+                          } else {
+                            setHabits([...habits, habitPayload]);
+                          }
+
                           setNewHabit({ name: "", type: "Good", mode: "quick", unit: "", emoji: "" });
                           trackEvent("habit_created", { type: newHabit.type, mode: newHabit.mode });
                           setShowAddModal(false);

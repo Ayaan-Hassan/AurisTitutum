@@ -17,7 +17,7 @@ const NOTE_COLORS = [
 ];
 
 const Notes = ({ notes, setNotes }) => {
-    const { user } = useAuth();
+    const { user, upsertNote, deleteNote: remoteDeleteNote } = useAuth();
     const [editingId, setEditingId] = useState(null);
     const [editTitle, setEditTitle] = useState('');
     const [editBody, setEditBody] = useState('');
@@ -56,7 +56,7 @@ const Notes = ({ notes, setNotes }) => {
         return result;
     }, [sortedNotes, search, filterPinned]);
 
-    const addNote = () => {
+    const addNote = async () => {
         if (!newTitle.trim() && !newBody.trim()) return;
         const note = {
             id: Date.now().toString(),
@@ -67,7 +67,13 @@ const Notes = ({ notes, setNotes }) => {
             createdAt: new Date().toISOString(),
             updatedAt: new Date().toISOString(),
         };
-        setNotes(prev => [note, ...prev]);
+        
+        if (user) {
+            await upsertNote(note);
+        } else {
+            setNotes(prev => [note, ...prev]);
+        }
+
         trackEvent("note_created", { color: newColor });
         setNewTitle('');
         setNewBody('');
@@ -82,20 +88,38 @@ const Notes = ({ notes, setNotes }) => {
         setEditColor(note.color || 'default');
     };
 
-    const saveEdit = () => {
+    const saveEdit = async () => {
         if (!editingId) return;
-        setNotes(prev => prev.map(n =>
-            n.id === editingId
-                ? { ...n, title: editTitle.trim() || 'Untitled', body: editBody.trim(), color: editColor, updatedAt: new Date().toISOString() }
-                : n
-        ));
+        const noteToUpdate = notes.find(n => n.id === editingId);
+        if (!noteToUpdate) return;
+
+        const updated = { 
+            ...noteToUpdate, 
+            title: editTitle.trim() || 'Untitled', 
+            body: editBody.trim(), 
+            color: editColor, 
+            updatedAt: new Date().toISOString() 
+        };
+
+        if (user) {
+            await upsertNote(updated);
+        } else {
+            setNotes(prev => prev.map(n => n.id === editingId ? updated : n));
+        }
         setEditingId(null);
     };
 
-    const togglePin = (id) => {
-        setNotes(prev => prev.map(n =>
-            n.id === id ? { ...n, pinned: !n.pinned, updatedAt: new Date().toISOString() } : n
-        ));
+    const togglePin = async (id) => {
+        const note = notes.find(n => n.id === id);
+        if (!note) return;
+
+        const updated = { ...note, pinned: !note.pinned, updatedAt: new Date().toISOString() };
+        
+        if (user) {
+            await upsertNote(updated);
+        } else {
+            setNotes(prev => prev.map(n => n.id === id ? updated : n));
+        }
     };
 
     const formatDate = (iso) => {
@@ -318,7 +342,16 @@ const Notes = ({ notes, setNotes }) => {
                 message="Are you sure you want to delete this note?"
                 confirmLabel="Delete"
                 variant="danger"
-                onConfirm={() => { if (deleteTarget) { setNotes(prev => prev.filter(n => n.id !== deleteTarget)); setDeleteTarget(null); } }}
+                onConfirm={async () => { 
+                    if (deleteTarget) { 
+                        if (user) {
+                            await remoteDeleteNote(deleteTarget);
+                        } else {
+                            setNotes(prev => prev.filter(n => n.id !== deleteTarget)); 
+                        }
+                        setDeleteTarget(null); 
+                    } 
+                }}
                 onCancel={() => setDeleteTarget(null)}
             />
 
