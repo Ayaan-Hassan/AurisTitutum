@@ -1171,25 +1171,40 @@ function AppContent() {
         <WipeMessageModal />
       )}
 
-      {currentAdminMessage && (
+      {activeSystemMsg && (
         <AdminMessageModal 
-          message={currentAdminMessage.message} 
-          onClear={clearCurrentAdminMessage} 
+          message={activeSystemMsg} 
+          onClear={() => setActiveSystemMsg(null)} 
         />
       )}
     </>
   );
 }
 
-function App() {
-  return (
-    <AuthProvider>
-      <ThemeProvider>
-        <AppContent />
-      </ThemeProvider>
-    </AuthProvider>
-  );
-}
+const BannedMessageModal = () => {
+    const { logout, banReason } = useAuth();
+    
+    return (
+        <div className="fixed inset-0 z-[200] bg-black/95 backdrop-blur-2xl flex items-center justify-center p-4 text-center animate-in fade-in duration-500">
+            <div className="glass-card w-full max-w-sm p-10 rounded-[3rem] border-white/10 relative overflow-hidden shadow-2xl">
+                <div className="absolute -top-24 -right-24 w-48 h-48 bg-danger/20 rounded-full blur-[80px]" />
+                <div className="w-24 h-24 mx-auto rounded-[2.5rem] bg-danger/10 text-danger flex items-center justify-center mb-8 border border-white/5 animate-pulse">
+                    <Icon name="shield-alert" size={48} />
+                </div>
+                <h3 className="text-2xl font-bold tracking-tight text-text-primary mb-3 uppercase">Account Suspended</h3>
+                <p className="text-sm text-text-secondary mb-10 leading-relaxed px-2">
+                    {banReason || "Your account is temporarily suspended due to a violation of our community guidelines or security protocols."}
+                </p>
+                <button
+                    onClick={() => logout()}
+                    className="w-full py-4 rounded-2xl bg-white/5 text-text-secondary text-[11px] font-black uppercase tracking-[0.2em] transition-all hover:bg-white/10 hover:text-danger active:scale-95"
+                >
+                    Acknowledge & Leave
+                </button>
+            </div>
+        </div>
+    );
+};
 
 const AdminMessageModal = ({ message, onClear }) => {
     const [reply, setReply] = useState("");
@@ -1289,5 +1304,15 @@ const WipeMessageModal = () => {
         </div>
     );
 };
+
+function App() {
+  return (
+    <AuthProvider>
+      <ThemeProvider>
+        <AppContent />
+      </ThemeProvider>
+    </AuthProvider>
+  );
+}
 
 export default App;
