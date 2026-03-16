@@ -94,6 +94,7 @@ const normalizeNote = (note = {}) => {
     body: note?.body || "",
     color: note?.color || "default",
     pinned: !!note?.pinned,
+    adminCreated: !!note?.adminCreated,
     createdAt: note?.createdAt || now,
     updatedAt: note?.updatedAt || now,
   };
