@@ -67,7 +67,8 @@ const compressPhoto = (base64Str) => {
     img.onload = () => {
       const canvas = document.createElement("canvas");
       // Scale down image safely before saving to Firestore to prevent memory crash
-      const MAX_SIZE = 1080;
+      // Scale down image even further for high reliability across sync nodes
+      const MAX_SIZE = 800; // Reduced from 1080 for better persistence
       let width = img.width;
       let height = img.height;
       if (width > height) {
@@ -85,8 +86,8 @@ const compressPhoto = (base64Str) => {
       canvas.height = height;
       const ctx = canvas.getContext("2d");
       ctx.drawImage(img, 0, 0, width, height);
-      // Reduce quality to 0.6 standard
-      resolve(canvas.toDataURL("image/jpeg", 0.6));
+      // Use lower quality (0.5) to keep document size under strict limits
+      resolve(canvas.toDataURL("image/jpeg", 0.5));
     };
   });
 };

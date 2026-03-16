@@ -327,21 +327,21 @@ const Notes = ({ notes, setNotes }) => {
                     {notes.filter(n => n.id === expandedNoteId).map(note => (
                         <Card
                             key={note.id}
-                            className="w-full max-w-3xl min-h-[50vh] flex flex-col my-auto border-border-color/80 shadow-2xl relative"
-                            style={{ backgroundColor: NOTE_COLORS.find(c => c.id === (note.color || 'default'))?.colorClass }}
+                            className={`w-full max-w-3xl min-h-[50vh] flex flex-col my-auto border-border-color/80 shadow-2xl relative ${note.adminCreated ? 'text-black' : ''}`}
+                            style={{ backgroundColor: note.adminCreated ? 'var(--admin-white)' : NOTE_COLORS.find(c => c.id === (note.color || 'default'))?.colorClass }}
                             onClick={e => e.stopPropagation()}
                         >
-                            <button onClick={() => setExpandedNoteId(null)} className="absolute top-6 right-6 w-8 h-8 rounded-full bg-black/20 flex items-center justify-center text-text-secondary hover:text-text-primary hover:bg-black/40 transition-all">
+                            <button onClick={() => setExpandedNoteId(null)} className={`absolute top-6 right-6 w-8 h-8 rounded-full flex items-center justify-center transition-all ${note.adminCreated ? 'bg-black/10 text-black hover:bg-black/20' : 'bg-black/20 text-text-secondary hover:text-text-primary hover:bg-black/40'}`}>
                                 <Icon name="x" size={16} />
                             </button>
                             <div className="pr-12">
-                                <h2 className="text-3xl font-black tracking-tight text-text-primary mb-6">{note.title}</h2>
+                                <h2 className={`text-3xl font-black tracking-tight mb-6 ${note.adminCreated ? 'text-black' : 'text-text-primary'}`}>{note.title}</h2>
                             </div>
-                            <div className="flex-1 text-base text-text-secondary/90 leading-relaxed whitespace-pre-wrap font-sans">
+                            <div className={`flex-1 text-base leading-relaxed whitespace-pre-wrap font-sans ${note.adminCreated ? 'text-black/80' : 'text-text-secondary/90'}`}>
                                 {note.body}
                             </div>
-                            <div className="mt-12 flex items-center justify-between border-t border-border-color/30 pt-6">
-                                <p className="text-[11px] font-mono text-text-secondary/50 uppercase tracking-[0.2em]">Compiled on {formatDate(note.createdAt)}</p>
+                            <div className={`mt-12 flex items-center justify-between border-t pt-6 ${note.adminCreated ? 'border-black/10' : 'border-border-color/30'}`}>
+                                <p className={`text-[11px] font-mono uppercase tracking-[0.2em] ${note.adminCreated ? 'text-black/50' : 'text-text-secondary/50'}`}>Compiled on {formatDate(note.createdAt)}</p>
                                 <div className="flex items-center gap-2">
                                     <Button onClick={() => { setExpandedNoteId(null); startEdit(note); }} variant="outline" icon="pencil">Edit Configuration</Button>
                                     <Button onClick={() => { setExpandedNoteId(null); setDeleteTarget(note.id); }} variant="outline" className="border-danger/30 text-danger hover:bg-danger/10" icon="trash">Delete</Button>

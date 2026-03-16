@@ -119,8 +119,13 @@ export default function AdminDashboard() {
         });
 
         const unsubHabits = onSnapshot(query(collectionGroup(db, "habits")), (snapshot) => {
-            // Recalculate accurately on any change
-            const total = snapshot.size;
+            // Recalculate accurately on any change, only counting real user habits
+            let total = 0;
+            snapshot.forEach(doc => {
+                if (doc.ref.path.startsWith('users/')) {
+                    total++;
+                }
+            });
             setStats(prev => ({ ...prev, habits: total }));
         });
 

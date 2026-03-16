@@ -72,6 +72,9 @@ export const aggregateHabitsFromDocs = (habitDocs = [], logDocs = []) => {
     if (habit.mode === "count") {
       day.count += amount;
       day.entries.push(`${time}|${amount}|${unit}`);
+    } else if (habit.mode === "upload" && item.photoData) {
+      day.count += amount;
+      day.entries.push(item.photoData);
     } else {
       day.count += amount;
       for (let i = 0; i < amount; i += 1) {

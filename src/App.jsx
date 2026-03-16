@@ -1243,15 +1243,18 @@ const AdminMessageModal = ({ message, onClear }) => {
 
     return (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-bg-main/90 backdrop-blur-xl animate-in fade-in duration-300">
-            <div className="glass-card w-full max-w-sm p-8 rounded-[3rem] border-white/10 relative overflow-hidden shadow-2xl">
-                <div className="absolute -top-24 -right-24 w-48 h-48 bg-accent/20 rounded-full blur-[80px]" />
+            <div className="glass-card w-full max-w-sm p-8 rounded-[2.5rem] border-white/10 relative overflow-hidden shadow-2xl bg-gradient-to-b from-white/5 to-transparent">
+                <div className="absolute top-0 left-0 w-full h-1 bg-accent/50" />
                 <div className="relative z-10 flex flex-col items-center text-center">
-                    <div className="w-16 h-16 rounded-2xl bg-accent/10 flex items-center justify-center text-accent mb-6 animate-bounce">
+                    <div className="w-16 h-16 rounded-3xl bg-accent/10 flex items-center justify-center text-accent mb-6">
                         <Icon name="mail" size={32} />
                     </div>
-                    <h3 className="text-xl font-bold tracking-tight text-text-primary mb-2">Admin sent you a message</h3>
-                    <div className="w-full bg-white/5 border border-white/10 rounded-2xl p-4 text-sm text-text-secondary leading-relaxed mb-6 italic text-left">
-                        "{message}"
+                    <p className="text-[10px] font-black uppercase tracking-[0.4em] text-accent mb-2">Transmission Received</p>
+                    <h3 className="text-xl font-bold tracking-tight text-white mb-6 uppercase">Admin Message</h3>
+                    
+                    <div className="w-full bg-black/40 border border-white/5 rounded-2xl p-5 text-sm text-text-secondary leading-relaxed mb-6 text-left relative">
+                        <div className="absolute -top-2 left-4 px-2 bg-bg-main text-[8px] font-bold uppercase tracking-widest text-text-secondary border border-white/5 rounded">Message Body</div>
+                        {message}
                     </div>
                     
                     {isReplying ? (
@@ -1259,25 +1262,25 @@ const AdminMessageModal = ({ message, onClear }) => {
                             <textarea 
                                 value={reply}
                                 onChange={(e) => setReply(e.target.value)}
-                                placeholder="Type your reply here..."
-                                className="w-full bg-bg-main border border-border-color rounded-xl p-3 text-xs text-text-primary outline-none focus:border-accent mb-4 resize-none transition-all"
+                                placeholder="Type your formal response..."
+                                className="w-full bg-black/20 border border-white/10 rounded-xl p-4 text-xs text-text-primary outline-none focus:border-accent mb-4 resize-none transition-all placeholder:text-text-secondary/30"
                                 rows={3}
                                 disabled={isSending}
                             />
                             <div className="flex gap-3">
                                 <button 
                                     onClick={() => setIsReplying(false)} 
-                                    className="flex-1 py-3 px-6 bg-white/5 hover:bg-white/10 text-white text-[10px] font-black uppercase tracking-widest rounded-xl transition-all"
+                                    className="flex-1 py-3 px-6 bg-white/5 hover:bg-white/10 text-white text-[10px] font-black uppercase tracking-widest rounded-xl transition-all border border-white/10"
                                     disabled={isSending}
                                 >
-                                    Cancel
+                                    Dismiss
                                 </button>
                                 <button 
                                     onClick={handleSendReply}
                                     disabled={isSending || !reply.trim()}
                                     className="flex-1 py-3 px-6 bg-accent text-bg-main text-[10px] font-black uppercase tracking-widest rounded-xl hover:opacity-90 active:scale-95 transition-all shadow-lg shadow-accent/20"
                                 >
-                                    {isSending ? "Sending..." : "Send"}
+                                    {isSending ? "Processing..." : "Send Reply"}
                                 </button>
                             </div>
                         </div>
@@ -1291,9 +1294,9 @@ const AdminMessageModal = ({ message, onClear }) => {
                             </button>
                             <button 
                                 onClick={onClear} 
-                                className="flex-1 py-4 rounded-2xl bg-accent text-bg-main text-[10px] font-black uppercase tracking-[0.2em] transition-all hover:scale-[1.02] active:scale-[0.98] shadow-lg shadow-accent/20"
+                                className="flex-1 py-4 rounded-2xl bg-accent text-bg-main text-[10px] font-black uppercase tracking-[0.2em] transition-all hover:opacity-90 active:scale-[0.98] shadow-lg shadow-accent/20"
                             >
-                                Ok
+                                OK
                             </button>
                         </div>
                     )}
