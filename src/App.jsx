@@ -20,6 +20,7 @@ import { AuthProvider, useAuth } from "./contexts/AuthContext";
 import { useHabitNotifications } from "./hooks/useHabitNotifications";
 import { useReminderNotifications } from "./hooks/useReminderNotifications";
 import ToastContainer from "./components/Toast";
+import TourGuide from "./components/TourGuide";
 import { db } from "./firebase.config";
 import { collection, addDoc } from "firebase/firestore";
 import { Button } from "./components/ui/Button";
