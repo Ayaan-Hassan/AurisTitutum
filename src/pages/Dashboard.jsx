@@ -220,9 +220,9 @@ const DashboardRatingControl = ({ habit, logActivity }) => {
           onMouseLeave={() => setHovered(0)}
           className="w-6 h-6 flex items-center justify-center transition-all hover:scale-110"
         >
-          <svg viewBox="0 0 24 24" className="w-4 h-4" fill={v <= (hovered || rated) ? "currentColor" : "none"} stroke="currentColor" strokeWidth={1.5}>
+          <svg viewBox="0 0 24 24" className="w-5 h-5" fill={v <= (hovered || rated) ? "currentColor" : "none"} stroke="currentColor" strokeWidth={2}>
             <polygon points="12,2 15.09,8.26 22,9.27 17,14.14 18.18,21.02 12,17.77 5.82,21.02 7,14.14 2,9.27 8.91,8.26"
-              className={v <= (hovered || rated) ? "text-amber-400" : "text-border-color"} />
+              className={v <= (hovered || rated) ? "text-amber-400" : "text-white/20"} />
           </svg>
         </button>
       ))}

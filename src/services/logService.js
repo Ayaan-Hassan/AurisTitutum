@@ -75,6 +75,21 @@ export const serializeLogsFromHabits = (habits = []) => {
             createdAt: getEventTimestamp(date, parsed.time),
             updatedAt: new Date().toISOString(),
           });
+        } else if (mode === "upload" && typeof entry === "string" && entry.startsWith("data:image")) {
+          // Serialize photo logs with the photoData field for admin visibility
+          docs.push({
+            id: baseId,
+            habitId,
+            date,
+            time: "00:00:00",
+            photoData: entry,
+            amount: 1,
+            unit: "",
+            mode,
+            type,
+            createdAt: getEventTimestamp(date, "00:00:00"),
+            updatedAt: new Date().toISOString(),
+          });
         } else {
           const time = String(entry || "00:00:00").trim() || "00:00:00";
           docs.push({

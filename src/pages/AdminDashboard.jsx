@@ -104,12 +104,13 @@ export default function AdminDashboard() {
         });
         const unsubGuests = onSnapshot(collection(db, "guest_presence"), (snapshot) => {
             let count = 0;
-            const threshold = 60000; // Increased to 60s for better reliability with 20s intervals
+            const threshold = 60000;
             const now = new Date();
             snapshot.forEach(d => {
                 const data = d.data();
                 const lastActive = data.lastActive;
-                if (lastActive && (now - new Date(lastActive)) < threshold) {
+                // Stricter check: must be within threshold AND not explicitly flagged as offline
+                if (lastActive && (now - new Date(lastActive)) < threshold && data.isOnline !== false) {
                     count++;
                 }
             });
@@ -117,7 +118,9 @@ export default function AdminDashboard() {
         });
 
         const unsubHabits = onSnapshot(query(collectionGroup(db, "habits")), (snapshot) => {
-            setStats(prev => ({ ...prev, habits: snapshot.size }));
+            // Recalculate accurately on any change
+            const total = snapshot.size;
+            setStats(prev => ({ ...prev, habits: total }));
         });
 
         const unsubReminders = onSnapshot(query(collectionGroup(db, "reminders")), (snapshot) => {
