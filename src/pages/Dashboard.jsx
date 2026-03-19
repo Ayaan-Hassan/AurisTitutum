@@ -194,10 +194,11 @@ const DashboardUploadControl = ({ habit, logActivity }) => {
         <button
           onClick={() => { fileInputRef.current.removeAttribute("capture"); fileInputRef.current.click(); }}
           disabled={cooldown > 0}
-          className="w-8 h-8 border border-border-color bg-bg-main text-text-secondary hover:text-text-primary rounded-lg flex items-center justify-center transition-all shrink-0 active:scale-95 disabled:opacity-50"
+          className="h-8 px-2 border border-border-color bg-bg-main text-text-secondary hover:text-text-primary rounded-lg flex items-center justify-center transition-all shrink-0 active:scale-95 gap-1.5 disabled:opacity-50"
           title={cooldown > 0 ? `Wait ${cooldown}s` : "Upload"}
         >
-          <Icon name="upload" size={12} />
+          <Icon name="image" size={12} />
+          {photoCount > 0 && <span className="text-[10px] font-bold">{photoCount}</span>}
         </button>
         <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleFile} />
       </div>
