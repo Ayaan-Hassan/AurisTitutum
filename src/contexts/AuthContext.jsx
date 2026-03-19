@@ -162,6 +162,10 @@ googleProvider.addScope('email');
 googleProvider.addScope('profile');
 const facebookProvider = new FacebookAuthProvider();
 
+// Admin UID — this account is permanently exempt from ban enforcement
+const ADMIN_UID = import.meta.env.VITE_ADMIN_UID || "";
+const isAdminUid = (uid) => ADMIN_UID && uid === ADMIN_UID;
+
 export const useAuth = () => {
   const context = useContext(AuthContext);
   if (!context) {
@@ -393,6 +397,8 @@ export const AuthProvider = ({ children }) => {
       ),
       onSnapshot(doc(db, "users", uid), (snap) => {
           if (authCycleRef.current !== cycleId) return;
+          // Admin is never subject to ban enforcement
+          if (isAdminUid(uid)) return;
           const data = snap.exists() ? snap.data() : {};
           const banned = data.isBanned === true;
           const wiped = data.isWiped === true;
@@ -514,18 +520,20 @@ export const AuthProvider = ({ children }) => {
         identifyUser(mappedUser.uid, mappedUser.email, mappedUser.name);
         
         try {
-          // Pre-sync Ban Check
-          const userDoc = await getDoc(doc(db, "users", resolvedUser.uid));
-          if (userDoc.exists() && userDoc.data().isBanned === true) {
-             const reason = userDoc.data().banReason || "Your account is temporarily suspended due to violation of system protocols.";
-             setIsBanned(true);
-             setBanReason(reason);
-             setError(reason);
-             await auth.signOut();
-             setUser(null);
-             setAuthLoading(false);
-             setDataLoading(false);
-             return;
+          // Pre-sync Ban Check (skip for admin)
+          if (!isAdminUid(resolvedUser.uid)) {
+            const userDoc = await getDoc(doc(db, "users", resolvedUser.uid));
+            if (userDoc.exists() && userDoc.data().isBanned === true) {
+               const reason = userDoc.data().banReason || "Your account is temporarily suspended due to violation of system protocols.";
+               setIsBanned(true);
+               setBanReason(reason);
+               setError(reason);
+               await auth.signOut();
+               setUser(null);
+               setAuthLoading(false);
+               setDataLoading(false);
+               return;
+            }
           }
 
           setUser(mappedUser);
@@ -643,11 +651,13 @@ export const AuthProvider = ({ children }) => {
       await authPersistenceReady;
       const result = await signInWithEmailAndPassword(auth, email, password);
       
-      // Strict Ban Check post-login
-      const userDoc = await getDoc(doc(db, "users", result.user.uid));
-      if (userDoc.exists() && userDoc.data().isBanned === true) {
-          await auth.signOut();
-          return { success: false, error: "Your account is temporarily suspended due to violation of system protocols." };
+      // Strict Ban Check post-login (skip for admin)
+      if (!isAdminUid(result.user.uid)) {
+        const userDoc = await getDoc(doc(db, "users", result.user.uid));
+        if (userDoc.exists() && userDoc.data().isBanned === true) {
+            await auth.signOut();
+            return { success: false, error: "Your account is temporarily suspended due to violation of system protocols." };
+        }
       }
 
       trackEvent("login", { method: "email" });
@@ -694,11 +704,13 @@ export const AuthProvider = ({ children }) => {
       await authPersistenceReady;
       const result = await signInWithPopup(auth, googleProvider);
 
-      // Strict Ban Check
-      const userDoc = await getDoc(doc(db, "users", result.user.uid));
-      if (userDoc.exists() && userDoc.data().isBanned === true) {
-          await auth.signOut();
-          return { success: false, error: "Your account is temporarily suspended due to violation of system protocols." };
+      // Strict Ban Check (skip for admin)
+      if (!isAdminUid(result.user.uid)) {
+        const userDoc = await getDoc(doc(db, "users", result.user.uid));
+        if (userDoc.exists() && userDoc.data().isBanned === true) {
+            await auth.signOut();
+            return { success: false, error: "Your account is temporarily suspended due to violation of system protocols." };
+        }
       }
 
       trackEvent("login", { method: "google" });
@@ -722,11 +734,13 @@ export const AuthProvider = ({ children }) => {
       await authPersistenceReady;
       const result = await signInWithPopup(auth, facebookProvider);
 
-      // Strict Ban Check
-      const userDoc = await getDoc(doc(db, "users", result.user.uid));
-      if (userDoc.exists() && userDoc.data().isBanned === true) {
-          await auth.signOut();
-          return { success: false, error: "Your account is temporarily suspended. Please send us an enquiry to appeal." };
+      // Strict Ban Check (skip for admin)
+      if (!isAdminUid(result.user.uid)) {
+        const userDoc = await getDoc(doc(db, "users", result.user.uid));
+        if (userDoc.exists() && userDoc.data().isBanned === true) {
+            await auth.signOut();
+            return { success: false, error: "Your account is temporarily suspended. Please send us an enquiry to appeal." };
+        }
       }
 
       trackEvent("login", { method: "facebook" });
