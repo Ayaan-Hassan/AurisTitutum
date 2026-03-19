@@ -577,14 +577,14 @@ const CompareView = ({ firstLog, latestLog, habit, onClose }) => {
                   onTouchStart={(e) => { setIsDragging(true); handleSliderMove(e); e.preventDefault(); }}
                 >
                    {/* Latest Image (Bottom) */}
-                   <img src={latestLog.img} className="absolute inset-0 w-full h-full object-cover" alt="After" />
+                   <img src={latestLog.img} className="absolute inset-0 w-full h-full object-cover" alt="After" draggable={false} />
                    
                    {/* First Image (Clipped Layer) */}
                    <div 
                      className="absolute inset-0 overflow-hidden pointer-events-none" 
                      style={{ clipPath: `inset(0 ${100 - sliderPos}% 0 0)` }}
                    >
-                      <img src={firstLog.img} className="absolute inset-0 w-full h-full object-cover" alt="Before" />
+                      <img src={firstLog.img} className="absolute inset-0 w-full h-full object-cover" alt="Before" draggable={false} />
                    </div>
 
                    {/* Vertical Line & Handle */}
