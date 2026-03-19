@@ -389,34 +389,29 @@ const CompareView = ({ firstLog, latestLog, habit, onClose }) => {
           ctx.beginPath();
           ctx.roundRect(x, y, width, height, radius);
           ctx.clip();
-          
-          ctx.fillStyle = "#111111"; // Background for contain gaps
-          ctx.fill();
 
-          // Object-contain calculations
+          // Standardized 'Equal Size' logic (Object-cover)
           const imgAspect = img.width / img.height;
           const targetAspect = width / height;
-          let dw, dh, dx, dy;
+          let sw, sh, sx, sy;
           if (imgAspect > targetAspect) {
-              dw = width;
-              dh = width / imgAspect;
-              dx = x;
-              dy = y + (height - dh) / 2;
+              sh = img.height;
+              sw = img.height * targetAspect;
+              sx = (img.width - sw) / 2;
+              sy = 0;
           } else {
-              dh = height;
-              dw = height * imgAspect;
-              dx = x + (width - dw) / 2;
-              dy = y;
+              sw = img.width;
+              sh = img.width / targetAspect;
+              sx = 0;
+              sy = (img.height - sh) / 2;
           }
 
-          if (clipW < 1) {
-              // For slider clipping in contain mode, we still clip the container width
-              ctx.beginPath();
-              ctx.rect(x + (clipX * width), y, width * clipW, height);
-              ctx.clip();
-          }
+          const finalSx = sx + (clipX * sw);
+          const finalSw = sw * clipW;
+          const finalDx = x + (clipX * width);
+          const finalDw = width * clipW;
 
-          ctx.drawImage(img, dx, dy, dw, dh);
+          ctx.drawImage(img, finalSx, sy, finalSw, sh, finalDx, y, finalDw, height);
           ctx.restore();
           
           ctx.strokeStyle = "rgba(255,255,255,0.08)";
@@ -543,7 +538,7 @@ const CompareView = ({ firstLog, latestLog, habit, onClose }) => {
                      <p className="text-xs font-mono text-white/10 font-bold bg-white/5 px-3 py-1 rounded-lg">{firstLog.date}</p>
                   </div>
                   <div className="aspect-[4/5] w-full max-h-[50vh] rounded-[3rem] overflow-hidden border border-white/5 bg-white/5 relative shadow-3xl transition-all duration-700 group-hover:border-white/20">
-                      <img src={firstLog.img} alt="Before" className="absolute inset-0 w-full h-full object-contain transition-transform duration-1000 group-hover:scale-105" />
+                      <img src={firstLog.img} alt="Before" className="absolute inset-0 w-full h-full object-cover transition-transform duration-1000 group-hover:scale-105" />
                      <div className="absolute inset-x-0 bottom-0 h-48 bg-gradient-to-t from-black/60 to-transparent pointer-events-none" />
                   </div>
                 </div>
@@ -560,7 +555,7 @@ const CompareView = ({ firstLog, latestLog, habit, onClose }) => {
                      <p className="text-xs font-mono text-accent/20 font-bold bg-accent/5 px-3 py-1 rounded-lg">{latestLog.date}</p>
                   </div>
                   <div className="aspect-[4/5] w-full max-h-[50vh] rounded-[3rem] overflow-hidden border-2 border-accent/20 bg-accent/5 relative shadow-[0_0_120px_rgba(var(--accent-rgb),0.1)] transition-all duration-700 group-hover:border-accent/40">
-                      <img src={latestLog.img} alt="After" className="absolute inset-0 w-full h-full object-contain transition-transform duration-1000 group-hover:scale-105" />
+                      <img src={latestLog.img} alt="After" className="absolute inset-0 w-full h-full object-cover transition-transform duration-1000 group-hover:scale-105" />
                      <div className="absolute inset-x-0 bottom-0 h-48 bg-gradient-to-t from-black/50 to-transparent pointer-events-none" />
                   </div>
                 </div>
@@ -576,14 +571,14 @@ const CompareView = ({ firstLog, latestLog, habit, onClose }) => {
                   onTouchStart={(e) => { setIsDragging(true); handleSliderMove(e); e.preventDefault(); }}
                 >
                    {/* Latest Image (Bottom) */}
-                    <img src={latestLog.img} className="absolute inset-0 w-full h-full object-contain" alt="After" draggable={false} />
+                    <img src={latestLog.img} className="absolute inset-0 w-full h-full object-cover" alt="After" draggable={false} />
                    
                    {/* First Image (Clipped Layer) */}
                    <div 
                      className="absolute inset-0 overflow-hidden pointer-events-none" 
                      style={{ clipPath: `inset(0 ${100 - sliderPos}% 0 0)` }}
                    >
-                       <img src={firstLog.img} className="absolute inset-0 w-full h-full object-contain" alt="Before" draggable={false} />
+                       <img src={firstLog.img} className="absolute inset-0 w-full h-full object-cover" alt="Before" draggable={false} />
                    </div>
 
                    {/* Vertical Line & Handle */}
