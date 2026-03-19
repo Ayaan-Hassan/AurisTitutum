@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, memo, useCallback } from "react";
-import { Routes, Route } from "react-router-dom";
+import { Routes, Route, useNavigate, Navigate } from "react-router-dom";
 import Layout from "./components/Layout";
 import Icon from "./components/Icon";
 import Dashboard from "./pages/Dashboard";
@@ -753,6 +753,17 @@ function AppContent() {
                   }
                 />
                 <Route
+                  path="dashboard"
+                  element={
+                    <Dashboard
+                      habits={displayHabits}
+                      setHabits={user ? authContext.replaceHabitsState : setHabits}
+                      logActivity={logActivity}
+                      insights={dailyInsight}
+                    />
+                  }
+                />
+                <Route
                   path="analytics"
                   element={
                     <Analytics
@@ -803,6 +814,7 @@ function AppContent() {
                 />
                 <Route path="contact" element={<Contact />} />
                 <Route path="admin" element={<AdminDashboard />} />
+                <Route path="*" element={<Navigate to="" replace />} />
               </Routes>
             </Layout>
           }

@@ -47,6 +47,7 @@ import {
   subscribeLogs,
   createLog,
   deleteLog as serviceDeleteLog,
+  clearUserLogs,
 } from "../services/logService";
 import { replaceReminders, subscribeReminders } from "../services/reminderService";
 import { identifyUser, trackEvent } from "../utils/telemetry";
@@ -827,6 +828,11 @@ export const AuthProvider = ({ children }) => {
     return queueWrite(() => deleteCollectionDoc(user.uid, USER_SUBCOLLECTIONS.reminders, reminderId));
   };
 
+  const clearAllSyncedLogs = async () => {
+    if (!user?.uid) return;
+    return queueWrite(() => clearUserLogs(user.uid));
+  };
+
   const upsertSheetsConnectionState = async (payload) => {
     if (!user?.uid) return;
     await upsertUserSetting(user.uid, "sheets", normalizeSheetsState(payload), true);
@@ -870,6 +876,7 @@ export const AuthProvider = ({ children }) => {
     deleteHabit,
     addLog,
     deleteLog,
+    clearAllSyncedLogs,
     upsertNote,
     deleteNote,
     upsertReminder,

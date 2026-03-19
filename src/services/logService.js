@@ -137,3 +137,8 @@ export const deleteLog = async (uid, logId) => {
 export const replaceLogs = async (uid, logs = []) => {
   await replaceCollectionById(uid, LOGS_COLLECTION, logs);
 };
+
+export const clearUserLogs = async (uid) => {
+  await replaceCollectionById(uid, LOGS_COLLECTION, []);
+};
+

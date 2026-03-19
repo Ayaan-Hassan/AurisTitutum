@@ -88,7 +88,9 @@ export const aggregateHabitsFromDocs = (habitDocs = [], logDocs = []) => {
   logsByHabitAndDate.forEach((day) => {
     const habit = byId.get(day.habitId);
     if (!habit) return;
-    day.entries.sort();
+    if (habit.mode !== "upload") {
+      day.entries.sort();
+    }
     habit.logs.push({
       date: day.date,
       count: day.count,

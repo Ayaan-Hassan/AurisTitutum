@@ -15,6 +15,8 @@ import { getLocalDateKey } from "../utils/date";
 
 const Logs = ({ habits, setHabits }) => {
   const navigate = useNavigate();
+  const authContext = useAuth();
+  const { user } = authContext;
   const [clearConfirmOpen, setClearConfirmOpen] = useState(false);
   const [syncing, setSyncing] = useState(false);
   const [featureLockOpen, setFeatureLockOpen] = useState(false);
@@ -25,7 +27,6 @@ const Logs = ({ habits, setHabits }) => {
   });
   const [syncMessage, setSyncMessage] = useState(null); // { type: 'success'|'error'|'info', text: string }
   const [livePolling, setLivePolling] = useState(false);
-  const { user } = useAuth();
 
   // ── Check sheets connection on mount ──────────────────────────────────────
   useEffect(() => {
@@ -538,9 +539,13 @@ const Logs = ({ habits, setHabits }) => {
         confirmLabel="Clear all"
         variant="danger"
         onConfirm={() => {
-          setHabits((prev) =>
-            prev.map((h) => ({ ...h, logs: [], totalLogs: 0 })),
-          );
+          if (user && authContext.clearAllSyncedLogs) {
+            authContext.clearAllSyncedLogs();
+          } else {
+            setHabits((prev) =>
+              prev.map((h) => ({ ...h, logs: [], totalLogs: 0 })),
+            );
+          }
           setClearConfirmOpen(false);
         }}
         onCancel={() => setClearConfirmOpen(false)}

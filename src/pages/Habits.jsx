@@ -326,11 +326,11 @@ const CompareView = ({ firstLog, latestLog, habit, onClose }) => {
       ]);
 
       const w = 1200;
-      const h = 900;
-      const headerH = 260;
+      const h = 1500;
+      const headerH = 340;
       
       canvas.width = w * 2 + 160;
-      canvas.height = h + headerH + 100;
+      canvas.height = h + headerH + 280;
       
       ctx.fillStyle = "#020202";
       ctx.fillRect(0, 0, canvas.width, canvas.height);
@@ -338,10 +338,15 @@ const CompareView = ({ firstLog, latestLog, habit, onClose }) => {
       ctx.fillStyle = "#ffffff";
       ctx.font = "bold 96px Inter, sans-serif";
       ctx.textAlign = "center";
-      ctx.fillText("AURISTITUTUM", canvas.width / 2, 110);
-      ctx.font = "32px Inter, sans-serif";
+      ctx.fillText("AURISTITUTUM", canvas.width / 2, 120);
+
+      ctx.font = "36px Inter, sans-serif";
       ctx.fillStyle = "#555555";
-      ctx.fillText(`HABIT PROGRESS: ${habit.name.toUpperCase()}`, canvas.width / 2, 165);
+      ctx.fillText("ARCHIVE TRANSFORMATION", canvas.width / 2, 185);
+
+      ctx.font = "bold 64px Inter, sans-serif";
+      ctx.fillStyle = "#ffffff";
+      ctx.fillText(`HABIT: ${habit.name.toUpperCase()}`, canvas.width / 2, 270);
       
       const drawImg = (img, x, y) => {
           const dw = w;
@@ -355,6 +360,9 @@ const CompareView = ({ firstLog, latestLog, habit, onClose }) => {
           }
           const ox = x + (dw - targetW) / 2;
           const oy = y + (dh - targetH) / 2;
+          
+          ctx.fillStyle = "#111";
+          ctx.fillRect(x, y, dw, dh);
           ctx.drawImage(img, ox, oy, targetW, targetH);
       };
 
@@ -362,13 +370,15 @@ const CompareView = ({ firstLog, latestLog, habit, onClose }) => {
       drawImg(img2, w + 120, headerH + 40);
       
       ctx.fillStyle = "#ffffff";
-      ctx.font = "bold 48px Inter";
-      ctx.fillText(`START: DAY ${day1}`, 40 + w/2, headerH + 90);
+      ctx.font = "bold 80px Inter";
+      ctx.textAlign = "center";
+      ctx.fillText(`INITIAL: DAY ${day1}`, 40 + w/2, headerH + h + 180);
+      
       ctx.fillStyle = "#4ade80";
-      ctx.fillText(`NOW: DAY ${day2}`, w + 120 + w/2, headerH + 90);
+      ctx.fillText(`PROGRESS: DAY ${day2}`, w + 120 + w/2, headerH + h + 180);
 
       const link = document.createElement("a");
-      link.download = `Evolution_Day${day1}_vs_Day${day2}.png`;
+      link.download = `TRANSFORMATION_DAY${day1}_TO_DAY${day2}.png`;
       link.href = canvas.toDataURL("image/png");
       link.click();
     } catch (err) {
@@ -406,7 +416,7 @@ const CompareView = ({ firstLog, latestLog, habit, onClose }) => {
         <div className="w-full grid grid-cols-1 md:grid-cols-2 gap-6 lg:gap-12 items-stretch">
            <div className="flex flex-col items-stretch group relative">
               <div className="absolute top-1/2 -right-6 lg:-right-9 -translate-y-1/2 z-10 hidden md:block">
-                 <div className="w-12 h-12 lg:w-16 lg:h-16 rounded-full bg-black border border-white/10 flex items-center justify-center text-white/10 italic font-black text-2xl lg:text-3xl shadow-3xl">VS</div>
+                 <div className="w-12 h-12 lg:w-16 lg:h-16 rounded-full bg-black border border-white/10 flex items-center justify-center text-white/50 italic font-black text-2xl lg:text-3xl shadow-3xl">VS</div>
               </div>
 
               <div className="mb-4 flex items-center justify-between px-4">
@@ -414,14 +424,14 @@ const CompareView = ({ firstLog, latestLog, habit, onClose }) => {
                     <div className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center text-white/30 font-black italic text-lg">01</div>
                     <div>
                        <p className="text-[8px] font-black tracking-[0.2em] text-white/20 uppercase">Initial Record</p>
-                       <p className="text-lg font-black text-white italic">DAY {day1}</p>
+                       <p className="text-sm font-black text-white italic">DAY {day1}</p>
                     </div>
                  </div>
                  <p className="text-[9px] font-mono text-white/10">{firstLog.date}</p>
               </div>
-              <div className="aspect-[4/3] w-full rounded-[2.5rem] overflow-hidden border border-white/5 bg-white/5 relative shadow-2xl transition-all duration-500 hover:border-white/20">
-                 <div className="absolute inset-0 bg-contain bg-center bg-no-repeat transition-transform duration-700 group-hover:scale-[1.03]" style={{ backgroundImage: `url(${firstLog.img})` }} />
-                 <div className="absolute inset-x-0 bottom-0 h-40 bg-gradient-to-t from-black/20 to-transparent pointer-events-none" />
+              <div className="aspect-[4/5] w-full rounded-[2.5rem] overflow-hidden border border-white/5 bg-white/5 relative shadow-2xl transition-all duration-500 hover:border-white/20">
+                 <div className="absolute inset-0 bg-cover bg-center bg-no-repeat transition-transform duration-700 group-hover:scale-[1.03]" style={{ backgroundImage: `url(${firstLog.img})` }} />
+                 <div className="absolute inset-x-0 bottom-0 h-40 bg-gradient-to-t from-black/40 to-transparent pointer-events-none" />
               </div>
            </div>
 
@@ -431,14 +441,14 @@ const CompareView = ({ firstLog, latestLog, habit, onClose }) => {
                     <div className="w-10 h-10 rounded-xl bg-accent text-bg-main flex items-center justify-center font-black italic text-lg shadow-[0_0_20px_rgba(var(--accent-rgb),0.3)]">L</div>
                     <div>
                        <p className="text-[8px] font-black tracking-[0.2em] text-accent/40 uppercase">Latest Entry</p>
-                       <p className="text-lg font-black text-accent italic">DAY {day2}</p>
+                       <p className="text-sm font-black text-accent italic">DAY {day2}</p>
                     </div>
                  </div>
                  <p className="text-[9px] font-mono text-accent/20 font-bold">{latestLog.date}</p>
               </div>
-              <div className="aspect-[4/3] w-full rounded-[2.5rem] overflow-hidden border-2 border-accent/20 bg-accent/5 relative shadow-[0_0_100px_rgba(var(--accent-rgb),0.1)] transition-all duration-500 hover:border-accent/40">
-                 <div className="absolute inset-0 bg-contain bg-center bg-no-repeat transition-transform duration-700 group-hover:scale-[1.03]" style={{ backgroundImage: `url(${latestLog.img})` }} />
-                 <div className="absolute inset-x-0 bottom-0 h-40 bg-gradient-to-t from-black/10 to-transparent pointer-events-none" />
+              <div className="aspect-[4/5] w-full rounded-[2.5rem] overflow-hidden border-2 border-accent/20 bg-accent/5 relative shadow-[0_0_100px_rgba(var(--accent-rgb),0.1)] transition-all duration-500 hover:border-accent/40">
+                 <div className="absolute inset-0 bg-cover bg-center bg-no-repeat transition-transform duration-700 group-hover:scale-[1.03]" style={{ backgroundImage: `url(${latestLog.img})` }} />
+                 <div className="absolute inset-x-0 bottom-0 h-40 bg-gradient-to-t from-black/30 to-transparent pointer-events-none" />
               </div>
            </div>
         </div>
@@ -538,7 +548,7 @@ const GalleryModal = ({ open, habit, onClose, setHabits }) => {
     (l.entries || [])
       .filter((e) => typeof e === "string" && e.startsWith("data:image"))
       .map((img) => ({ date: l.date, img }))
-  );
+  ).sort((a, b) => a.date.localeCompare(b.date));
 
   const latestImg = photoLogs[0]?.img;
   const firstImg = photoLogs[photoLogs.length - 1]?.img;
