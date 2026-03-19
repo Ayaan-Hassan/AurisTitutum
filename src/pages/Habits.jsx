@@ -330,69 +330,77 @@ const CompareView = ({ firstLog, latestLog, habit, onClose }) => {
 
       const w = 1200;
       const h = 1500; // 4:5 Aspect Ratio
-      const padding = 100;
-      const headerH = 500;
-      const footerH = 250;
+      const padding = 120;
+      const headerH = 600;
+      const footerH = 300;
       
       const isSliderExport = viewMode === "slider";
-      
-      if (isSliderExport) {
-          canvas.width = w + padding * 2;
-          canvas.height = h + headerH + footerH;
-      } else {
-          canvas.width = w * 2 + padding * 3;
-          canvas.height = h + headerH + footerH;
-      }
+      canvas.width = isSliderExport ? w + padding * 2 : w * 2 + padding * 3;
+      canvas.height = h + headerH + footerH;
       
       // Professional Dark Background
-      ctx.fillStyle = "#050505";
+      ctx.fillStyle = "#030303";
       ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-      // Branding Header
+      // --- BRANDING (Logo & Name) ---
+      const logoSize = 100;
+      const logoX = canvas.width / 2;
+      const logoY = 120;
+      
+      // Draw Stylized Diamond Logo
+      ctx.save();
+      ctx.translate(logoX, logoY);
+      ctx.rotate(Math.PI / 4);
+      ctx.fillStyle = "#4ade80";
+      ctx.shadowBlur = 40;
+      ctx.shadowColor = "rgba(74, 222, 128, 0.4)";
+      ctx.fillRect(-logoSize/2.5, -logoSize/2.5, logoSize/1.25, logoSize/1.25);
+      ctx.restore();
+      
       ctx.textAlign = "center";
       ctx.fillStyle = "#ffffff";
-      ctx.font = "bold 50px Inter, sans-serif";
-      ctx.letterSpacing = "20px";
-      ctx.globalAlpha = 0.3;
-      ctx.fillText("AURIS TITUTUM", canvas.width / 2, 100);
+      ctx.font = "bold 44px Inter, sans-serif";
+      ctx.letterSpacing = "10px";
+      ctx.fillText("AURISTITUTUM | PRO", canvas.width / 2, logoY + 140);
+
+      // --- HEADER TITLE ---
+      ctx.font = "italic 900 110px Inter, sans-serif";
+      ctx.letterSpacing = "-3px";
       ctx.globalAlpha = 1.0;
+      ctx.fillText("TRANSFORMATION LOG", canvas.width / 2, logoY + 280);
 
-      ctx.font = "italic 900 140px Inter, sans-serif";
-      ctx.letterSpacing = "-2px";
-      ctx.fillText("TRANSFORMATION LOG", canvas.width / 2, 260);
-
-      // Progress Arrow Header
-      const headerY = 380;
-      ctx.font = "bold 60px Inter";
-      ctx.fillStyle = "#ffffff";
-      ctx.fillText(`DAY ${day1}`, isSliderExport ? canvas.width/2 - 150 : padding + w/2, headerY);
+      // --- PROGRESS INDICATORS ---
+      const progressY = logoY + 420;
+      ctx.font = "bold 55px Inter";
       
-      ctx.fillStyle = "#4ade80";
-      ctx.font = "80px Inter";
-      ctx.fillText("→", isSliderExport ? canvas.width/2 : padding + w + padding/2, headerY);
-      
-      ctx.fillStyle = "#4ade80";
-      ctx.font = "bold 60px Inter";
-      ctx.fillText(`DAY ${day2}`, isSliderExport ? canvas.width/2 + 150 : padding * 2 + w + w/2, headerY);
+      if (isSliderExport) {
+          ctx.fillStyle = "#ffffff";
+          ctx.fillText(`DAY ${day1}`, canvas.width / 2 - 200, progressY);
+          ctx.fillStyle = "#4ade80";
+          ctx.font = "70px Inter";
+          ctx.fillText("→", canvas.width / 2, progressY + 5);
+          ctx.fillStyle = "#4ade80";
+          ctx.font = "bold 55px Inter";
+          ctx.fillText(`DAY ${day2}`, canvas.width / 2 + 200, progressY);
+      } else {
+          ctx.fillStyle = "#ffffff";
+          ctx.fillText(`DAY ${day1}`, padding + w/2, progressY);
+          ctx.fillStyle = "#4ade80";
+          ctx.font = "70px Inter";
+          ctx.fillText("→", padding + w + padding/2, progressY + 5);
+          ctx.fillStyle = "#4ade80";
+          ctx.font = "bold 55px Inter";
+          ctx.fillText(`DAY ${day2}`, padding * 2 + w + w/2, progressY);
+      }
 
       const drawImg = (img, x, y, width, height, clipX = 0, clipW = 1) => {
           ctx.save();
-          // Clip path for rounded corners
-          const radius = 50;
+          const radius = 60;
           ctx.beginPath();
-          ctx.moveTo(x + radius, y);
-          ctx.lineTo(x + width - radius, y);
-          ctx.quadraticCurveTo(x + width, y, x + width, y + radius);
-          ctx.lineTo(x + width, y + height - radius);
-          ctx.quadraticCurveTo(x + width, y + height, x + width - radius, y + height);
-          ctx.lineTo(x + radius, y + height);
-          ctx.quadraticCurveTo(x, y + height, x, y + height - radius);
-          ctx.lineTo(x, y + radius);
-          ctx.quadraticCurveTo(x, y, x + radius, y);
-          ctx.closePath();
+          ctx.roundRect(x, y, width, height, radius);
           ctx.clip();
 
-          // Image calculations (object-cover)
+          // Object-cover calculations
           const imgAspect = img.width / img.height;
           const targetAspect = width / height;
           let sw, sh, sx, sy;
@@ -408,7 +416,6 @@ const CompareView = ({ firstLog, latestLog, habit, onClose }) => {
               sy = (img.height - sh) / 2;
           }
 
-          // Slider clipping if needed
           const finalSx = sx + (clipX * sw);
           const finalSw = sw * clipW;
           const finalDx = x + (clipX * width);
@@ -417,8 +424,7 @@ const CompareView = ({ firstLog, latestLog, habit, onClose }) => {
           ctx.drawImage(img, finalSx, sy, finalSw, sh, finalDx, y, finalDw, height);
           ctx.restore();
           
-          // Border
-          ctx.strokeStyle = "rgba(255,255,255,0.1)";
+          ctx.strokeStyle = "rgba(255,255,255,0.08)";
           ctx.lineWidth = 4;
           ctx.beginPath();
           ctx.roundRect(x, y, width, height, radius);
@@ -426,16 +432,14 @@ const CompareView = ({ firstLog, latestLog, habit, onClose }) => {
       };
 
       if (isSliderExport) {
-          // Draw combined for Slider
-          const mx = padding;
-          drawImg(img2, mx, headerH, w, h);
-          drawImg(img1, mx, headerH, w, h, 0, 0.5);
-          // Vertical separator
+          drawImg(img2, padding, headerH, w, h);
+          drawImg(img1, padding, headerH, w, h, 0, 0.5);
+          // Divider
           ctx.strokeStyle = "#ffffff";
-          ctx.lineWidth = 6;
+          ctx.lineWidth = 10;
           ctx.beginPath();
-          ctx.moveTo(mx + w/2, headerH);
-          ctx.lineTo(mx + w/2, headerH + h);
+          ctx.moveTo(canvas.width / 2, headerH);
+          ctx.lineTo(canvas.width / 2, headerH + h);
           ctx.stroke();
       } else {
           drawImg(img1, padding, headerH, w, h);
@@ -445,14 +449,14 @@ const CompareView = ({ firstLog, latestLog, habit, onClose }) => {
       // Footer
       ctx.textAlign = "center";
       ctx.fillStyle = "#ffffff";
-      ctx.globalAlpha = 0.5;
-      ctx.font = "bold 40px Inter";
-      ctx.letterSpacing = "5px";
-      ctx.fillText(habit.name.toUpperCase(), canvas.width / 2, headerH + h + 150);
+      ctx.globalAlpha = 0.4;
+      ctx.font = "bold 44px Inter";
+      ctx.letterSpacing = "6px";
+      ctx.fillText(habit.name.toUpperCase(), canvas.width / 2, headerH + h + 180);
 
       const link = document.createElement("a");
-      link.download = `TRANSFORMATION_${habit.name.replace(/\s+/g, '_')}_D${day1}_D${day2}.png`;
-      link.href = canvas.toDataURL("image/png");
+      link.download = `AURISTITUTUM_LOG_${habit.name.replace(/\s+/g, '_')}.png`;
+      link.href = canvas.toDataURL("image/png", 1.0);
       link.click();
     } catch (err) {
       console.error(err);
