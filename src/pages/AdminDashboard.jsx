@@ -63,8 +63,8 @@ export default function AdminDashboard() {
         return diff < 75000;
     };
 
-    const adminUid = import.meta.env.VITE_ADMIN_UID;
-    const isAdmin = user && adminUid && user.uid === adminUid;
+    const adminUid = (import.meta.env.VITE_ADMIN_UID || "").replace(/['"]/g, '').trim();
+    const isAdmin = user && adminUid && user.uid?.trim() === adminUid;
 
     const fetchStats = async () => {
         try {

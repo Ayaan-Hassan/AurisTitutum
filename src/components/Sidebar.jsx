@@ -19,8 +19,8 @@ const Sidebar = ({ userConfig, onOpenAuris }) => {
     { id: "/app/settings", icon: "settings-2", label: "Settings" },
   ];
 
-  const adminUid = import.meta.env.VITE_ADMIN_UID;
-  const isAdmin = user && adminUid && user.uid === adminUid;
+  const adminUid = (import.meta.env.VITE_ADMIN_UID || "").replace(/['"]/g, '').trim();
+  const isAdmin = user && adminUid && user.uid?.trim() === adminUid;
 
   if (isAdmin) {
     navItems.push({ id: "/app/admin", icon: "shield-check", label: "Admin Space" });
