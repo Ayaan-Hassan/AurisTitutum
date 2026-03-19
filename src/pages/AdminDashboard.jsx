@@ -23,14 +23,16 @@ export default function AdminDashboard() {
     const [inspectorHabit, setInspectorHabit] = useState(null);
     const [subUnsubscribes, setSubUnsubscribes] = useState([]);
     
-    const [showOnlineOnly, setShowOnlineOnly] = useState(false);
-    const [showBannedOnly, setShowBannedOnly] = useState(false);
-    const [searchQuery, setSearchQuery] = useState("");
     const [pinnedUsers, setPinnedUsers] = useState(() => {
         const saved = localStorage.getItem("admin_pinned_users");
         return saved ? JSON.parse(saved) : [];
     });
-    const [activeTab, setActiveTab] = useState("users"); // "users" or "inquiries"
+    const [showOnlineOnly, setShowOnlineOnly] = useState(() => localStorage.getItem("admin_show_online") === "true");
+    const [showBannedOnly, setShowBannedOnly] = useState(() => localStorage.getItem("admin_show_banned") === "true");
+    const [graphRange, setGraphRange] = useState(() => localStorage.getItem("admin_graph_range") || "30d");
+    const [graphType, setGraphType] = useState(() => localStorage.getItem("admin_graph_type") || "area");
+    const [searchQuery, setSearchQuery] = useState("");
+    const [activeTab, setActiveTab] = useState("users");
     const [inquiries, setInquiries] = useState([]);
 
     const [confirmAction, setConfirmAction] = useState(null);
@@ -49,6 +51,22 @@ export default function AdminDashboard() {
     useEffect(() => {
         localStorage.setItem("admin_pinned_users", JSON.stringify(pinnedUsers));
     }, [pinnedUsers]);
+
+    useEffect(() => {
+        localStorage.setItem("admin_show_online", showOnlineOnly);
+    }, [showOnlineOnly]);
+
+    useEffect(() => {
+        localStorage.setItem("admin_show_banned", showBannedOnly);
+    }, [showBannedOnly]);
+
+    useEffect(() => {
+        localStorage.setItem("admin_graph_range", graphRange);
+    }, [graphRange]);
+
+    useEffect(() => {
+        localStorage.setItem("admin_graph_type", graphType);
+    }, [graphType]);
 
     useEffect(() => {
         const i = setInterval(() => setLiveTick(t => t + 1), 1000);
@@ -70,19 +88,18 @@ export default function AdminDashboard() {
         try {
             setLoading(true);
             setError(null);
-            const [usersSnapshot, habitsSnapshot, remindersSnapshot, notesSnapshot] = await Promise.all([
+            const [usersSnapshot, remindersSnapshot, notesSnapshot] = await Promise.all([
                 getCountFromServer(collection(db, "users")),
-                getCountFromServer(collectionGroup(db, "habits")),
                 getCountFromServer(collectionGroup(db, "reminders")),
                 getCountFromServer(collectionGroup(db, "notes"))
             ]);
 
-            setStats({
+            setStats(prev => ({
+                ...prev,
                 users: usersSnapshot.data().count,
-                habits: habitsSnapshot.data().count,
                 reminders: remindersSnapshot.data().count,
                 notes: notesSnapshot.data().count
-            });
+            }));
             setLoading(false);
         } catch (err) {
             console.error(err);
@@ -138,7 +155,14 @@ export default function AdminDashboard() {
         });
 
         fetchStats();
-        return () => { unsubUsers(); unsubInquiries(); unsubGuests(); unsubHabits(); unsubReminders(); unsubNotes(); };
+        return () => { 
+            unsubUsers(); 
+            unsubInquiries(); 
+            unsubGuests(); 
+            unsubHabits(); 
+            unsubReminders(); 
+            unsubNotes(); 
+        };
     }, [isAdmin]);
 
     useEffect(() => {
