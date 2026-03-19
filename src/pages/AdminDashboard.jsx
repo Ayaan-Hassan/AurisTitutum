@@ -545,7 +545,7 @@ export default function AdminDashboard() {
                                                                                                  <div key={i} className="flex flex-col gap-2 p-3 bg-bg-main/40 rounded-xl border border-border-color/20">
                                                                                                      <div className="flex justify-between items-center text-[11px]">
                                                                                                          <span className="font-medium text-text-primary">
-                                                                                                             {e.mode === 'count' ? `${e.amount} ${e.unit || ''}` : e.mode === 'timer' ? e.time : e.mode === 'upload' ? 'Photo Log' : 'Logged'}
+                                                                                                             {e.mode === 'count' ? `${e.amount} ${e.unit || ''}` : e.mode === 'timer' ? (typeof e.time === 'string' ? e.time : 'Timer') : e.mode === 'upload' ? 'Photo Log' : (typeof e.time === 'string' ? e.time : 'Logged')}
                                                                                                          </span>
                                                                                                          <div className="flex gap-2">
                                                                                                              <button onClick={() => setConfirmAction({ type: "logs", action: "delete", id: e.id })} className="text-danger opacity-50 hover:opacity-100 transition-opacity"><Icon name="trash" size={10} /></button>

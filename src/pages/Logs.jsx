@@ -160,12 +160,18 @@ const Logs = ({ habits, setHabits }) => {
     (habits || []).forEach((h) => {
       (h.logs || []).forEach((day) => {
         (day.entries || []).forEach((entry) => {
-          // Skip base64 image entries from upload mode — they show in gallery not table
-          const isPhotoEntry = typeof entry === 'string' && entry.startsWith('data:image');
-          const isCount = typeof entry === "string" && entry.includes("|") && !isPhotoEntry;
+          // Robust entry handling to avoid React Error #31
+          const isString = typeof entry === 'string';
+          const isObjectWithPhoto = !isString && entry && typeof entry === 'object' && 'photoData' in entry;
+          
+          const isPhotoEntry = (isString && entry.startsWith('data:image')) || isObjectWithPhoto;
+          const photoData = isString ? (isPhotoEntry ? entry : null) : (isObjectWithPhoto ? entry.photoData : null);
+          
+          const isCount = isString && entry.includes("|") && !isPhotoEntry;
           const [time, value, unit] = isCount
             ? entry.split("|")
-            : [entry, null, null];
+            : [(isString ? entry : "Logged"), null, null];
+
           all.push({
             habit: h.name,
             habitId: h.id,
@@ -174,7 +180,7 @@ const Logs = ({ habits, setHabits }) => {
             mode: h.mode,
             date: day.date,
             time: isPhotoEntry ? '__photo__' : time,
-            photoData: isPhotoEntry ? entry : null,
+            photoData: photoData,
             value: value != null ? value : null,
             unit: unit || null,
             isPhoto: isPhotoEntry,

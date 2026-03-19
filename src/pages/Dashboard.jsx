@@ -243,16 +243,20 @@ const DayDetailPopup = ({ dateStr, habits, onClose }) => {
     (habits || []).forEach(h => {
       const dayLog = (h.logs || []).find(l => l.date === dateStr);
       if (!dayLog) return;
-      (dayLog.entries || []).forEach(entry => {
-        const isPhoto = typeof entry === "string" && entry.startsWith("data:image");
-        const isCount = typeof entry === "string" && entry.includes("|") && !isPhoto;
+      (dayLog.entries || []).forEach((entry) => {
+        const isPhoto = h.mode === "upload";
+        const isCount = typeof entry === "string" && entry.includes("|");
+
         if (isPhoto) {
-          all.push({ habit: h.name, emoji: h.emoji, type: h.type, mode: h.mode, display: "📷 Photo", time: null, isPhoto: true, photoUrl: entry });
+          const photoUrl = typeof entry === "string" ? entry : entry?.photoData || null;
+          all.push({ habit: h.name, emoji: h.emoji, type: h.type, mode: h.mode, display: "📷 Photo", time: null, isPhoto: true, photoUrl });
         } else if (isCount) {
           const [time, value, unit] = entry.split("|");
           all.push({ habit: h.name, emoji: h.emoji, type: h.type, mode: h.mode, display: `${value} ${unit || ""}`.trim(), time });
         } else {
-          all.push({ habit: h.name, emoji: h.emoji, type: h.type, mode: h.mode, display: "Logged", time: entry });
+           // Fallback for simple logged entries - ensure time is a string and not an object
+           const displayTime = typeof entry === "string" ? entry : "Logged";
+           all.push({ habit: h.name, emoji: h.emoji, type: h.type, mode: h.mode, display: "Logged", time: displayTime });
         }
       });
     });
@@ -370,15 +374,22 @@ const Dashboard = ({ habits, logActivity, insights, dataLoading }) => {
     (habits || []).forEach((h) => {
       (h.logs || []).forEach((day) => {
         (day.entries || []).forEach((entry) => {
-          // Skip base64 photo entries in recent logs
-          if (typeof entry === "string" && entry.startsWith("data:image")) return;
-          const isCount = typeof entry === "string" && entry.includes("|");
+          // Robust entry handling to avoid React Error #31
+          const isString = typeof entry === "string";
+          const isObjectWithPhoto = !isString && entry && typeof entry === "object" && "photoData" in entry;
+
+          // Skip base64 photo entries in recent logs summary, but handle both string and object formats
+          if (isString && entry.startsWith("data:image")) return;
+          if (isObjectWithPhoto) return;
+
+          const isCount = isString && entry.includes("|");
           const parts = isCount ? entry.split("|") : [];
-          const [time, value] = isCount ? [parts[0], parts[1]] : [entry, null];
+          const [time, value] = isCount ? [parts[0], parts[1]] : [(isString ? entry : "Logged"), null];
           const unit = isCount ? (parts[2] || (h.mode === "count" ? "Unit" : h.mode === "rating" ? "Stars" : h.mode === "timer" ? "sec" : "")) : null;
           const formattedDate = new Date(day.date + "T12:00:00")
             .toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" })
             .toUpperCase();
+
           all.push({ habit: h.name, emoji: h.emoji || "", type: h.type, date: day.date, formattedDate, time, value, unit });
         });
       });
