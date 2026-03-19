@@ -53,7 +53,7 @@ const MOBILE_STEPS = [
 ];
 
 const TourGuide = () => {
-    const { user, userConfig, updateUserConfig } = useAuth();
+    const { user, userConfig, updateUserConfig, habits } = useAuth();
     const [activeStepIndex, setActiveStepIndex] = useState(-1);
     const [targetRect, setTargetRect] = useState(null);
     const [hasSeenTour, setHasSeenTour] = useState(false);
@@ -66,21 +66,23 @@ const TourGuide = () => {
 
         const seenLocally = localStorage.getItem('auris_tour_complete') === 'true';
         const seenInCloud = userConfig?.settings?.hasSeenTour;
+        const onboardingFinished = userConfig?.settings?.onboardingComplete;
+        const hasHabits = habits?.length > 0;
         
-        // Need both user configuration ready AND haven't seen tour
-        if (!seenLocally && !seenInCloud) {
+        // Need both user configuration ready AND haven't seen tour AND (onboarding complete + a habit exists)
+        if (!seenLocally && !seenInCloud && onboardingFinished && hasHabits) {
             const timer = setTimeout(() => {
                 setActiveStepIndex(0);
                 localStorage.setItem('auris_tour_complete', 'true'); // Flag it as seen immediately
                 if (user) {
-                    updateUserConfig({ settings: { hasSeenTour: true } });
+                    updateUserConfig({ settings: { ...userConfig.settings, hasSeenTour: true } });
                 }
             }, 1000);
             return () => clearTimeout(timer);
         } else {
-            setHasSeenTour(true);
+            setHasSeenTour(seenLocally || seenInCloud || !onboardingFinished);
         }
-    }, [location.pathname, userConfig?.settings?.hasSeenTour, user]);
+    }, [location.pathname, userConfig?.settings?.hasSeenTour, userConfig?.settings?.onboardingComplete, user, habits?.length]);
 
     const completeTour = () => {
         setActiveStepIndex(-1);

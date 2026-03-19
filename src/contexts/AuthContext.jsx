@@ -58,6 +58,8 @@ let redirectUser = null;
 const DEFAULT_USER_CONFIG = {
   name: "",
   email: "",
+  age: "",
+  gender: "",
   avatar: null,
   settings: {
     persistence: true,
@@ -65,6 +67,7 @@ const DEFAULT_USER_CONFIG = {
     devConsole: false,
     notificationsEnabled: true,
     hasSeenTour: false,
+    onboardingComplete: false,
   },
 };
 

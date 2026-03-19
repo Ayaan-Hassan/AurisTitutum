@@ -474,6 +474,12 @@ export default function AdminDashboard() {
                                         <div className="flex items-center justify-between">
                                             <div className="flex flex-wrap gap-4 text-[10px] font-mono text-text-secondary ml-1 mt-2">
                                                 <span className="flex items-center gap-1.5"><Icon name="mail" size={10} /> {usersList.find(u => u.id === selectedUser)?.email}</span>
+                                                {usersList.find(u => u.id === selectedUser)?.age && (
+                                                    <span className="flex items-center gap-1.5 text-accent"><Icon name="calendar" size={10} /> {usersList.find(u => u.id === selectedUser).age} Years</span>
+                                                )}
+                                                {usersList.find(u => u.id === selectedUser)?.gender && (
+                                                    <span className="flex items-center gap-1.5 text-accent uppercase"><Icon name="user" size={10} /> {usersList.find(u => u.id === selectedUser).gender}</span>
+                                                )}
                                                 <span className="opacity-30">|</span>
                                                 <span className="flex items-center gap-1.5 font-bold text-accent"><Icon name="hash" size={10} /> {selectedUser}</span>
                                             </div>

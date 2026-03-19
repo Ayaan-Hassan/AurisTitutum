@@ -24,6 +24,7 @@ import TourGuide from "./components/TourGuide";
 import { db } from "./firebase.config";
 import { collection, addDoc } from "firebase/firestore";
 import { Button } from "./components/ui/Button";
+import Onboarding from "./components/Onboarding";
 
 const DAILY_INSIGHTS = [
   {
@@ -175,6 +176,8 @@ const CLOUD_SYNC_POLL_MS = 4000;
 const DEFAULT_USER_CONFIG = {
   name: "",
   email: "",
+  age: "",
+  gender: "",
   avatar: null,
   settings: {
     persistence: true,
@@ -182,6 +185,7 @@ const DEFAULT_USER_CONFIG = {
     devConsole: false,
     notificationsEnabled: true,
     hasSeenTour: false,
+    onboardingComplete: false,
   },
 };
 
@@ -675,6 +679,20 @@ function AppContent() {
     e.target.value = null;
   };
 
+  const unifiedUpdateUserConfig = useCallback(async (updater) => {
+    if (user) {
+      return authContext.updateUserConfig(updater);
+    } else {
+      setUserConfig((prev) => {
+        const next = typeof updater === "function" ? updater(prev) : { ...prev, ...updater };
+        if (updater.settings) {
+          next.settings = { ...prev.settings, ...updater.settings };
+        }
+        return next;
+      });
+    }
+  }, [user, authContext.updateUserConfig]);
+
   const [dailyInsight] = useState(() => getDailyInsight());
 
 
@@ -722,6 +740,12 @@ function AppContent() {
   return (
     <>
       <TourGuide />
+      <Onboarding 
+        onAddHabit={handleAddHabitRequest} 
+        habits={displayHabits} 
+        userConfig={displayUserConfig}
+        updateUserConfig={unifiedUpdateUserConfig}
+      />
       <Routes>
         {/* Public Landing */}
         <Route path="/" element={<Landing habits={displayHabits} user={user} />} />

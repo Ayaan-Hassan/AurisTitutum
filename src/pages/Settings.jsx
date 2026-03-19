@@ -1,4 +1,4 @@
-﻿import { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import Icon from "../components/Icon";
 import { useAuth } from "../contexts/AuthContext";
@@ -225,6 +225,40 @@ const Settings = ({
               }
               placeholder="Enter your name"
             />
+            <div className="grid grid-cols-2 gap-4">
+              <Input
+                label="Age"
+                type="number"
+                value={userConfig.age || ""}
+                onChange={(e) =>
+                  setUserConfig((prev) => ({ ...prev, age: e.target.value }))
+                }
+                placeholder="Years"
+              />
+              <div className="space-y-2">
+                <label className="text-[10px] font-black text-text-secondary uppercase tracking-widest block px-1">
+                  Gender
+                </label>
+                <select
+                  value={userConfig.gender || ""}
+                  onChange={(e) =>
+                    setUserConfig((prev) => ({ ...prev, gender: e.target.value }))
+                  }
+                  className="w-full h-[46px] rounded-xl border border-border-color bg-bg-main px-4 text-xs text-text-primary outline-none focus:border-accent transition-all appearance-none cursor-pointer"
+                >
+                  <option value="" disabled>
+                    Select
+                  </option>
+                  <option value="male">Male</option>
+                  <option value="female">Female</option>
+                  <option value="other">Other</option>
+                  <option value="private">Private</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
               <label className="block text-[10px] font-black text-text-secondary uppercase tracking-widest mb-2">
                 System Email
