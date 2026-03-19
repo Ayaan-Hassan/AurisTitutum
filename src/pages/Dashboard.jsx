@@ -93,6 +93,44 @@ const compressPhoto = (base64Str) => {
   });
 };
 
+// ─── Streak Calculation Logic ───────────────────────────────────────────────
+const getStreakData = (h, todayKey) => {
+    const logs = h.logs || [];
+    const logDates = new Set();
+    logs.forEach(l => { if (l.count > 0) logDates.add(l.date); });
+
+    let streak = 0;
+    let curr = new Date(todayKey + "T12:00:00");
+
+    // Check today: if not logged today, check if streak continued until yesterday
+    if (!logDates.has(todayKey)) {
+        let yesterday = new Date(curr);
+        yesterday.setDate(yesterday.getDate() - 1);
+        if (!logDates.has(getLocalDateKey(yesterday))) {
+            return { streak: 0, target: 7, label: "Weekly" };
+        }
+        curr = yesterday;
+    }
+
+    // Count backwards from current valid date
+    let temp = new Date(curr);
+    while (logDates.has(getLocalDateKey(temp))) {
+        streak++;
+        temp.setDate(temp.getDate() - 1);
+    }
+
+    let target = 7;
+    let label = "Weekly";
+
+    if (streak <= 7) { target = 7; label = "Weekly"; }
+    else if (streak <= 30) { target = 30; label = "Monthly"; }
+    else if (streak <= 90) { target = 90; label = "3 Months"; }
+    else if (streak <= 180) { target = 180; label = "6 Months"; }
+    else { target = 365; label = "1 Year"; }
+
+    return { streak, target, label };
+};
+
 // ─── Inline Upload Control for Dashboard ───────────────────────────────────
 const DashboardUploadControl = ({ habit, logActivity }) => {
   const fileInputRef = useRef(null);
@@ -540,24 +578,25 @@ const Dashboard = ({ habits, logActivity, insights, dataLoading }) => {
               const checkedToday = (h.logs || []).some((l) => l.date === todayKey && l.count > 0);
               const isGood = h.type === "Good";
               
-              const weeklyLogs = Array.from({ length: 7 }).map((_, i) => {
-                const d = new Date();
-                d.setDate(d.getDate() - (6 - i));
-                const dateStr = getLocalDateKey(d);
-                return (h.logs || []).some(l => l.date === dateStr && l.count > 0);
-              });
-              const weeklyTotal = weeklyLogs.filter(Boolean).length;
-              const weeklyProgress = (weeklyTotal / 7) * 100;
+              const { streak, target, label: streakLabel } = getStreakData(h, todayKey);
+              const progress = (streak / target) * 100;
               const isWhite = h.color === "admin-white" || h.adminCreated;
-              const isFull = weeklyTotal === 7;
+              const isFull = streak === target;
 
               return (
                 <div key={h.id} className={`relative flex items-center justify-between p-3 border rounded-xl group transition-all overflow-hidden ${isWhite ? 'bg-white border-white shadow-[0_0_15px_rgba(255,255,255,0.3)] scale-[1.02]' : 'bg-accent-dim border-border-color hover:border-text-secondary'}`}>
-                  <div className={`absolute left-0 top-0 bottom-0 z-0 transition-[width] duration-1000 ease-out flex items-start overflow-hidden ${isWhite ? 'bg-black/5' : isGood ? "bg-success/10" : "bg-danger/10"}`} style={{ width: `${weeklyProgress}%` }}>
+                  {/* Adaptive Progress Bar */}
+                  <div 
+                    className={`absolute left-0 top-0 bottom-0 z-0 transition-[width] duration-1000 [transition-timing-function:cubic-bezier(0.16,1,0.3,1)] flex items-start overflow-hidden ${isWhite ? 'bg-black/10' : 'bg-white/10'}`} 
+                    style={{ width: `${progress}%` }}
+                  >
+                      {/* Flowing Animation Effect */}
+                      <div className={`absolute inset-0 bg-gradient-to-r from-transparent via-${isWhite ? 'black/10' : 'white/20'} to-transparent animate-shimmer`} style={{ width: '200%' }} />
                       {isFull && (
-                        <div className={`w-[200%] h-4 absolute top-[-5px] left-0 animate-wave rounded-[50%] ${isWhite ? 'bg-white/20' : isGood ? "bg-success/20" : "bg-danger/20"}`} />
+                        <div className={`w-[200%] h-4 absolute top-[-5px] left-0 animate-wave rounded-[50%] ${isWhite ? 'bg-white/20' : 'bg-white/30'}`} />
                       )}
                   </div>
+                  
                   <div className="flex items-center gap-3 min-w-0 relative z-10">
                     <div className={`w-7 h-7 rounded-lg shrink-0 flex items-center justify-center border ${isWhite ? "bg-black/5 border-black/10" : isGood ? "bg-accent/10 border-accent/30" : "bg-bg-main border-border-color"}`}>
                       {h.emoji ? (
@@ -575,7 +614,7 @@ const Dashboard = ({ habits, logActivity, insights, dataLoading }) => {
                         {h.adminCreated && <span className="ml-2 px-1 py-0.5 rounded bg-black text-white text-[7px] font-black uppercase tracking-tighter align-middle">Admin Stream</span>}
                       </div>
                       <div className={`text-[10px] uppercase font-mono truncate ${isWhite ? "text-black/60" : "text-text-secondary"}`}>
-                        {h.mode === "check" ? `${h.totalLogs} day(s) checked` : h.mode === "quick" ? `${h.totalLogs} log(s)` : `${(h.logs || []).reduce((s, d) => s + (d.entries || []).length, 0)} log(s) · ${h.unit || (h.mode === "count" ? "Unit" : h.mode === "rating" ? "Stars" : h.mode === "upload" ? "IMG" : "")}`}
+                        {streakLabel} · {streak} / {target} DAY STREAK
                       </div>
                     </div>
                   </div>
