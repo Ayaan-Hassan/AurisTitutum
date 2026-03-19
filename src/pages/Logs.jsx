@@ -27,6 +27,7 @@ const Logs = ({ habits, setHabits }) => {
   });
   const [syncMessage, setSyncMessage] = useState(null); // { type: 'success'|'error'|'info', text: string }
   const [livePolling, setLivePolling] = useState(false);
+  const [visibleCount, setVisibleCount] = useState(15);
 
   // ── Check sheets connection on mount ──────────────────────────────────────
   useEffect(() => {
@@ -205,6 +206,15 @@ const Logs = ({ habits, setHabits }) => {
     if (filter === "bad") return flattenedLogs.filter((l) => l.type === "Bad");
     return flattenedLogs;
   }, [flattenedLogs, filter]);
+
+  const paginatedLogs = useMemo(() => {
+    return filteredLogs.slice(0, visibleCount);
+  }, [filteredLogs, visibleCount]);
+
+  // Reset pagination when filter changes
+  useEffect(() => {
+    setVisibleCount(15);
+  }, [filter]);
 
   // ── CSV export ────────────────────────────────────────────────────────────
   const exportToCSV = () => {
@@ -464,7 +474,7 @@ const Logs = ({ habits, setHabits }) => {
               </tr>
             </thead>
             <tbody>
-              {filteredLogs.map((log, i) => (
+              {paginatedLogs.map((log, i) => (
                 <tr
                   key={i}
                   className="border-b border-border-color/50 hover:bg-accent-dim/50 transition-colors"
@@ -536,6 +546,27 @@ const Logs = ({ habits, setHabits }) => {
           </div>
         )}
       </Card>
+
+      {/* ── Pagination / Load More ── */}
+      {filteredLogs.length > visibleCount && (
+        <div className="flex flex-col items-center gap-4 pt-4 border-t border-white/5">
+          <button
+            onClick={() => setVisibleCount(prev => prev + 15)}
+            className="group px-8 py-4 bg-bg-main/50 border border-border-color rounded-2xl flex items-center gap-3 transition-all hover:bg-accent hover:border-accent hover:text-bg-main active:scale-[0.98] shadow-sm"
+          >
+            <div className="w-6 h-6 rounded-lg bg-white/5 flex items-center justify-center transition-colors group-hover:bg-bg-main/20">
+              <Icon name="plus" size={14} />
+            </div>
+            <span className="text-[10px] font-black uppercase tracking-[0.2em]">
+              Load Older Activities
+            </span>
+          </button>
+          
+          <p className="text-[9px] font-mono text-text-secondary opacity-40 uppercase tracking-widest">
+            Displaying {visibleCount} of {filteredLogs.length} entries
+          </p>
+        </div>
+      )}
 
       {/* ── Modals ── */}
       <ConfirmModal
