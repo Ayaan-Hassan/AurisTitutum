@@ -178,7 +178,7 @@ const Onboarding = ({ onAddHabit, habits = [], userConfig: propUserConfig, updat
                     <select 
                       value={profile.gender}
                       onChange={(e) => setProfile(prev => ({ ...prev, gender: e.target.value }))}
-                      className="w-full h-[46px] rounded-xl border border-border-color bg-bg-main px-4 pr-10 text-xs text-text-primary outline-none focus:border-accent transition-all appearance-none cursor-pointer hover:border-accent hover:bg-bg-sidebar/40 shadow-sm"
+                      className="w-full h-[46px] rounded-xl border border-border-color bg-bg-main/50 backdrop-blur-md px-4 pr-10 text-xs text-text-primary outline-none focus:border-accent transition-all appearance-none cursor-pointer hover:border-accent hover:bg-bg-sidebar/40 shadow-inner"
                     >
                       <option value="" disabled className="text-text-secondary/50">Select</option>
                       <option value="male" className="bg-bg-sidebar py-3">Male</option>
