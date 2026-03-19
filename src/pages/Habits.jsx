@@ -461,13 +461,33 @@ const CompareView = ({ firstLog, latestLog, habit, onClose }) => {
     }
   };
 
-  const handleSliderMove = (e) => {
+  const [isDragging, setIsDragging] = useState(false);
+
+  const handleSliderMove = useCallback((e) => {
     if (!containerRef.current) return;
     const rect = containerRef.current.getBoundingClientRect();
     const x = (e.clientX || (e.touches && e.touches[0].clientX)) - rect.left;
     const pos = (x / rect.width) * 100;
     setSliderPos(Math.max(0, Math.min(100, pos)));
-  };
+  }, []);
+
+  useEffect(() => {
+    const onMove = (e) => isDragging && handleSliderMove(e);
+    const onEnd = () => setIsDragging(false);
+
+    if (isDragging) {
+      document.addEventListener("mousemove", onMove);
+      document.addEventListener("mouseup", onEnd);
+      document.addEventListener("touchmove", onMove, { passive: false });
+      document.addEventListener("touchend", onEnd);
+    }
+    return () => {
+      document.removeEventListener("mousemove", onMove);
+      document.removeEventListener("mouseup", onEnd);
+      document.removeEventListener("touchmove", onMove);
+      document.removeEventListener("touchend", onEnd);
+    };
+  }, [isDragging, handleSliderMove]);
 
   return (
     <div className="fixed inset-0 z-[165] bg-black/98 backdrop-blur-3xl flex flex-col items-center justify-center p-4">
@@ -553,9 +573,8 @@ const CompareView = ({ firstLog, latestLog, habit, onClose }) => {
                 <div 
                   ref={containerRef}
                   className="relative aspect-[4/5] h-full rounded-[4rem] overflow-hidden border border-white/10 group cursor-col-resize shadow-[0_0_100px_rgba(0,0,0,0.5)] bg-bg-sidebar select-none"
-                  onMouseMove={(e) => e.buttons === 1 && handleSliderMove(e)}
-                  onMouseDown={handleSliderMove}
-                  onTouchMove={handleSliderMove}
+                  onMouseDown={(e) => { setIsDragging(true); handleSliderMove(e); }}
+                  onTouchStart={(e) => { setIsDragging(true); handleSliderMove(e); e.preventDefault(); }}
                 >
                    {/* Latest Image (Bottom) */}
                    <img src={latestLog.img} className="absolute inset-0 w-full h-full object-cover" alt="After" />
