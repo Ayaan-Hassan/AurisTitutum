@@ -511,7 +511,7 @@ const CompareView = ({ firstLog, latestLog, habit, onClose }) => {
 
         <div className="w-full flex-1 min-h-0 flex flex-col items-center justify-center">
            {viewMode === "side-by-side" && (
-             <div className="w-full grid grid-cols-1 md:grid-cols-2 gap-8 lg:gap-12 items-stretch overflow-y-auto custom-scrollbar p-2 pb-12">
+             <div className="w-full max-w-5xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-10 lg:gap-16 items-start overflow-y-auto custom-scrollbar p-4 pb-16">
                 <div className="flex flex-col items-stretch group relative">
                   <div className="mb-6 flex items-center justify-between px-6">
                      <div className="flex items-center gap-4">
@@ -523,7 +523,7 @@ const CompareView = ({ firstLog, latestLog, habit, onClose }) => {
                      </div>
                      <p className="text-xs font-mono text-white/10 font-bold bg-white/5 px-3 py-1 rounded-lg">{firstLog.date}</p>
                   </div>
-                  <div className="aspect-[4/5] w-full rounded-[3.5rem] overflow-hidden border border-white/5 bg-white/5 relative shadow-3xl transition-all duration-700 group-hover:border-white/20">
+                  <div className="aspect-[4/5] w-full max-h-[50vh] rounded-[3rem] overflow-hidden border border-white/5 bg-white/5 relative shadow-3xl transition-all duration-700 group-hover:border-white/20">
                      <img src={firstLog.img} alt="Before" className="absolute inset-0 w-full h-full object-cover transition-transform duration-1000 group-hover:scale-110" />
                      <div className="absolute inset-x-0 bottom-0 h-48 bg-gradient-to-t from-black/60 to-transparent pointer-events-none" />
                   </div>
@@ -540,7 +540,7 @@ const CompareView = ({ firstLog, latestLog, habit, onClose }) => {
                      </div>
                      <p className="text-xs font-mono text-accent/20 font-bold bg-accent/5 px-3 py-1 rounded-lg">{latestLog.date}</p>
                   </div>
-                  <div className="aspect-[4/5] w-full rounded-[3.5rem] overflow-hidden border-2 border-accent/20 bg-accent/5 relative shadow-[0_0_120px_rgba(var(--accent-rgb),0.1)] transition-all duration-700 group-hover:border-accent/40">
+                  <div className="aspect-[4/5] w-full max-h-[50vh] rounded-[3rem] overflow-hidden border-2 border-accent/20 bg-accent/5 relative shadow-[0_0_120px_rgba(var(--accent-rgb),0.1)] transition-all duration-700 group-hover:border-accent/40">
                      <img src={latestLog.img} alt="After" className="absolute inset-0 w-full h-full object-cover transition-transform duration-1000 group-hover:scale-110" />
                      <div className="absolute inset-x-0 bottom-0 h-48 bg-gradient-to-t from-black/50 to-transparent pointer-events-none" />
                   </div>
