@@ -123,8 +123,8 @@ const Layout = ({
     { href: "/app/contact", icon: "mail", label: "Contact Us", special: true },
   ];
 
-  const adminUid = import.meta.env.VITE_ADMIN_UID;
-  if (user && adminUid && user.uid === adminUid) {
+  const adminUid = (import.meta.env.VITE_ADMIN_UID || "").replace(/['"]/g, '').trim();
+  if (user && adminUid && user.uid?.trim() === adminUid) {
     mobileNavLinks.push({ href: "/app/admin", icon: "shield-check", label: "Admin Space", special: true });
   }
 

@@ -552,12 +552,6 @@ export const AuthProvider = ({ children }) => {
           // Set user immediately so the app knows who is logged in
           setUser(mappedUser);
 
-          // For admin, we release the preloader IMMEDIATELY.
-          // For regular users, we keep it true for a moment while we run setup.
-          if (isUserAdmin) {
-            setAuthLoading(false);
-          }
-
           const runSetup = async () => {
              try {
               await ensureUserDocument({
@@ -585,11 +579,7 @@ export const AuthProvider = ({ children }) => {
           };
 
           // Run setup - regular users block on this (unless timeout hits), admin runs it async
-          if (isUserAdmin) {
-            runSetup(); // Background
-          } else {
-            await runSetup(); // Blocking
-          }
+          await runSetup();
 
           if (authCycleRef.current !== cycleId) return;
           startRealtimeListeners(resolvedUser.uid, cycleId);
