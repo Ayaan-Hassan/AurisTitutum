@@ -54,13 +54,17 @@ export const useHabitNotifications = (habits, config) => {
     });
   }, []);
 
-  const markAllRead = useCallback((notificationId = null) => {
+  const markAllRead = useCallback((notificationId = null, forceStatus = null) => {
     setNotifications((prev) => {
-      if (notificationId) {
-        // Toggle specific notification
-        return prev.map((n) => (n.id === notificationId ? { ...n, read: !n.read } : n));
+      // 1. Force state for all (header toggle)
+      if (forceStatus !== null && notificationId === null) {
+        return prev.map((n) => ({ ...n, read: forceStatus }));
       }
-      // Mark all read
+      // 2. Mark specific notification as read (individual click)
+      if (notificationId !== null) {
+        return prev.map((n) => (n.id === notificationId ? { ...n, read: true } : n));
+      }
+      // 3. Fallback (bell icon click): mark everything as read
       return prev.map((n) => ({ ...n, read: true }));
     });
   }, []);

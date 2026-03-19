@@ -60,7 +60,10 @@ import {
     BarChart,
     Layers,
     Columns,
-    Sliders
+    Sliders,
+    CheckCheck,
+    Eye,
+    EyeOff
 } from 'lucide-react';
 
 const Icon = ({ name, size = 18, className = "" }) => {
@@ -127,7 +130,10 @@ const Icon = ({ name, size = 18, className = "" }) => {
         'bar-chart': BarChart,
         'layers': Layers,
         'columns': Columns,
-        'sliders': Sliders
+        'sliders': Sliders,
+        'check-check': CheckCheck,
+        'eye': Eye,
+        'eye-off': EyeOff
     };
 
     const LucideIcon = icons[name];

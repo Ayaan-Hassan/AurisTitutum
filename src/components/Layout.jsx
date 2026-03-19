@@ -51,16 +51,17 @@ const Layout = ({
     };
   }, [aurisOpen]);
 
-  // Auto-close notifications panel after 6 seconds
+  // Remove auto-close timeout; notifications box stays open until interaction
   useEffect(() => {
-    if (notificationsOpen) {
-      notifAutoCloseRef.current = setTimeout(() => {
+    const handleScroll = (e) => {
+      if (notificationsOpen && notifDropdownRef.current && !notifDropdownRef.current.contains(e.target)) {
         setNotificationsOpen(false);
-      }, 3000);
-    } else {
-      clearTimeout(notifAutoCloseRef.current);
+      }
+    };
+    if (notificationsOpen) {
+      window.addEventListener("scroll", handleScroll, true);
     }
-    return () => clearTimeout(notifAutoCloseRef.current);
+    return () => window.removeEventListener("scroll", handleScroll, true);
   }, [notificationsOpen]);
 
   // Map path to view name for header
@@ -389,12 +390,18 @@ const Layout = ({
                 {notifications.length > 0 && (
                   <button
                     type="button"
-                    className="text-[10px] text-text-secondary hover:text-text-primary font-bold tracking-widest uppercase"
-                    onClick={() => {
-                      onNotificationsRead?.();
+                    className="text-[10px] text-text-secondary hover:text-text-primary font-bold tracking-widest uppercase transition-colors"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      const allRead = notifications.every(n => n.read);
+                      onNotificationsRead?.(null, !allRead);
                     }}
                   >
-                    {notifications.every((n) => n.read) ? "Mark unread" : "Mark read"}
+                    {notifications.every((n) => n.read) ? (
+                      <span className="flex items-center gap-1.5"><Icon name="eye-off" size={10}/> Mark unread</span>
+                    ) : (
+                      <span className="flex items-center gap-1.5"><Icon name="check-check" size={10}/> Mark read</span>
+                    )}
                   </button>
                 )}
               </div>
