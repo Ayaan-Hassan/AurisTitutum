@@ -96,6 +96,9 @@ const compressPhoto = (base64Str) => {
 const DashboardUploadControl = ({ habit, logActivity }) => {
   const fileInputRef = useRef(null);
   const cameraRef = useRef(null);
+  const [cameraOpen, setCameraOpen] = useState(false);
+  const [stream, setStream] = useState(null);
+  const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
   const [cooldown, setCooldown] = useState(0);
 
   useEffect(() => {
