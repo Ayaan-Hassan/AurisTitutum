@@ -835,23 +835,24 @@ function AppContent() {
             <div className="absolute -top-24 -right-24 w-48 h-48 bg-accent/5 rounded-full blur-[80px] pointer-events-none z-0" />
 
             {/* Scrollable inner content */}
-            <div className="p-8 sm:p-10 relative z-10 w-full">
+            <div className="p-8 sm:p-10 relative z-10 w-full bg-gradient-to-br from-white/[0.03] to-transparent">
               <div className="flex justify-between items-center mb-10">
                 <div>
-                  <h3 className="text-2xl font-bold tracking-tighter text-text-primary uppercase">
-                    Add Habit
+                  <h3 className="text-xl font-black tracking-widest text-text-primary uppercase flex items-center gap-2">
+                    <div className="w-1.5 h-6 bg-accent rounded-full" />
+                    Add Node
                   </h3>
-                  <div className="flex gap-1.5 mt-2">
+                  <div className="flex gap-2 mt-4">
                     {[1, 2, 3, 4].map(s => (
-                      <div key={s} className={`h-1 rounded-full transition-all duration-300 ${addHabitStep === s ? "w-6 bg-accent" : addHabitStep > s ? "w-2 bg-accent/40" : "w-1 bg-white/10"}`} />
+                      <div key={s} className={`h-1 rounded-full transition-all duration-500 ${addHabitStep === s ? "w-8 bg-accent" : addHabitStep > s ? "w-2 bg-accent/30" : "w-2 bg-white/5"}`} />
                     ))}
                   </div>
                 </div>
                 <button
                   onClick={() => setShowAddModal(false)}
-                  className="w-10 h-10 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-text-secondary hover:text-text-primary hover:border-text-secondary transition-all"
+                  className="w-10 h-10 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center text-text-secondary hover:text-text-primary hover:bg-white/10 transition-all group"
                 >
-                  <Icon name="x" size={18} />
+                  <Icon name="x" size={18} className="group-hover:rotate-90 transition-transform duration-300" />
                 </button>
               </div>
 
@@ -861,21 +862,23 @@ function AppContent() {
                   <div className="grid grid-cols-2 gap-4">
                     <button
                       onClick={() => { setNewHabit({ ...newHabit, type: "Good" }); setAddHabitStep(2); }}
-                      className="group py-8 rounded-2xl border transition-all flex flex-col items-center gap-4 bg-bg-main/50 border-white/10 text-white hover:border-[#4ade80] hover:bg-[#4ade80]/5 shadow-sm hover:shadow-[0_0_24px_rgba(74,222,128,0.15)]"
+                      className="group p-8 rounded-[2.5rem] border transition-all flex flex-col items-center gap-5 bg-white/[0.02] border-white/5 text-white hover:border-[#4ade80]/40 hover:bg-[#4ade80]/5 shadow-sm relative overflow-hidden"
                     >
-                      <div className="w-14 h-14 rounded-full border border-inherit flex items-center justify-center group-hover:bg-[#4ade80]/10 transition-colors">
-                        <Icon name="check" size={24} className="group-hover:text-[#4ade80] transition-colors" />
+                      <div className="absolute inset-0 bg-gradient-to-br from-[#4ade80]/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                      <div className="w-16 h-16 rounded-[2rem] border border-white/10 flex items-center justify-center group-hover:bg-[#4ade80]/20 group-hover:border-[#4ade80]/30 transition-all relative z-10">
+                        <Icon name="check" size={28} className="text-white/60 group-hover:text-[#4ade80] transition-colors" />
                       </div>
-                      <span className="text-xs font-bold uppercase tracking-widest">Good Habit</span>
+                      <span className="text-[10px] font-black uppercase tracking-[0.2em] relative z-10 opacity-60 group-hover:opacity-100 transition-opacity">Constructive</span>
                     </button>
                     <button
                       onClick={() => { setNewHabit({ ...newHabit, type: "Bad" }); setAddHabitStep(2); }}
-                      className="group py-8 rounded-2xl border transition-all flex flex-col items-center gap-4 bg-bg-main/50 border-white/10 text-white hover:border-[#ef4444] hover:bg-[#ef4444]/5 shadow-sm hover:shadow-[0_0_24px_rgba(239,68,68,0.15)]"
+                      className="group p-8 rounded-[2.5rem] border transition-all flex flex-col items-center gap-5 bg-white/[0.02] border-white/5 text-white hover:border-[#ef4444]/40 hover:bg-[#ef4444]/5 shadow-sm relative overflow-hidden"
                     >
-                      <div className="w-14 h-14 rounded-full border border-inherit flex items-center justify-center group-hover:bg-[#ef4444]/10 transition-colors">
-                        <Icon name="x" size={24} className="group-hover:text-[#ef4444] transition-colors" />
+                      <div className="absolute inset-0 bg-gradient-to-br from-[#ef4444]/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                      <div className="w-16 h-16 rounded-[2rem] border border-white/10 flex items-center justify-center group-hover:bg-[#ef4444]/20 group-hover:border-[#ef4444]/30 transition-all relative z-10">
+                        <Icon name="x" size={28} className="text-white/60 group-hover:text-[#ef4444] transition-colors" />
                       </div>
-                      <span className="text-xs font-bold uppercase tracking-widest">Bad Habit</span>
+                      <span className="text-[10px] font-black uppercase tracking-[0.2em] relative z-10 opacity-60 group-hover:opacity-100 transition-opacity">Destructive</span>
                     </button>
                   </div>
                 </div>
@@ -899,8 +902,8 @@ function AppContent() {
                     </div>
                   </div>
                   <input
-                    className="w-full bg-bg-main/50 border border-white/10 p-5 rounded-2xl outline-none focus:border-accent text-sm text-text-primary transition-all placeholder:text-text-secondary/30 focus:bg-bg-main"
-                    placeholder="e.g. Read 20 pages"
+                    className="w-full bg-white/[0.03] border border-white/10 p-6 rounded-3xl outline-none focus:border-accent/40 text-base text-text-primary transition-all placeholder:text-text-secondary/20 focus:bg-white/[0.05] shadow-inner"
+                    placeholder={newHabit.type === "Good" ? "e.g. Read 20 pages" : "e.g. Smoking"}
                     value={newHabit.name}
                     onChange={(e) => setNewHabit({ ...newHabit, name: e.target.value })}
                     autoFocus
@@ -908,9 +911,9 @@ function AppContent() {
                       if (e.key === 'Enter' && newHabit.name.trim()) setAddHabitStep(3);
                     }}
                   />
-                  <div className="flex justify-between mt-8 pt-4">
-                    <button onClick={() => setAddHabitStep(1)} className="px-5 py-3 rounded-xl border border-border-color text-xs font-bold uppercase tracking-widest text-text-secondary hover:text-text-primary active:scale-95 transition-all">Back</button>
-                    <button onClick={() => setAddHabitStep(3)} disabled={!newHabit.name.trim()} className="px-6 py-3 bg-accent text-bg-main rounded-xl border border-transparent text-xs font-bold uppercase tracking-widest disabled:opacity-30 active:scale-95 transition-all">Next</button>
+                  <div className="flex justify-between items-center mt-6">
+                    <button onClick={() => setAddHabitStep(1)} className="px-6 py-3.5 rounded-2xl border border-white/5 bg-white/5 text-[10px] font-black uppercase tracking-[0.2em] text-text-secondary hover:text-text-primary hover:bg-white/10 active:scale-95 transition-all">Back</button>
+                    <button onClick={() => setAddHabitStep(3)} disabled={!newHabit.name.trim()} className="px-8 py-3.5 bg-accent text-bg-main rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] disabled:opacity-20 active:scale-95 transition-all shadow-lg shadow-accent/20">Continue</button>
                   </div>
                 </div>
               )}
@@ -926,12 +929,12 @@ function AppContent() {
                   
                   <div className="grid grid-cols-2 gap-3">
                     {[
-                      { id: "quick", label: "Tap", info: "Quick +/- counter for fast logging.", icon: "zap" },
-                      { id: "count", label: "Count", info: "Log specific values with units (reps, kg, pages).", icon: "hash" },
-                      { id: "check", label: "Check", info: "Simple completion checkbox once per day.", icon: "check-circle" },
-                      { id: "timer", label: "Timer", info: "Integrated stopwatch to track duration.", icon: "clock" },
-                      { id: "rating", label: "Rating", info: "Evaluate performance on a 1-5 star scale.", icon: "star" },
-                      { id: "upload", label: "Upload", info: "Keep a visual progress log with photos.", icon: "image" }
+                      { id: "quick", label: "Tap", info: "Quick +/- counter for fast logging." },
+                      { id: "count", label: "Count", info: "Log specific values with units (reps, kg, pages)." },
+                      { id: "check", label: "Check", info: "Simple completion checkbox once per day." },
+                      { id: "timer", label: "Timer", info: "Integrated stopwatch to track duration." },
+                      { id: "rating", label: "Rating", info: "Evaluate performance on a 1-5 star scale." },
+                      { id: "upload", label: "Upload", info: "Keep a visual progress log with photos." }
                     ].map((m) => (
                       <div key={m.id} className="relative group/mode">
                         <button
@@ -940,15 +943,17 @@ function AppContent() {
                             mode: m.id, 
                             unit: m.id === "count" ? newHabit.unit : m.id === "timer" ? "min" : m.id === "upload" ? "IMG" : "" 
                           })}
-                          className={`w-full py-4 rounded-2xl text-[10px] font-bold uppercase tracking-[0.2em] border transition-all ${newHabit.mode === m.id ? "bg-accent text-bg-main border-accent scale-[1.02]" : "bg-bg-main/30 border-white/10 text-text-secondary hover:border-white/20 hover:scale-[1.02]"}`}
+                          className={`w-full py-5 rounded-[1.5rem] text-[10px] font-black uppercase tracking-[0.2em] border transition-all ${newHabit.mode === m.id ? "bg-accent text-bg-main border-accent shadow-lg shadow-accent/10" : "bg-white/[0.02] border-white/5 text-text-secondary/60 hover:border-white/10 hover:bg-white/[0.04]"}`}
                         >
                           {m.label}
                         </button>
-                        <div className="absolute right-2 top-2 z-20">
+                        <div className="absolute right-3 top-3 z-20">
                            <div className="relative group/info">
-                              <Icon name={m.icon} size={10} className={`${newHabit.mode === m.id ? "text-bg-main/60" : "text-text-secondary/50"} cursor-help hover:text-text-primary transition-colors`} />
-                              <div className="absolute bottom-full right-0 mb-2 opacity-0 group-hover/info:opacity-100 pointer-events-none transition-all duration-200 z-[60] translate-y-1 group-hover/info:translate-y-0">
-                                <div className="bg-bg-sidebar border border-border-color text-[9px] p-2 rounded-lg shadow-2xl w-32 text-center normal-case font-mono leading-tight">
+                              <div className={`w-5 h-5 rounded-lg flex items-center justify-center border transition-all ${newHabit.mode === m.id ? "bg-bg-main/20 border-accent/20 text-bg-main" : "bg-white/5 border-white/5 text-text-secondary/40"}`}>
+                                <Icon name="info" size={10} className="cursor-pointer" />
+                              </div>
+                              <div className="absolute bottom-full right-0 mb-3 opacity-0 group-hover/info:opacity-100 pointer-events-none transition-all duration-300 z-[60] translate-y-2 group-hover/info:translate-y-0">
+                                <div className="bg-bg-sidebar/95 backdrop-blur-md border border-white/10 text-[9px] p-3 rounded-xl shadow-2xl w-40 text-center normal-case font-mono leading-tight tracking-tight text-text-primary border-t-white/20">
                                   {m.info}
                                 </div>
                               </div>
@@ -970,9 +975,9 @@ function AppContent() {
                     </div>
                   )}
 
-                  <div className="flex justify-between mt-8 pt-4">
-                    <button onClick={() => setAddHabitStep(2)} className="px-5 py-3 rounded-xl border border-border-color text-xs font-bold uppercase tracking-widest text-text-secondary hover:text-text-primary active:scale-95 transition-all">Back</button>
-                    <button onClick={() => setAddHabitStep(4)} className="px-6 py-3 bg-accent text-bg-main rounded-xl border border-transparent text-xs font-bold uppercase tracking-widest disabled:opacity-30 active:scale-95 transition-all">Next</button>
+                  <div className="flex justify-between items-center mt-8">
+                    <button onClick={() => setAddHabitStep(2)} className="px-6 py-3.5 rounded-2xl border border-white/5 bg-white/5 text-[10px] font-black uppercase tracking-[0.2em] text-text-secondary hover:text-text-primary hover:bg-white/10 active:scale-95 transition-all">Back</button>
+                    <button onClick={() => setAddHabitStep(4)} className="px-8 py-3.5 bg-accent text-bg-main rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] active:scale-95 transition-all shadow-lg shadow-accent/20">Continue</button>
                   </div>
                 </div>
               )}
@@ -1009,8 +1014,8 @@ function AppContent() {
                     </div>
                   </div>
                   
-                  <div className="flex justify-between mt-8 pt-4">
-                    <button onClick={() => setAddHabitStep(3)} className="px-5 py-3 rounded-xl border border-border-color text-xs font-bold uppercase tracking-widest text-text-secondary hover:text-text-primary active:scale-95 transition-all">Back</button>
+                  <div className="flex justify-between items-center mt-8">
+                    <button onClick={() => setAddHabitStep(3)} className="px-6 py-3.5 rounded-2xl border border-white/5 bg-white/5 text-[10px] font-black uppercase tracking-[0.2em] text-text-secondary hover:text-text-primary hover:bg-white/10 active:scale-95 transition-all">Back</button>
                     <button
                         onClick={async () => {
                           if (!newHabit.name.trim()) return;
@@ -1036,9 +1041,9 @@ function AppContent() {
                           trackEvent("habit_created", { type: newHabit.type, mode: newHabit.mode });
                           setShowAddModal(false);
                         }}
-                        className="px-6 py-3 bg-accent text-bg-main rounded-xl border border-transparent text-xs font-bold uppercase tracking-widest hover:scale-[1.03] active:scale-[0.97] transition-all shadow-lg shadow-accent/20"
+                        className="px-10 py-3.5 bg-accent text-bg-main rounded-2xl text-[10px] font-black uppercase tracking-[0.3em] hover:scale-[1.03] active:scale-[0.97] transition-all shadow-2xl shadow-accent/30 border-t border-white/20"
                     >
-                        Create
+                        Create Node
                     </button>
                   </div>
                 </div>
