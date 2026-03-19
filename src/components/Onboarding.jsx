@@ -56,7 +56,9 @@ const Onboarding = ({ onAddHabit, habits = [], userConfig: propUserConfig, updat
   const isComplete = userConfig?.settings?.onboardingComplete;
   const isDashboard = location.pathname === "/app" || location.pathname === "/app/" || location.pathname === "/app/dashboard";
   
-  if (isComplete || !isDashboard) return null;
+  // A user who is already signed in earlier (has habits) should never get these pop-ups.
+  // Unless onboardingComplete is explicitly false (which it is by default, so we check habits length)
+  if (isComplete || !isDashboard || (user && habits.length > 0)) return null;
 
   const handleAvatarUpload = (e) => {
     const file = e.target.files[0];
@@ -161,19 +163,23 @@ const Onboarding = ({ onAddHabit, habits = [], userConfig: propUserConfig, updat
                   value={profile.age}
                   onChange={(e) => setProfile(prev => ({ ...prev, age: e.target.value }))}
                 />
-                <div className="space-y-2">
+                <div className="space-y-2 relative group-select">
                   <label className="text-[10px] font-black text-text-secondary uppercase tracking-widest block px-1">Gender</label>
-                  <select 
-                    value={profile.gender}
-                    onChange={(e) => setProfile(prev => ({ ...prev, gender: e.target.value }))}
-                    className="w-full h-[46px] rounded-xl border border-border-color bg-bg-main px-4 text-xs text-text-primary outline-none focus:border-accent transition-all appearance-none cursor-pointer"
-                  >
-                    <option value="" disabled>Select</option>
-                    <option value="male">Male</option>
-                    <option value="female">Female</option>
-                    <option value="other">Other</option>
-                    <option value="private">Private</option>
-                  </select>
+                  <div className="relative">
+                    <select 
+                      value={profile.gender}
+                      onChange={(e) => setProfile(prev => ({ ...prev, gender: e.target.value }))}
+                      className="w-full h-[46px] rounded-xl border border-border-color bg-bg-main px-4 pr-10 text-xs text-text-primary outline-none focus:border-accent transition-all appearance-none cursor-pointer hover:border-accent/50"
+                    >
+                      <option value="" disabled>Select Orientation</option>
+                      <option value="male">Male</option>
+                      <option value="female">Female</option>
+                      <option value="private">Prefer not to say</option>
+                    </select>
+                    <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-text-secondary">
+                        <Icon name="chevron-down" size={14} />
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
@@ -214,13 +220,6 @@ const Onboarding = ({ onAddHabit, habits = [], userConfig: propUserConfig, updat
              >
                 Initialize First Habit
              </Button>
-             
-             <button 
-                onClick={() => updateUserConfig({ settings: { ...userConfig.settings, onboardingComplete: true } })}
-                className="text-[10px] font-bold uppercase tracking-widest text-text-secondary hover:text-text-primary transition-colors opacity-50"
-             >
-                Skip for now
-             </button>
           </div>
         )}
       </Card>

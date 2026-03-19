@@ -32,6 +32,7 @@ export default function AdminDashboard() {
     const [graphRange, setGraphRange] = useState(() => localStorage.getItem("admin_graph_range") || "30d");
     const [graphType, setGraphType] = useState(() => localStorage.getItem("admin_graph_type") || "area");
     const [searchQuery, setSearchQuery] = useState("");
+    const [ageFilter, setAgeFilter] = useState({ min: "", max: "" });
     const [activeTab, setActiveTab] = useState("users");
     const [inquiries, setInquiries] = useState([]);
 
@@ -382,15 +383,46 @@ export default function AdminDashboard() {
                                         </button>
                                     </div>
                                 </div>
-                                <div className="relative">
-                                    <Icon name="search" size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-text-secondary opacity-50" />
-                                    <input 
-                                        type="text" 
-                                        placeholder="Search..."
-                                        value={searchQuery}
-                                        onChange={(e) => setSearchQuery(e.target.value)}
-                                        className="w-full bg-bg-main border border-border-color pl-9 pr-4 py-2 rounded-xl text-xs outline-none focus:border-accent transition-all"
-                                    />
+                                <div className="space-y-3">
+                                    <div className="relative">
+                                        <Icon name="search" size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-text-secondary opacity-50" />
+                                        <input 
+                                            type="text" 
+                                            placeholder="Search..."
+                                            value={searchQuery}
+                                            onChange={(e) => setSearchQuery(e.target.value)}
+                                            className="w-full bg-bg-main border border-border-color pl-9 pr-4 py-2 rounded-xl text-xs outline-none focus:border-accent transition-all"
+                                        />
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                        <div className="relative flex-1">
+                                            <input 
+                                                type="number" 
+                                                placeholder="Min Age" 
+                                                className="w-full bg-bg-main border border-border-color p-2 rounded-xl text-[10px] outline-none focus:border-accent transition-all"
+                                                value={ageFilter.min}
+                                                onChange={(e) => setAgeFilter(prev => ({ ...prev, min: e.target.value }))}
+                                            />
+                                        </div>
+                                        <span className="text-text-secondary text-[10px]">-</span>
+                                        <div className="relative flex-1">
+                                            <input 
+                                                type="number" 
+                                                placeholder="Max Age" 
+                                                className="w-full bg-bg-main border border-border-color p-2 rounded-xl text-[10px] outline-none focus:border-accent transition-all"
+                                                value={ageFilter.max}
+                                                onChange={(e) => setAgeFilter(prev => ({ ...prev, max: e.target.value }))}
+                                            />
+                                        </div>
+                                        {(ageFilter.min || ageFilter.max) && (
+                                            <button 
+                                                onClick={() => setAgeFilter({ min: "", max: "" })}
+                                                className="p-1 text-accent hover:text-white transition-colors"
+                                            >
+                                                <Icon name="x-circle" size={14} />
+                                            </button>
+                                        )}
+                                    </div>
                                 </div>
                             </div>
                             <div className="overflow-y-auto flex-1 custom-scrollbar">
@@ -399,6 +431,13 @@ export default function AdminDashboard() {
                                         if (showOnlineOnly) return isUserOnline(u);
                                         if (showBannedOnly) return u.isBanned;
                                         return true;
+                                    })
+                                    .filter(u => {
+                                        const age = parseInt(u.age);
+                                        const minAge = ageFilter.min ? parseInt(ageFilter.min) : 0;
+                                        const maxAge = ageFilter.max ? parseInt(ageFilter.max) : Infinity;
+                                        const matchesAge = isNaN(age) ? (!ageFilter.min && !ageFilter.max) : (age >= minAge && age <= maxAge);
+                                        return matchesAge;
                                     })
                                     .filter(u => {
                                         const q = searchQuery.toLowerCase();
