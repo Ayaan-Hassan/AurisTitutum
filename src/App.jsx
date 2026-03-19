@@ -749,6 +749,7 @@ function AppContent() {
                       setHabits={user ? authContext.replaceHabitsState : setHabits}
                       logActivity={logActivity}
                       insights={dailyInsight}
+                      dataLoading={dataLoading}
                     />
                   }
                 />
@@ -760,6 +761,7 @@ function AppContent() {
                       setHabits={user ? authContext.replaceHabitsState : setHabits}
                       logActivity={logActivity}
                       insights={dailyInsight}
+                      dataLoading={dataLoading}
                     />
                   }
                 />

@@ -347,7 +347,7 @@ const DayDetailPopup = ({ dateStr, habits, onClose }) => {
 };
 
 // ─── Main Dashboard ──────────────────────────────────────────────────────────
-const Dashboard = ({ habits, logActivity, insights }) => {
+const Dashboard = ({ habits, logActivity, insights, dataLoading }) => {
   useEffect(() => {
     localStorage.setItem("auris_visited_dashboard", "true");
   }, []);
@@ -610,9 +610,16 @@ const Dashboard = ({ habits, logActivity, insights }) => {
                 </div>
               );
             })}
-            {habits.length === 0 && (
+            {habits.length === 0 && !dataLoading && (
               <div className="flex flex-col items-center justify-center text-text-secondary text-xs italic py-12">
                 No habits yet. Click &ldquo;Add Habit&rdquo; to begin.
+              </div>
+            )}
+            {dataLoading && habits.length === 0 && (
+              <div className="space-y-3 py-2">
+                {[1,2,3].map(i => (
+                  <div key={i} className="h-[52px] rounded-xl bg-white/5 border border-border-color animate-pulse" style={{ animationDelay: `${i * 120}ms` }} />
+                ))}
               </div>
             )}
           </div>

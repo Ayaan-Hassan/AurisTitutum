@@ -885,7 +885,7 @@ export const AuthProvider = ({ children }) => {
 
   return (
     <AuthContext.Provider value={value}>
-      {loading ? (
+      {authLoading ? (
         <div className="min-h-screen flex flex-col items-center justify-center bg-bg-main">
           <div className="logo-box">
             <div className="logo-inner"></div>
