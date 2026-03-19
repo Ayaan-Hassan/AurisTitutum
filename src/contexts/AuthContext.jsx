@@ -536,23 +536,32 @@ export const AuthProvider = ({ children }) => {
             }
           }
 
+          // Set user immediately so the app knows who is logged in,
+          // but keep authLoading true until Firestore setup completes.
           setUser(mappedUser);
+
+          try {
+            await ensureUserDocument({
+              uid: resolvedUser.uid,
+              email: resolvedUser.email,
+              displayName: resolvedUser.displayName,
+            });
+
+            await upsertUserSetting(
+              resolvedUser.uid,
+              "profile",
+              mergeUserIdentityIntoConfig({}, mappedUser),
+              true,
+            );
+
+            await migrateLegacyDataIfNeeded(resolvedUser);
+          } catch (setupErr) {
+            // Firestore setup failed (e.g. permission denied) — log it but
+            // don't block the user. They can still use the app.
+            console.warn("Firestore setup warning (non-fatal):", setupErr?.message);
+          }
+
           setAuthLoading(false);
-          
-          await ensureUserDocument({
-            uid: resolvedUser.uid,
-            email: resolvedUser.email,
-            displayName: resolvedUser.displayName,
-          });
-
-          await upsertUserSetting(
-            resolvedUser.uid,
-            "profile",
-            mergeUserIdentityIntoConfig({}, mappedUser),
-            true,
-          );
-
-          await migrateLegacyDataIfNeeded(resolvedUser);
 
           if (authCycleRef.current !== cycleId) return;
           startRealtimeListeners(resolvedUser.uid, cycleId);
