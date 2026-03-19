@@ -774,7 +774,7 @@ function AppContent() {
                 />
                 <Route
                   path="logs"
-                  element={<Logs habits={displayHabits} setHabits={user ? authContext.replaceHabitsState : setHabits} />}
+                  element={<Logs habits={user ? authContext.habits : habits} setHabits={user ? authContext.replaceHabitsState : setHabits} />}
                 />
                 <Route
                   path="notes"

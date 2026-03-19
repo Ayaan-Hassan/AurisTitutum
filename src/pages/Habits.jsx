@@ -288,7 +288,7 @@ const UploadControl = ({ habit, logActivity, onViewGallery }) => {
   );
 };
 
-const CompareView = ({ firstImg, latestImg, onClose }) => {
+const CompareView = ({ firstLog, latestLog, habit, onClose }) => {
   const [sliderPos, setSliderPos] = useState(50);
   const containerRef = useRef(null);
   const [width, setWidth] = useState(0);
@@ -303,8 +303,21 @@ const CompareView = ({ firstImg, latestImg, onClose }) => {
     return () => window.removeEventListener("resize", handleResize);
   }, []);
 
+  const getDayNumber = (dateStr) => {
+    if (!habit.createdAt || !dateStr) return null;
+    const start = new Date(habit.createdAt.split('T')[0] + "T12:00:00");
+    const end = new Date(dateStr + "T12:00:00");
+    const diff = Math.round((end - start) / (1000 * 60 * 60 * 24));
+    return diff + 1;
+  };
+
+  const day1 = getDayNumber(firstLog.date);
+  const day2 = getDayNumber(latestLog.date);
+
   const exportComparison = async () => {
     setExporting(true);
+    const firstImg = firstLog.img;
+    const latestImg = latestLog.img;
     try {
       const canvas = document.createElement("canvas");
       const ctx = canvas.getContext("2d");
@@ -317,27 +330,23 @@ const CompareView = ({ firstImg, latestImg, onClose }) => {
         new Promise(r => { img2.onload = r; img2.src = latestImg; })
       ]);
 
-      const w = Math.max(img1.width, img2.width);
-      const h = Math.max(img1.height, img2.height);
-      const headerH = 120;
+      const w = 1200;
+      const h = 900;
+      const headerH = 180;
       
-      canvas.width = w * 2 + 60;
-      canvas.height = h + headerH + 60;
+      canvas.width = w * 2 + 120;
+      canvas.height = h + headerH + 80;
       
-      // Background
-      ctx.fillStyle = "#0a0a0a";
+      ctx.fillStyle = "#0c0c0c";
       ctx.fillRect(0, 0, canvas.width, canvas.height);
       
-      // Header
       ctx.fillStyle = "#ffffff";
-      ctx.font = "bold 40px Inter, sans-serif";
-      ctx.fillText("AURISTITUTUM", 40, 70);
-      ctx.font = "20px Inter, sans-serif";
-      ctx.fillStyle = "#888888";
-      ctx.fillText("Transformation Progress · First vs Latest", 40, 100);
+      ctx.font = "bold 64px Inter, sans-serif";
+      ctx.fillText("AURISTITUTUM", 60, 90);
+      ctx.font = "28px Inter, sans-serif";
+      ctx.fillStyle = "#aaaaaa";
+      ctx.fillText(`Transformation Progress: ${habit.name}`, 60, 140);
       
-      // Draw images
-      // Center them if sizes differ
       const drawImg = (img, x, y) => {
           const dw = w;
           const dh = h;
@@ -353,26 +362,19 @@ const CompareView = ({ firstImg, latestImg, onClose }) => {
           ctx.drawImage(img, ox, oy, targetW, targetH);
       };
 
-      drawImg(img1, 30, headerH + 30);
-      drawImg(img2, w + 40, headerH + 30);
+      drawImg(img1, 40, headerH + 40);
+      drawImg(img2, w + 80, headerH + 40);
       
-      // Labels
-      ctx.fillStyle = "rgba(255,255,255,0.5)";
-      ctx.font = "bold 24px monospace";
-      ctx.fillText("FIRST", 50, headerH + 70);
+      ctx.fillStyle = "rgba(255,255,255,0.7)";
+      ctx.font = "bold 40px Inter";
+      ctx.fillText(`DAY ${day1}`, 60, headerH + 110);
       ctx.fillStyle = "#4ade80";
-      ctx.fillText("LATEST", w + 60, headerH + 70);
+      ctx.fillText(`DAY ${day2}`, w + 100, headerH + 110);
 
-      const dataUrl = canvas.toDataURL("image/png");
       const link = document.createElement("a");
-      link.download = `Comparison_${Date.now()}.png`;
-      link.href = dataUrl;
+      link.download = `Compare_Day${day1}_vs_Day${day2}.png`;
+      link.href = canvas.toDataURL("image/png");
       link.click();
-      
-      const toastEvent = new CustomEvent("showToast", {
-        detail: { message: "Comparison exported successfully!", type: "success" },
-      });
-      document.dispatchEvent(toastEvent);
     } catch (err) {
       console.error(err);
     } finally {
@@ -380,50 +382,37 @@ const CompareView = ({ firstImg, latestImg, onClose }) => {
     }
   };
 
-  const shareLink = (platform) => {
-      const text = "Check out my progress on AurisTitutum!";
-      const url = window.location.href;
-      let shareUrl = "";
-      if (platform === 'whatsapp') shareUrl = `https://wa.me/?text=${encodeURIComponent(text + " " + url)}`;
-      if (platform === 'facebook') shareUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}`;
-      if (platform === 'twitter') shareUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(url)}`;
-      if (shareUrl) window.open(shareUrl, '_blank');
-  };
-
   return (
-    <div className="fixed inset-0 z-[150] bg-black/95 backdrop-blur-3xl flex flex-col items-center justify-center p-4">
-      <div className="absolute top-6 left-1/2 -translate-x-1/2 bg-white/10 backdrop-blur-md px-6 py-3 rounded-full flex items-center gap-8 z-[160] shadow-2xl border border-white/20">
-         <span className="text-[10px] font-bold tracking-widest uppercase text-white/50">First Log</span>
-         <span className="text-[10px] font-bold tracking-widest uppercase text-accent">Latest Log</span>
+    <div className="fixed inset-0 z-[160] bg-black/98 backdrop-blur-3xl flex flex-col items-center justify-center p-4">
+      <div className="absolute top-8 left-1/2 -translate-x-1/2 bg-white/5 backdrop-blur-xl px-10 py-5 rounded-[2rem] flex items-center gap-16 z-[170] border border-white/10 shadow-3xl">
+         <div className="flex flex-col items-center">
+            <span className="text-[10px] font-black tracking-widest uppercase text-white/30 mb-2">First Entry</span>
+            <span className="text-xl font-mono font-black text-white px-4 py-1.5 rounded-xl bg-white/5 border border-white/5">DAY {day1}</span>
+         </div>
+         <div className="text-white/20 font-light text-3xl">vs</div>
+         <div className="flex flex-col items-center">
+            <span className="text-[10px] font-black tracking-widest uppercase text-accent mb-2">Latest Status</span>
+            <span className="text-xl font-mono font-black text-accent px-4 py-1.5 rounded-xl bg-accent/10 border border-accent/20">DAY {day2}</span>
+         </div>
       </div>
       
-      <div className="absolute top-6 right-6 flex items-center gap-3 z-[160]">
+      <div className="absolute top-8 right-8 flex items-center gap-4 z-[170]">
         <button
           onClick={exportComparison}
           disabled={exporting}
-          className="h-10 px-4 rounded-xl bg-white/10 hover:bg-white/20 text-white flex items-center gap-2 backdrop-blur-md transition-all border border-white/10 text-[10px] font-black uppercase tracking-widest"
+          className="h-14 px-8 rounded-2xl bg-white text-black hover:bg-white/90 font-black flex items-center gap-3 transition-all hover:scale-105 active:scale-95 shadow-2xl disabled:opacity-50"
         >
-          <Icon name={exporting ? "loader" : "download"} size={14} className={exporting ? "animate-spin" : ""} />
-          {exporting ? "Rendering..." : "Export Image"}
+          <Icon name={exporting ? "loader" : "download"} size={20} className={exporting ? "animate-spin" : ""} />
+          {exporting ? "RENDERING..." : "EXPORT RESULT"}
         </button>
-        <button
-          onClick={onClose}
-          className="w-10 h-10 rounded-xl bg-white/10 hover:bg-white/20 text-white flex items-center justify-center backdrop-blur-md transition-all border border-white/10"
-        >
-          <Icon name="x" size={18} />
+        <button onClick={onClose} className="w-14 h-14 rounded-2xl bg-white/10 hover:bg-white/20 text-white flex items-center justify-center border border-white/10 transition-all hover:rotate-90">
+          <Icon name="x" size={24} />
         </button>
-      </div>
-
-      <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex items-center gap-4 z-[160] bg-black/40 backdrop-blur-lg p-2 rounded-2xl border border-white/10">
-          <p className="text-[9px] font-bold text-white/40 uppercase ml-2 mr-2">Share</p>
-          <button onClick={() => shareLink('whatsapp')} className="w-9 h-9 rounded-lg bg-emerald-500/20 text-emerald-400 flex items-center justify-center hover:bg-emerald-500/30 transition-all"><Icon name="message-circle" size={16} /></button>
-          <button onClick={() => shareLink('facebook')} className="w-9 h-9 rounded-lg bg-blue-500/20 text-blue-400 flex items-center justify-center hover:bg-blue-500/30 transition-all"><Icon name="facebook" size={16} /></button>
-          <button onClick={() => shareLink('twitter')} className="w-9 h-9 rounded-lg bg-sky-500/20 text-sky-400 flex items-center justify-center hover:bg-sky-500/30 transition-all"><Icon name="twitter" size={16} /></button>
       </div>
 
       <div 
          ref={containerRef}
-         className="w-full max-w-5xl aspect-[4/3] relative rounded-2xl overflow-hidden shadow-2xl bg-black/50 border border-white/10 select-none touch-none"
+         className="w-full max-w-7xl aspect-[4/3] bg-black/80 rounded-[3rem] overflow-hidden shadow-[0_0_150px_rgba(0,0,0,0.8)] border border-white/5 relative cursor-col-resize select-none touch-none"
          onMouseMove={(e) => {
             if (e.buttons === 1 && containerRef.current) {
                const rect = containerRef.current.getBoundingClientRect();
@@ -440,21 +429,21 @@ const CompareView = ({ firstImg, latestImg, onClose }) => {
             }
          }}
       >
-        <div className="absolute inset-0 bg-contain bg-center bg-no-repeat pointer-events-none" style={{ backgroundImage: `url(${latestImg})` }} />
+        <div className="absolute inset-0 bg-contain bg-center bg-no-repeat opacity-90" style={{ backgroundImage: `url(${latestLog.img})` }} />
         
         <div 
-          className="absolute inset-y-0 left-0 overflow-hidden pointer-events-none border-r-4 border-white shadow-[2px_0_20px_rgba(0,0,0,0.8)]"
+          className="absolute inset-y-0 left-0 overflow-hidden border-r-[3px] border-white shadow-[15px_0_60px_rgba(0,0,0,1)]"
           style={{ width: `${sliderPos}%` }}
         >
-          <div className="absolute inset-y-0 left-0 bg-contain bg-center bg-no-repeat" style={{ backgroundImage: `url(${firstImg})`, width: width ? `${width}px` : '100vw' }} />
+          <div className="absolute inset-y-0 left-0 bg-contain bg-center bg-no-repeat opacity-90" style={{ backgroundImage: `url(${firstLog.img})`, width: width ? `${width}px` : '100vw' }} />
         </div>
 
         <div 
            className="absolute inset-y-0 flex items-center justify-center pointer-events-none -translate-x-1/2"
            style={{ left: `${sliderPos}%` }}
         >
-           <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center shadow-2xl text-black">
-             <Icon name="code" size={20} className="rotate-90" />
+           <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center shadow-[0_0_30px_rgba(255,255,255,0.4)] text-black">
+             <Icon name="code" size={32} className="rotate-90" />
            </div>
         </div>
       </div>
@@ -595,13 +584,13 @@ const GalleryModal = ({ open, habit, onClose, setHabits }) => {
           entries: (l.entries || []).filter((e) => e !== entryImg),
           count: Math.max(0, (l.entries || []).filter((e) => e !== entryImg).length),
         })).filter((l) => l.count > 0 || (l.entries || []).length > 0);
-        return { ...h, logs: updatedLogs };
+         return { ...h, logs: updatedLogs };
       }));
     }
   };
 
-  if (mode === "compare" && firstImg && latestImg) {
-    return <CompareView firstImg={firstImg} latestImg={latestImg} onClose={() => setMode("grid")} />;
+  if (mode === "compare" && photoLogs.length >= 2) {
+    return <CompareView latestLog={photoLogs[0]} firstLog={photoLogs[photoLogs.length - 1]} habit={habit} onClose={() => setMode("grid")} />;
   }
 
   if (mode === "slideshow" && photoLogs.length > 0) {

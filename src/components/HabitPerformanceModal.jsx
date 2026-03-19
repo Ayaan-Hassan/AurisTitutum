@@ -340,19 +340,26 @@ const HabitPerformanceModal = ({ open, habit, onClose }) => {
                   </div>
                 ))}
                 {calendarDays.map((dateStr, idx) => {
-                  const hasActivity =
-                    !!dateStr && metrics.activeDateSet.has(dateStr);
+                  const hasActivity = !!dateStr && metrics.activeDateSet.has(dateStr);
                   const isToday = dateStr === todayKey;
-                  const activityClass = hasActivity
-                    ? isBad
-                      ? "bg-danger/20 border-danger/60 text-danger"
-                      : "bg-success/20 border-success/60 text-success"
-                    : "bg-bg-main border-border-color text-text-secondary";
+
+                  let themeClass = "bg-bg-sidebar/50 border-border-color/50 text-text-secondary opacity-40";
+                  if (dateStr) {
+                    if (hasActivity) {
+                      themeClass = isBad
+                        ? "bg-[#ef4444] text-white border-[#ef4444] shadow-[0_0_12px_rgba(239,68,68,0.25)] opacity-100"
+                        : "bg-[#4ade80] text-black border-[#4ade80] shadow-[0_0_12px_rgba(74,222,128,0.25)] opacity-100";
+                    } else {
+                      themeClass = isToday
+                        ? "bg-bg-main border-accent/60 text-accent opacity-100 ring-1 ring-accent/30"
+                        : "bg-bg-main border-border-color text-text-secondary opacity-60";
+                    }
+                  }
+
                   return (
                     <div
                       key={`${dateStr || "pad"}-${idx}`}
-                      className={`aspect-square rounded-lg border text-[11px] font-mono flex items-center justify-center ${dateStr ? activityClass : "invisible"
-                        } ${isToday ? "ring-1 ring-accent/70" : ""}`}
+                      className={`aspect-square rounded-lg border text-[11px] font-mono flex items-center justify-center transition-all ${dateStr ? themeClass : "invisible"} ${isToday && !hasActivity ? "scale-105" : ""}`}
                     >
                       {dateStr ? new Date(`${dateStr}T12:00:00`).getDate() : ""}
                     </div>

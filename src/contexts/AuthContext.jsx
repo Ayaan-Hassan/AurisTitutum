@@ -127,6 +127,7 @@ const normalizeReminder = (reminder = {}) => {
 };
 
 const normalizeHabit = (habit = {}) => ({
+  ...habit,
   id: String(habit?.id || `${Date.now()}_${Math.random().toString(36).slice(2, 8)}`),
   name: habit?.name || "",
   type: habit?.type || "Good",
