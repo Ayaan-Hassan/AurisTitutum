@@ -373,7 +373,9 @@ const Dashboard = ({ habits, logActivity, insights }) => {
           // Skip base64 photo entries in recent logs
           if (typeof entry === "string" && entry.startsWith("data:image")) return;
           const isCount = typeof entry === "string" && entry.includes("|");
-          const [time, value, unit] = isCount ? entry.split("|") : [entry, null, null];
+          const parts = isCount ? entry.split("|") : [];
+          const [time, value] = isCount ? [parts[0], parts[1]] : [entry, null];
+          const unit = isCount ? (parts[2] || (h.mode === "count" ? "Unit" : h.mode === "rating" ? "Stars" : h.mode === "timer" ? "sec" : "")) : null;
           const formattedDate = new Date(day.date + "T12:00:00")
             .toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" })
             .toUpperCase();
@@ -536,7 +538,7 @@ const Dashboard = ({ habits, logActivity, insights }) => {
                         {h.adminCreated && <span className="ml-2 px-1 py-0.5 rounded bg-black text-white text-[7px] font-black uppercase tracking-tighter align-middle">Admin Stream</span>}
                       </div>
                       <div className={`text-[10px] uppercase font-mono truncate ${isWhite ? "text-black/60" : "text-text-secondary"}`}>
-                        {h.mode === "check" ? `${h.totalLogs} day(s) checked` : h.mode === "quick" ? `${h.totalLogs} log(s)` : `${(h.logs || []).reduce((s, d) => s + (d.entries || []).length, 0)} log(s) · ${h.unit || ""}`}
+                        {h.mode === "check" ? `${h.totalLogs} day(s) checked` : h.mode === "quick" ? `${h.totalLogs} log(s)` : `${(h.logs || []).reduce((s, d) => s + (d.entries || []).length, 0)} log(s) · ${h.unit || (h.mode === "count" ? "Unit" : h.mode === "rating" ? "Stars" : h.mode === "upload" ? "IMG" : "")}`}
                       </div>
                     </div>
                   </div>

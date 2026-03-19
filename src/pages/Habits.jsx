@@ -292,6 +292,7 @@ const CompareView = ({ firstImg, latestImg, onClose }) => {
   const [sliderPos, setSliderPos] = useState(50);
   const containerRef = useRef(null);
   const [width, setWidth] = useState(0);
+  const [exporting, setExporting] = useState(false);
 
   useEffect(() => {
     if (containerRef.current) setWidth(containerRef.current.offsetWidth);
@@ -302,22 +303,127 @@ const CompareView = ({ firstImg, latestImg, onClose }) => {
     return () => window.removeEventListener("resize", handleResize);
   }, []);
 
+  const exportComparison = async () => {
+    setExporting(true);
+    try {
+      const canvas = document.createElement("canvas");
+      const ctx = canvas.getContext("2d");
+      
+      const img1 = new Image();
+      const img2 = new Image();
+      
+      await Promise.all([
+        new Promise(r => { img1.onload = r; img1.src = firstImg; }),
+        new Promise(r => { img2.onload = r; img2.src = latestImg; })
+      ]);
+
+      const w = Math.max(img1.width, img2.width);
+      const h = Math.max(img1.height, img2.height);
+      const headerH = 120;
+      
+      canvas.width = w * 2 + 60;
+      canvas.height = h + headerH + 60;
+      
+      // Background
+      ctx.fillStyle = "#0a0a0a";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      
+      // Header
+      ctx.fillStyle = "#ffffff";
+      ctx.font = "bold 40px Inter, sans-serif";
+      ctx.fillText("AURISTITUTUM", 40, 70);
+      ctx.font = "20px Inter, sans-serif";
+      ctx.fillStyle = "#888888";
+      ctx.fillText("Transformation Progress · First vs Latest", 40, 100);
+      
+      // Draw images
+      // Center them if sizes differ
+      const drawImg = (img, x, y) => {
+          const dw = w;
+          const dh = h;
+          const aspect = img.width / img.height;
+          let targetW = dw;
+          let targetH = dw / aspect;
+          if (targetH > dh) {
+              targetH = dh;
+              targetW = dh * aspect;
+          }
+          const ox = x + (dw - targetW) / 2;
+          const oy = y + (dh - targetH) / 2;
+          ctx.drawImage(img, ox, oy, targetW, targetH);
+      };
+
+      drawImg(img1, 30, headerH + 30);
+      drawImg(img2, w + 40, headerH + 30);
+      
+      // Labels
+      ctx.fillStyle = "rgba(255,255,255,0.5)";
+      ctx.font = "bold 24px monospace";
+      ctx.fillText("FIRST", 50, headerH + 70);
+      ctx.fillStyle = "#4ade80";
+      ctx.fillText("LATEST", w + 60, headerH + 70);
+
+      const dataUrl = canvas.toDataURL("image/png");
+      const link = document.createElement("a");
+      link.download = `Comparison_${Date.now()}.png`;
+      link.href = dataUrl;
+      link.click();
+      
+      const toastEvent = new CustomEvent("showToast", {
+        detail: { message: "Comparison exported successfully!", type: "success" },
+      });
+      document.dispatchEvent(toastEvent);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setExporting(false);
+    }
+  };
+
+  const shareLink = (platform) => {
+      const text = "Check out my progress on AurisTitutum!";
+      const url = window.location.href;
+      let shareUrl = "";
+      if (platform === 'whatsapp') shareUrl = `https://wa.me/?text=${encodeURIComponent(text + " " + url)}`;
+      if (platform === 'facebook') shareUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}`;
+      if (platform === 'twitter') shareUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(url)}`;
+      if (shareUrl) window.open(shareUrl, '_blank');
+  };
+
   return (
     <div className="fixed inset-0 z-[150] bg-black/95 backdrop-blur-3xl flex flex-col items-center justify-center p-4">
       <div className="absolute top-6 left-1/2 -translate-x-1/2 bg-white/10 backdrop-blur-md px-6 py-3 rounded-full flex items-center gap-8 z-[160] shadow-2xl border border-white/20">
          <span className="text-[10px] font-bold tracking-widest uppercase text-white/50">First Log</span>
          <span className="text-[10px] font-bold tracking-widest uppercase text-accent">Latest Log</span>
       </div>
-      <button
-        onClick={onClose}
-        className="absolute top-6 right-6 w-12 h-12 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center backdrop-blur-md transition-all z-[160]"
-      >
-        <Icon name="x" size={24} />
-      </button>
+      
+      <div className="absolute top-6 right-6 flex items-center gap-3 z-[160]">
+        <button
+          onClick={exportComparison}
+          disabled={exporting}
+          className="h-10 px-4 rounded-xl bg-white/10 hover:bg-white/20 text-white flex items-center gap-2 backdrop-blur-md transition-all border border-white/10 text-[10px] font-black uppercase tracking-widest"
+        >
+          <Icon name={exporting ? "loader" : "download"} size={14} className={exporting ? "animate-spin" : ""} />
+          {exporting ? "Rendering..." : "Export Image"}
+        </button>
+        <button
+          onClick={onClose}
+          className="w-10 h-10 rounded-xl bg-white/10 hover:bg-white/20 text-white flex items-center justify-center backdrop-blur-md transition-all border border-white/10"
+        >
+          <Icon name="x" size={18} />
+        </button>
+      </div>
+
+      <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex items-center gap-4 z-[160] bg-black/40 backdrop-blur-lg p-2 rounded-2xl border border-white/10">
+          <p className="text-[9px] font-bold text-white/40 uppercase ml-2 mr-2">Share</p>
+          <button onClick={() => shareLink('whatsapp')} className="w-9 h-9 rounded-lg bg-emerald-500/20 text-emerald-400 flex items-center justify-center hover:bg-emerald-500/30 transition-all"><Icon name="message-circle" size={16} /></button>
+          <button onClick={() => shareLink('facebook')} className="w-9 h-9 rounded-lg bg-blue-500/20 text-blue-400 flex items-center justify-center hover:bg-blue-500/30 transition-all"><Icon name="facebook" size={16} /></button>
+          <button onClick={() => shareLink('twitter')} className="w-9 h-9 rounded-lg bg-sky-500/20 text-sky-400 flex items-center justify-center hover:bg-sky-500/30 transition-all"><Icon name="twitter" size={16} /></button>
+      </div>
 
       <div 
          ref={containerRef}
-         className="w-full max-w-4xl aspect-video relative rounded-2xl overflow-hidden shadow-2xl bg-black select-none touch-none"
+         className="w-full max-w-5xl aspect-[4/3] relative rounded-2xl overflow-hidden shadow-2xl bg-black/50 border border-white/10 select-none touch-none"
          onMouseMove={(e) => {
             if (e.buttons === 1 && containerRef.current) {
                const rect = containerRef.current.getBoundingClientRect();
@@ -334,21 +440,21 @@ const CompareView = ({ firstImg, latestImg, onClose }) => {
             }
          }}
       >
-        <div className="absolute inset-0 bg-cover bg-center pointer-events-none" style={{ backgroundImage: `url(${latestImg})` }} />
+        <div className="absolute inset-0 bg-contain bg-center bg-no-repeat pointer-events-none" style={{ backgroundImage: `url(${latestImg})` }} />
         
         <div 
           className="absolute inset-y-0 left-0 overflow-hidden pointer-events-none border-r-4 border-white shadow-[2px_0_20px_rgba(0,0,0,0.8)]"
           style={{ width: `${sliderPos}%` }}
         >
-          <div className="absolute inset-y-0 left-0 bg-cover bg-center" style={{ backgroundImage: `url(${firstImg})`, width: width ? `${width}px` : '100vw' }} />
+          <div className="absolute inset-y-0 left-0 bg-contain bg-center bg-no-repeat" style={{ backgroundImage: `url(${firstImg})`, width: width ? `${width}px` : '100vw' }} />
         </div>
 
         <div 
            className="absolute inset-y-0 flex items-center justify-center pointer-events-none -translate-x-1/2"
            style={{ left: `${sliderPos}%` }}
         >
-           <div className="w-8 h-8 bg-white rounded-full flex items-center justify-center shadow-lg text-black">
-             <Icon name="code" size={16} className="rotate-90" />
+           <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center shadow-2xl text-black">
+             <Icon name="code" size={20} className="rotate-90" />
            </div>
         </div>
       </div>
@@ -359,39 +465,60 @@ const CompareView = ({ firstImg, latestImg, onClose }) => {
 
 const SlideshowView = ({ photos, onClose }) => {
   const [index, setIndex] = useState(0);
+  const [speed, setSpeed] = useState(2500);
 
   useEffect(() => {
     if (photos.length <= 1) return;
     const timer = setInterval(() => {
       setIndex((prev) => (prev + 1) % photos.length);
-    }, 2500);
+    }, speed);
     return () => clearInterval(timer);
-  }, [photos]);
+  }, [photos, speed]);
 
   return (
-    <div className="fixed inset-0 z-[150] bg-black/95 backdrop-blur-3xl flex flex-col items-center justify-center p-4">
-      <button
-        onClick={onClose}
-        className="absolute top-6 right-6 w-12 h-12 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center backdrop-blur-md transition-all z-[160]"
-      >
-        <Icon name="x" size={24} />
-      </button>
+    <div className="fixed inset-0 z-[160] bg-black/95 backdrop-blur-3xl flex flex-col items-center justify-center p-4">
+      <div className="absolute top-6 right-6 flex items-center gap-4 z-[170]">
+        <div className="flex bg-white/10 backdrop-blur-md rounded-xl p-1 border border-white/20">
+          {[1000, 2500, 5000].map((s) => (
+             <button
+               key={s}
+               onClick={() => setSpeed(s)}
+               className={`px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-tighter transition-all ${speed === s ? 'bg-white text-black' : 'text-white/50 hover:text-white'}`}
+             >
+               {s === 1000 ? "Fast" : s === 2500 ? "Normal" : "Slow"}
+             </button>
+          ))}
+        </div>
+        <button
+          onClick={onClose}
+          className="w-12 h-12 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center backdrop-blur-md transition-all shadow-xl border border-white/10"
+        >
+          <Icon name="x" size={24} />
+        </button>
+      </div>
 
       <div className="absolute top-6 left-6 z-[160]">
         <p className="text-[10px] font-black tracking-[0.3em] uppercase text-white/50 mb-1">Slideshow</p>
-        <p className="text-white font-mono font-bold">{index + 1} / {photos.length}</p>
-        <p className="text-[10px] text-white/50">{photos[index].date}</p>
+        <p className="text-white font-mono font-bold text-xl">{index + 1} / {photos.length}</p>
+        <p className="text-xs text-accent mt-1 font-bold">{photos[index].date}</p>
       </div>
 
-      <img
-        key={index}
-        src={photos[index].img}
-        alt="Slideshow log"
-        className="max-w-full max-h-[85vh] rounded-xl object-contain shadow-2xl transition-all duration-500 animate-in zoom-in-95"
-      />
-      <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex items-center gap-2 z-[160]">
+      <div className="relative w-full max-w-4xl h-[70vh] flex items-center justify-center">
+        <img
+          key={index}
+          src={photos[index].img}
+          alt="Slideshow log"
+          className="max-w-full max-h-full rounded-2xl object-contain shadow-[0_0_50px_rgba(0,0,0,0.5)] border border-white/5 transition-all duration-700 animate-in zoom-in-95 fade-in"
+        />
+      </div>
+
+      <div className="absolute bottom-10 left-1/2 -translate-x-1/2 flex items-center gap-2.5 z-[160]">
          {photos.map((_, i) => (
-            <div key={i} className={`w-2 h-2 rounded-full transition-all duration-300 ${i === index ? 'bg-white scale-125' : 'bg-white/30'}`} />
+            <button 
+              key={i} 
+              onClick={() => setIndex(i)}
+              className={`w-2.5 h-2.5 rounded-full transition-all duration-300 ${i === index ? 'bg-accent scale-150 shadow-[0_0_10px_rgba(var(--accent-rgb),0.5)]' : 'bg-white/20 hover:bg-white/40'}`} 
+            />
          ))}
       </div>
     </div>
@@ -478,15 +605,16 @@ const GalleryModal = ({ open, habit, onClose, setHabits }) => {
   }
 
   if (mode === "slideshow" && photoLogs.length > 0) {
-    return <SlideshowView photos={[...photoLogs].reverse()} onClose={() => setMode("grid")} />;
+    const chronological = [...photoLogs].reverse();
+    return <SlideshowView photos={chronological} onClose={() => setMode("grid")} />;
   }
 
   return (
     <>
-      <div className="fixed inset-0 bg-black/70 backdrop-blur-md z-[130]" onClick={onClose} />
-      <div className="fixed inset-0 z-[131] p-4 flex items-center justify-center">
+      <div className="fixed inset-0 bg-black/80 backdrop-blur-xl z-[130] h-full w-full" onClick={onClose} />
+      <div className="fixed inset-0 z-[131] sm:p-4 flex items-center justify-center pointer-events-none">
         <div
-          className="w-full max-w-4xl max-h-[90vh] flex flex-col overflow-hidden rounded-[2rem] border border-border-color bg-bg-main shadow-[0_32px_64px_-16px_rgba(0,0,0,0.6)] animate-in zoom-in-95 fade-in"
+          className="w-full max-w-5xl max-h-[92vh] flex flex-col overflow-hidden rounded-[2rem] border border-border-color bg-bg-main shadow-2xl animate-in zoom-in-95 fade-in pointer-events-auto"
           onClick={(e) => e.stopPropagation()}
         >
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-6 sm:p-8 bg-accent-dim border-b border-border-color relative">

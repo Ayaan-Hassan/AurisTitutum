@@ -1,8 +1,7 @@
 import { useEffect, useMemo, useState, useRef } from "react";
 import Icon from "./Icon";
 import { BarChart, Bar, LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from "recharts";
-
-const getDateKey = (date) => date.toISOString().split("T")[0];
+import { getLocalDateKey as getDateKey } from "../utils/date";
 
 const startOfDay = (dateStr) => new Date(`${dateStr}T12:00:00`);
 
@@ -98,8 +97,8 @@ const HabitPerformanceModal = ({ open, habit, onClose }) => {
 
   const metrics = useMemo(() => {
     if (!habit) return null;
-    const logs = (habit.logs || []).filter((d) => (d.count || 0) > 0);
-    const sortedDates = logs.map((d) => d.date).sort();
+    const logs = (habit.logs || []); // Include all logs, even if count is 0 if it exists
+    const sortedDates = logs.filter(d => (d.count || 0) > 0).map((d) => d.date).sort();
     const activeDateSet = new Set(sortedDates);
     const currentStreak = getCurrentStreak(activeDateSet);
     const longestStreak = getLongestStreak(sortedDates);
