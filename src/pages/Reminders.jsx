@@ -46,7 +46,7 @@ const isReminderPast = (r) => {
   if (r.done) return true;
   const today = getTodayStr(), now = getNowHHMM();
   if (r.date < today) return true;
-  if (r.date === today && r.time < now) return true;
+  if (r.date === today && r.time <= now) return true; // Changed to <= for instant completion
   return false;
 };
 
@@ -159,7 +159,7 @@ const ReminderForm = ({ initial = {}, onSave, onCancel, title: formTitle }) => {
 const ReminderCard = ({ reminder, onDelete, onEdit, onMarkDone }) => {
   const past = isReminderPast(reminder);
   const repeat = reminder.repeat || "none";
-  const isWhite = reminder.color === "white" || reminder.adminCreated;
+  const isWhite = !!reminder.adminCreated;
 
   return (
     <div className={`flex items-start justify-between gap-3 p-4 rounded-2xl border transition-all group ${past ? "bg-bg-main/40 border-border-color opacity-60" : isWhite ? "bg-white border-white shadow-[0_0_15px_rgba(255,255,255,0.3)] scale-[1.01]" : "bg-card-bg border-border-color hover:border-text-secondary"}`}>
@@ -233,8 +233,13 @@ const Reminders = ({ reminders, setReminders }) => {
   const [notifPermission, setNotifPermission] = useState("default");
   const [featureLockOpen, setFeatureLockOpen] = useState(false);
 
+  const [tick, setTick] = useState(0);
+
   useEffect(() => {
     if (typeof Notification !== "undefined") setNotifPermission(Notification.permission);
+    // Periodically force re-render to sync 'past' status instantly when time matches
+    const timer = setInterval(() => setTick(t => t + 1), 10000); 
+    return () => clearInterval(timer);
   }, []);
 
   // Request notification permission in background (non-blocking)
@@ -278,6 +283,7 @@ const Reminders = ({ reminders, setReminders }) => {
 
     trackEvent("reminder_created", { repeat: data.repeat });
     requestPermissionInBackground();
+    setShowAdd(false); // Close form instantly to prevent duplicate submissions
   };
 
   const handleEdit = async (data) => {
