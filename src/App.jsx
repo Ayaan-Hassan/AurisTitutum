@@ -387,6 +387,8 @@ function AppContent() {
   useReminderNotifications(reminders);
 
   const [featureLockConfig, setFeatureLockConfig] = useState(null);
+  const [confirmAction, setConfirmAction] = useState(null);
+  const [activeSystemMsg, setActiveSystemMsg] = useState(null);
   const handleAddHabitRequest = useCallback(() => {
     if (!user && habits.length >= 1) {
       setFeatureLockConfig({
