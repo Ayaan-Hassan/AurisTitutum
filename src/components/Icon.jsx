@@ -58,7 +58,9 @@ import {
     ChevronUp,
     Calendar,
     BarChart,
-    Layers
+    Layers,
+    Columns,
+    Sliders
 } from 'lucide-react';
 
 const Icon = ({ name, size = 18, className = "" }) => {
@@ -123,7 +125,9 @@ const Icon = ({ name, size = 18, className = "" }) => {
         'chevron-up': ChevronUp,
         'calendar': Calendar,
         'bar-chart': BarChart,
-        'layers': Layers
+        'layers': Layers,
+        'columns': Columns,
+        'sliders': Sliders
     };
 
     const LucideIcon = icons[name];

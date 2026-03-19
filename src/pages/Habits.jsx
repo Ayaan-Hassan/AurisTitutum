@@ -297,6 +297,9 @@ const UploadControl = ({ habit, logActivity, onViewGallery }) => {
 
 const CompareView = ({ firstLog, latestLog, habit, onClose }) => {
   const [exporting, setExporting] = useState(false);
+  const [viewMode, setViewMode] = useState("side-by-side"); // side-by-side, slider, overlay
+  const [sliderPos, setSliderPos] = useState(50);
+  const [overlayOpacity, setOverlayOpacity] = useState(0.5);
 
   const getDayNumber = (dateStr) => {
     if (!habit.createdAt || !dateStr) return null;
@@ -325,60 +328,119 @@ const CompareView = ({ firstLog, latestLog, habit, onClose }) => {
         new Promise(r => { img2.onload = r; img2.src = latestImg; })
       ]);
 
-      const w = 1200;
-      const h = 1500;
-      const headerH = 340;
+      const w = 1400;
+      const h = 1750; // 4:5 Aspect Ratio
+      const padding = 80;
+      const headerH = 450;
+      const footerH = 300;
       
-      canvas.width = w * 2 + 160;
-      canvas.height = h + headerH + 280;
+      canvas.width = w * 2 + padding * 3;
+      canvas.height = h + headerH + footerH;
       
-      ctx.fillStyle = "#020202";
+      // Background Gradient
+      const bgGrade = ctx.createLinearGradient(0, 0, 0, canvas.height);
+      bgGrade.addColorStop(0, "#0a0a0a");
+      bgGrade.addColorStop(1, "#020202");
+      ctx.fillStyle = bgGrade;
       ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      // Decorative elements
+      ctx.strokeStyle = "rgba(255,255,255,0.05)";
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(padding, headerH - 100);
+      ctx.lineTo(canvas.width - padding, headerH - 100);
+      ctx.stroke();
       
+      // Header branding
       ctx.fillStyle = "#ffffff";
-      ctx.font = "bold 96px Inter, sans-serif";
+      ctx.font = "black 48px Inter, system-ui, sans-serif";
+      ctx.letterSpacing = "15px";
       ctx.textAlign = "center";
-      ctx.fillText("AURISTITUTUM", canvas.width / 2, 120);
+      ctx.globalAlpha = 0.5;
+      ctx.fillText("AURISTITUTUM ARCHIVE", canvas.width / 2, 120);
+      ctx.globalAlpha = 1.0;
 
-      ctx.font = "36px Inter, sans-serif";
-      ctx.fillStyle = "#555555";
-      ctx.fillText("ARCHIVE TRANSFORMATION", canvas.width / 2, 185);
+      // Habit Title
+      ctx.font = "italic 900 120px Inter, system-ui, sans-serif";
+      ctx.letterSpacing = "-2px";
+      ctx.fillText(habit.name.toUpperCase(), canvas.width / 2, 280);
 
-      ctx.font = "bold 64px Inter, sans-serif";
-      ctx.fillStyle = "#ffffff";
-      ctx.fillText(`HABIT: ${habit.name.toUpperCase()}`, canvas.width / 2, 270);
-      
-      const drawImg = (img, x, y) => {
-          const dw = w;
-          const dh = h;
+      const drawImgProfessional = (img, x, y) => {
+          ctx.save();
+          // Draw Shadow/Glow
+          ctx.shadowColor = "rgba(0,0,0,0.8)";
+          ctx.shadowBlur = 50;
+          ctx.shadowOffsetY = 20;
+
+          // Clip for rounded corners
+          const radius = 60;
+          ctx.beginPath();
+          ctx.moveTo(x + radius, y);
+          ctx.lineTo(x + w - radius, y);
+          ctx.quadraticCurveTo(x + w, y, x + w, y + radius);
+          ctx.lineTo(x + w, y + h - radius);
+          ctx.quadraticCurveTo(x + w, y + h, x + w - radius, y + h);
+          ctx.lineTo(x + radius, y + h);
+          ctx.quadraticCurveTo(x, y + h, x, y + h - radius);
+          ctx.lineTo(x, y + radius);
+          ctx.quadraticCurveTo(x, y, x + radius, y);
+          ctx.closePath();
+          ctx.fill(); // fill black first
+          ctx.clip();
+
           const aspect = img.width / img.height;
-          let targetW = dw;
-          let targetH = dw / aspect;
-          if (targetH > dh) {
-              targetH = dh;
-              targetW = dh * aspect;
-          }
-          const ox = x + (dw - targetW) / 2;
-          const oy = y + (dh - targetH) / 2;
+          const targetAspect = w / h;
           
-          ctx.fillStyle = "#111";
-          ctx.fillRect(x, y, dw, dh);
-          ctx.drawImage(img, ox, oy, targetW, targetH);
+          let sw, sh, sx, sy;
+          if (aspect > targetAspect) {
+              sh = img.height;
+              sw = img.height * targetAspect;
+              sx = (img.width - sw) / 2;
+              sy = 0;
+          } else {
+              sw = img.width;
+              sh = img.width / targetAspect;
+              sx = 0;
+              sy = (img.height - sh) / 2;
+          }
+          
+          ctx.drawImage(img, sx, sy, sw, sh, x, y, w, h);
+          
+          // Inner border/shading
+          ctx.strokeStyle = "rgba(255,255,255,0.1)";
+          ctx.lineWidth = 4;
+          ctx.stroke();
+          ctx.restore();
       };
 
-      drawImg(img1, 40, headerH + 40);
-      drawImg(img2, w + 120, headerH + 40);
+      drawImgProfessional(img1, padding, headerH);
+      drawImgProfessional(img2, w + padding * 2, headerH);
       
-      ctx.fillStyle = "#ffffff";
-      ctx.font = "bold 80px Inter";
+      // Footer labels
+      const labelY = headerH + h + 150;
+      
       ctx.textAlign = "center";
-      ctx.fillText(`INITIAL: DAY ${day1}`, 40 + w/2, headerH + h + 180);
       
+      // Label 1
+      ctx.fillStyle = "#ffffff";
+      ctx.font = "900 70px Inter";
+      ctx.fillText(`START: DAY ${day1}`, padding + w/2, labelY);
+      ctx.font = "500 40px Inter";
+      ctx.globalAlpha = 0.4;
+      ctx.fillText(firstLog.date, padding + w/2, labelY + 60);
+
+      // Label 2
+      ctx.globalAlpha = 1.0;
       ctx.fillStyle = "#4ade80";
-      ctx.fillText(`PROGRESS: DAY ${day2}`, w + 120 + w/2, headerH + h + 180);
+      ctx.font = "900 70px Inter";
+      ctx.fillText(`LATEST: DAY ${day2}`, w + padding*2 + w/2, labelY);
+      ctx.font = "500 40px Inter";
+      ctx.globalAlpha = 0.4;
+      ctx.fillText(latestLog.date, w + padding*2 + w/2, labelY + 60);
 
       const link = document.createElement("a");
-      link.download = `TRANSFORMATION_DAY${day1}_TO_DAY${day2}.png`;
+      link.download = `TRANSFORMATION_${habit.name.replace(/\s+/g, '_')}.png`;
       link.href = canvas.toDataURL("image/png");
       link.click();
     } catch (err) {
@@ -388,72 +450,155 @@ const CompareView = ({ firstLog, latestLog, habit, onClose }) => {
     }
   };
 
+  const handleSliderMove = (e) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    const x = e.clientX || (e.touches && e.touches[0].clientX);
+    if (!x) return;
+    const pos = ((x - rect.left) / rect.width) * 100;
+    setSliderPos(Math.max(0, Math.min(100, pos)));
+  };
+
   return (
     <div className="fixed inset-0 z-[165] bg-black/98 backdrop-blur-3xl flex flex-col items-center justify-center p-4">
-      <div className="w-full max-w-[98vw] lg:max-w-[1500px] flex flex-col items-center">
+      <div className="w-full max-w-[98vw] lg:max-w-[1500px] flex flex-col items-center h-full max-h-[95vh]">
         
-        <div className="w-full flex flex-col sm:flex-row justify-between items-center mb-8 px-4 gap-6">
+        <div className="w-full flex flex-col sm:flex-row justify-between items-center mb-6 px-4 gap-6 shrink-0">
            <div>
               <p className="text-[10px] font-black tracking-[0.5em] text-accent mb-1 uppercase opacity-60">Transformation Archive</p>
               <h1 className="text-4xl font-black text-white italic tracking-tighter uppercase leading-none">{habit.name}</h1>
            </div>
            
-           <div className="flex items-center gap-3">
+           <div className="flex items-center gap-4">
+              <div className="flex bg-white/5 border border-white/10 p-1 rounded-2xl">
+                 {[
+                   { id: "side-by-side", icon: "columns", label: "Split" },
+                   { id: "slider", icon: "sliders", label: "Slide" },
+                   { id: "overlay", icon: "layers", label: "Fade" }
+                 ].map(m => (
+                   <button
+                     key={m.id}
+                     onClick={() => setViewMode(m.id)}
+                     className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center gap-2 ${viewMode === m.id ? 'bg-white text-black' : 'text-white/40 hover:text-white'}`}
+                   >
+                     <Icon name={m.icon} size={12} />
+                     <span className="hidden sm:inline">{m.label}</span>
+                   </button>
+                 ))}
+              </div>
               <button
                 onClick={exportComparison}
                 disabled={exporting}
-                className="h-12 px-6 rounded-2xl bg-white text-black hover:bg-white/90 font-black flex items-center gap-2.5 transition-all active:scale-95 disabled:opacity-50 text-xs shadow-xl"
+                className="h-10 px-5 rounded-2xl bg-accent text-bg-main hover:opacity-90 font-black flex items-center gap-2 transition-all active:scale-95 disabled:opacity-50 text-[10px] uppercase tracking-widest"
               >
-                <Icon name={exporting ? "loader" : "download"} size={16} className={exporting ? "animate-spin" : ""} />
-                {exporting ? "SAVING..." : "EXPORT IMAGE"}
+                <Icon name={exporting ? "loader" : "download"} size={14} className={exporting ? "animate-spin" : ""} />
+                {exporting ? "Saving..." : "Export"}
               </button>
-              <button onClick={onClose} className="w-12 h-12 rounded-2xl bg-white/10 hover:bg-white/20 text-white flex items-center justify-center border border-white/10 transition-all">
+              <button onClick={onClose} className="w-10 h-10 rounded-2xl bg-white/10 hover:bg-white/20 text-white flex items-center justify-center border border-white/10 transition-all">
                 <Icon name="x" size={20} />
               </button>
            </div>
         </div>
 
-        <div className="w-full grid grid-cols-1 md:grid-cols-2 gap-6 lg:gap-12 items-stretch max-h-[60vh] overflow-y-auto custom-scrollbar p-2">
-           <div className="flex flex-col items-stretch group relative">
-              <div className="absolute top-1/2 -right-6 lg:-right-9 -translate-y-1/2 z-10 hidden md:block">
-                 <div className="w-12 h-12 lg:w-16 lg:h-16 rounded-full bg-black border border-white/10 flex items-center justify-center text-white/50 italic font-black text-2xl lg:text-3xl shadow-3xl">VS</div>
-              </div>
-
-              <div className="mb-4 flex items-center justify-between px-4">
-                  <div className="flex items-center gap-3">
-                     <div className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center text-white/30 font-black italic text-lg">01</div>
-                     <div>
-                        <p className="text-[8px] font-black tracking-[0.2em] text-white/20 uppercase">Initial Record</p>
-                        <p className="text-sm font-black text-white italic">DAY {day1}</p>
+        <div className="w-full flex-1 min-h-0 flex flex-col items-center justify-center">
+           {viewMode === "side-by-side" && (
+             <div className="w-full grid grid-cols-1 md:grid-cols-2 gap-6 lg:gap-10 items-stretch overflow-y-auto custom-scrollbar p-2 pb-10">
+                <div className="flex flex-col items-stretch group relative">
+                  <div className="mb-4 flex items-center justify-between px-4">
+                     <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center text-white/30 font-black italic text-lg">01</div>
+                        <div>
+                           <p className="text-[8px] font-black tracking-[0.2em] text-white/20 uppercase">Initial Record</p>
+                           <p className="text-sm font-black text-white italic">DAY {day1}</p>
+                        </div>
                      </div>
+                     <p className="text-[9px] font-mono text-white/10 font-bold">{firstLog.date}</p>
                   </div>
-                  <p className="text-[9px] font-mono text-white/10">{firstLog.date}</p>
-               </div>
-               <div className="aspect-[4/5] w-full max-h-[40vh] sm:max-h-[50vh] rounded-[2.5rem] overflow-hidden border border-white/5 bg-white/5 relative shadow-2xl transition-all duration-500 hover:border-white/20">
-                  <div className="absolute inset-0 bg-cover bg-center bg-no-repeat transition-transform duration-700 group-hover:scale-[1.03]" style={{ backgroundImage: `url(${firstLog.img})` }} />
-                  <div className="absolute inset-x-0 bottom-0 h-40 bg-gradient-to-t from-black/40 to-transparent pointer-events-none" />
-               </div>
-            </div>
+                  <div className="aspect-[4/5] w-full rounded-[2.5rem] overflow-hidden border border-white/5 bg-white/5 relative shadow-2xl transition-all duration-500 hover:border-white/20">
+                     <img src={firstLog.img} alt="Before" className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-[1.03]" />
+                     <div className="absolute inset-x-0 bottom-0 h-40 bg-gradient-to-t from-black/40 to-transparent pointer-events-none" />
+                  </div>
+                </div>
 
-            <div className="flex flex-col items-stretch group">
-               <div className="mb-4 flex items-center justify-between px-4">
-                  <div className="flex items-center gap-3">
-                     <div className="w-10 h-10 rounded-xl bg-accent text-bg-main flex items-center justify-center font-black italic text-lg shadow-[0_0_20px_rgba(var(--accent-rgb),0.3)]">L</div>
-                     <div>
-                        <p className="text-[8px] font-black tracking-[0.2em] text-accent/40 uppercase">Latest Entry</p>
-                        <p className="text-sm font-black text-accent italic">DAY {day2}</p>
+                <div className="flex flex-col items-stretch group relative">
+                  <div className="mb-4 flex items-center justify-between px-4">
+                     <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-xl bg-accent text-bg-main flex items-center justify-center font-black italic text-lg shadow-[0_0_20px_rgba(var(--accent-rgb),0.3)]">L</div>
+                        <div>
+                           <p className="text-[8px] font-black tracking-[0.2em] text-accent/40 uppercase">Latest Entry</p>
+                           <p className="text-sm font-black text-accent italic">DAY {day2}</p>
+                        </div>
                      </div>
+                     <p className="text-[9px] font-mono text-accent/20 font-bold">{latestLog.date}</p>
                   </div>
-                  <p className="text-[9px] font-mono text-accent/20 font-bold">{latestLog.date}</p>
-               </div>
-               <div className="aspect-[4/5] w-full max-h-[40vh] sm:max-h-[50vh] rounded-[2.5rem] overflow-hidden border-2 border-accent/20 bg-accent/5 relative shadow-[0_0_100px_rgba(var(--accent-rgb),0.1)] transition-all duration-500 hover:border-accent/40">
-                  <div className="absolute inset-0 bg-cover bg-center bg-no-repeat transition-transform duration-700 group-hover:scale-[1.03]" style={{ backgroundImage: `url(${latestLog.img})` }} />
-                  <div className="absolute inset-x-0 bottom-0 h-40 bg-gradient-to-t from-black/30 to-transparent pointer-events-none" />
-               </div>
-            </div>
-         </div>
+                  <div className="aspect-[4/5] w-full rounded-[2.5rem] overflow-hidden border-2 border-accent/20 bg-accent/5 relative shadow-[0_0_100px_rgba(var(--accent-rgb),0.1)] transition-all duration-500 hover:border-accent/40">
+                     <img src={latestLog.img} alt="After" className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-[1.03]" />
+                     <div className="absolute inset-x-0 bottom-0 h-40 bg-gradient-to-t from-black/30 to-transparent pointer-events-none" />
+                  </div>
+                </div>
+             </div>
+           )}
 
-        <p className="mt-12 text-[10px] font-black uppercase tracking-[0.8em] text-white/10 italic text-center">Comparing your journey over {day2 - day1 + 1} daily records</p>
+           {viewMode === "slider" && (
+             <div 
+               className="relative aspect-[4/5] h-full max-h-[70vh] rounded-[3rem] overflow-hidden border border-white/10 group cursor-col-resize shadow-3xl"
+               onMouseMove={handleSliderMove}
+               onTouchMove={handleSliderMove}
+             >
+                <img src={latestLog.img} className="absolute inset-0 w-full h-full object-cover" alt="After" />
+                <div 
+                  className="absolute inset-y-0 left-0 overflow-hidden border-r-2 border-white shadow-[10px_0_30px_rgba(0,0,0,0.5)] z-10" 
+                  style={{ width: `${sliderPos}%` }}
+                >
+                   <img src={firstLog.img} className="absolute inset-y-0 left-0 h-full object-cover" style={{ width: `${100 / (Math.max(1, sliderPos)/100)}%` }} alt="Before" />
+                </div>
+                {/* Labels */}
+                <div className="absolute top-6 left-6 z-20 bg-black/40 backdrop-blur-md px-4 py-1.5 rounded-full border border-white/10">
+                   <p className="text-[10px] font-black uppercase text-white">Before</p>
+                </div>
+                <div className="absolute top-6 right-6 z-20 bg-accent/40 backdrop-blur-md px-4 py-1.5 rounded-full border border-accent/20">
+                   <p className="text-[10px] font-black uppercase text-accent">After</p>
+                </div>
+                {/* Handle icon */}
+                <div 
+                  className="absolute inset-y-0 z-20 flex items-center justify-center pointer-events-none"
+                  style={{ left: `${sliderPos}%` }}
+                >
+                   <div className="w-10 h-10 rounded-full bg-white border-4 border-black/20 flex items-center justify-center shadow-2xl -translate-x-1/2">
+                      <Icon name="sliders" size={16} className="text-black" />
+                   </div>
+                </div>
+             </div>
+           )}
+
+           {viewMode === "overlay" && (
+             <div className="flex flex-col items-center gap-8 w-full">
+                <div className="relative aspect-[4/5] h-full max-h-[60vh] rounded-[3rem] overflow-hidden border border-white/10 bg-bg-sidebar shadow-3xl">
+                   <img src={firstLog.img} className="absolute inset-0 w-full h-full object-cover grayscale opacity-30" alt="Reference" />
+                   <img 
+                    src={latestLog.img} 
+                    className="absolute inset-0 w-full h-full object-cover transition-opacity duration-300" 
+                    style={{ opacity: overlayOpacity }} 
+                    alt="Current" 
+                   />
+                </div>
+                <div className="w-full max-w-sm px-6 py-4 bg-white/5 border border-white/10 rounded-3xl flex items-center gap-4">
+                   <span className="text-[10px] font-black uppercase text-white/40">Opacity</span>
+                   <input 
+                    type="range" 
+                    min="0" 
+                    max="1" 
+                    step="0.01" 
+                    value={overlayOpacity} 
+                    onChange={(e) => setOverlayOpacity(e.target.value)}
+                    className="flex-1 accent-white"
+                   />
+                   <span className="text-[10px] font-bold text-white min-w-[30px]">{Math.round(overlayOpacity * 100)}%</span>
+                </div>
+             </div>
+           )}
+        </div>
+
+        <p className="mt-6 mb-6 text-[10px] font-black uppercase tracking-[0.8em] text-white/10 italic text-center shrink-0">Comparing your journey over {day2 - day1 + 1} daily records</p>
       </div>
     </div>
   );
