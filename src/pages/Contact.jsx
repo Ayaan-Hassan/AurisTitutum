@@ -10,6 +10,15 @@ const Contact = () => {
   const [loading, setLoading] = useState(false);
   const [status, setStatus] = useState(null); // null | 'success' | 'error'
   const [errorMsg, setErrorMsg] = useState("");
+  const [showTopicDropdown, setShowTopicDropdown] = useState(false);
+
+  const topics = [
+    { value: "General Inquiry", icon: "info", desc: "For general questions about the platform." },
+    { value: "Bug Report", icon: "alert-triangle", desc: "Report technical issues or errors." },
+    { value: "Feature Request", icon: "zap", desc: "Suggest new tools or improvements." },
+    { value: "Partnership", icon: "user-check", desc: "Inquire about business collaborations." },
+    { value: "Account Issue", icon: "lock", desc: "Help with logging in or security." }
+  ];
 
   const handleChange = (e) => {
     setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
@@ -128,26 +137,66 @@ const Contact = () => {
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   {/* Inquiry Type */}
-                  <div className="space-y-2">
-                    <label className="text-[10px] font-black text-text-secondary uppercase tracking-[0.3em]">
-                      Topic
+                  <div className="space-y-2 relative">
+                    <label className="text-[10px] font-black text-text-secondary uppercase tracking-[0.3em] pl-1">
+                      Inquiry Topic
                     </label>
-                    <div className="relative group/select">
-                      <select
-                        name="type"
-                        value={form.type}
-                        onChange={handleChange}
-                        className="w-full h-[56px] appearance-none bg-bg-main border border-border-color px-4 rounded-xl outline-none focus:border-accent text-sm text-text-primary transition-all cursor-pointer hover:border-accent/40"
+                    <div className="relative">
+                      <button
+                        type="button"
+                        onClick={() => setShowTopicDropdown(!showTopicDropdown)}
+                        className={`w-full h-[56px] flex items-center justify-between bg-bg-main border px-5 rounded-xl transition-all duration-300 ${showTopicDropdown ? 'border-accent ring-4 ring-accent/5' : 'border-border-color hover:border-accent/40'}`}
                       >
-                        <option value="General Inquiry" className="bg-bg-sidebar">General Inquiry</option>
-                        <option value="Bug Report" className="bg-bg-sidebar">Bug Report</option>
-                        <option value="Feature Request" className="bg-bg-sidebar">Feature Request</option>
-                        <option value="Partnership" className="bg-bg-sidebar">Partnership</option>
-                        <option value="Account Issue" className="bg-bg-sidebar">Account Issue</option>
-                      </select>
-                      <div className="absolute right-4 top-1/2 -translate-y-1/2 text-text-secondary pointer-events-none group-hover/select:text-accent transition-colors">
-                        <Icon name="chevron-down" size={16} />
-                      </div>
+                        <div className="flex items-center gap-3">
+                          <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${showTopicDropdown ? 'bg-accent/20 text-accent' : 'bg-white/5 text-text-secondary'}`}>
+                            <Icon name={topics.find(t => t.value === form.type)?.icon || "info"} size={14} />
+                          </div>
+                          <span className="text-sm font-bold text-text-primary tracking-tight">
+                            {form.type}
+                          </span>
+                        </div>
+                        <Icon 
+                          name="chevron-down" 
+                          size={16} 
+                          className={`text-text-secondary transition-transform duration-300 ${showTopicDropdown ? 'rotate-180 text-accent' : ''}`} 
+                        />
+                      </button>
+
+                      {showTopicDropdown && (
+                        <>
+                          <div 
+                            className="fixed inset-0 z-[60]" 
+                            onClick={() => setShowTopicDropdown(false)} 
+                          />
+                          <div className="absolute top-full left-0 right-0 mt-3 bg-card-bg/95 backdrop-blur-xl border border-white/10 rounded-2xl shadow-2xl z-[70] overflow-hidden py-2 animate-in slide-in-from-top-2 duration-200">
+                            <div className="px-4 py-2 mb-1">
+                              <p className="text-[8px] font-black uppercase tracking-[0.2em] text-text-secondary opacity-50">Select Destination</p>
+                            </div>
+                            {topics.map((t) => (
+                              <button
+                                key={t.value}
+                                type="button"
+                                onClick={() => {
+                                  setForm(prev => ({ ...prev, type: t.value }));
+                                  setShowTopicDropdown(false);
+                                }}
+                                className={`w-full px-4 py-3.5 flex items-center gap-4 transition-all hover:bg-white/5 relative group ${form.type === t.value ? 'bg-accent/10 border-r-2 border-accent' : ''}`}
+                              >
+                                <div className={`w-9 h-9 rounded-xl flex items-center justify-center transition-colors ${form.type === t.value ? 'bg-accent/20 text-accent' : 'bg-white/5 text-text-secondary group-hover:text-text-primary'}`}>
+                                  <Icon name={t.icon} size={16} />
+                                </div>
+                                <div className="text-left">
+                                  <p className={`text-[13px] font-bold ${form.type === t.value ? 'text-accent' : 'text-text-primary'}`}>{t.value}</p>
+                                  <p className="text-[9px] text-text-secondary font-mono tracking-tighter opacity-70">{t.desc}</p>
+                                </div>
+                                {form.type === t.value && (
+                                  <div className="ml-auto w-1.5 h-1.5 rounded-full bg-accent shadow-[0_0_8px_rgba(var(--accent-rgb),1)]" />
+                                )}
+                              </button>
+                            ))}
+                          </div>
+                        </>
+                      )}
                     </div>
                   </div>
 
