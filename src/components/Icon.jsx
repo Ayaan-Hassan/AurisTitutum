@@ -63,8 +63,12 @@ import {
     Sliders,
     CheckCheck,
     Eye,
-    EyeOff
+    EyeOff,
+    Link,
+    ArrowUpRight,
+    ArrowDownRight
 } from 'lucide-react';
+
 
 const Icon = ({ name, size = 18, className = "" }) => {
     const icons = {
@@ -133,8 +137,12 @@ const Icon = ({ name, size = 18, className = "" }) => {
         'sliders': Sliders,
         'check-check': CheckCheck,
         'eye': Eye,
-        'eye-off': EyeOff
+        'eye-off': EyeOff,
+        'link': Link,
+        'arrow-up-right': ArrowUpRight,
+        'arrow-down-right': ArrowDownRight
     };
+
 
     const LucideIcon = icons[name];
 

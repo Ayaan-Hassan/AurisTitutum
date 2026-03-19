@@ -6,6 +6,8 @@ import { Card } from '../components/ui/Card';
 import { getLocalDateKey } from "../utils/date";
 import { useAuth } from '../contexts/AuthContext';
 import { Button } from '../components/ui/Button';
+import { calculateConsistency, findMostProductiveDay, calculateHabitStrength, generateCorrelationInsights } from '../utils/analytics';
+
 
 const Analytics = ({ habits, selectedHabitId, setSelectedHabitId }) => {
     const { theme } = useTheme();
@@ -139,18 +141,26 @@ const Analytics = ({ habits, selectedHabitId, setSelectedHabitId }) => {
         });
     }, [selectedHabits, timeRange, habits]);
 
-    const hasDataInPeriod = useMemo(() => {
-        return chartData.some(d => selectedHabits.some(habitId => (d[habitId] || 0) > 0));
+    const filteredSelectedHabits = useMemo(() => {
+        return selectedHabits.filter(habitId => {
+            return chartData.some(d => (d[habitId] || 0) > 0);
+        });
     }, [chartData, selectedHabits]);
 
+    const hasDataInPeriod = useMemo(() => {
+        return filteredSelectedHabits.length > 0;
+    }, [filteredSelectedHabits]);
+
+
     const pieData = useMemo(() => {
-        if (chartType !== 'pie' || selectedHabits.length === 0) return [];
-        return selectedHabits.map((habitId) => {
+        if (chartType !== 'pie' || filteredSelectedHabits.length === 0) return [];
+        return filteredSelectedHabits.map((habitId) => {
             const habit = habits.find(h => h.id === habitId);
             const total = chartData.reduce((sum, dataPoint) => sum + (dataPoint[habitId] || 0), 0);
             return { name: habit?.name || habitId, value: total, fill: habitColors[habitId] };
-        }).filter(d => d.value > 0);
-    }, [chartData, selectedHabits, habits, chartType, habitColors]);
+        });
+    }, [chartData, filteredSelectedHabits, habits, habitColors, chartType]);
+
 
     const chartColors = useMemo(() => ({
         grid: theme === 'dark' ? '#27272a' : '#e4e4e7',
@@ -270,7 +280,7 @@ const Analytics = ({ habits, selectedHabitId, setSelectedHabitId }) => {
                         {selectedHabits.length > 0 ? (
                             <>
                                 <div className="flex flex-wrap gap-3 mb-4">
-                                    {selectedHabits.map((habitId) => {
+                                    {filteredSelectedHabits.map((habitId) => {
                                         const habit = habits.find(h => h.id === habitId);
                                         if (!habit) return null;
                                         return (
@@ -280,6 +290,7 @@ const Analytics = ({ habits, selectedHabitId, setSelectedHabitId }) => {
                                             </div>
                                         );
                                     })}
+
                                 </div>
                                 <div className="flex-1 min-h-[400px] w-full">
                                     {!hasDataInPeriod && (
@@ -315,7 +326,7 @@ const Analytics = ({ habits, selectedHabitId, setSelectedHabitId }) => {
                                                 <YAxis tick={{ fill: chartColors.text, fontSize: 10 }} />
                                                 <Tooltip contentStyle={{ backgroundColor: chartColors.tooltipBg, border: `1px solid ${chartColors.tooltipBorder}`, borderRadius: '12px', fontSize: '11px', color: chartColors.tooltipText }} />
                                                 <Legend wrapperStyle={{ paddingTop: '20px' }} />
-                                                {selectedHabits.map((habitId) => {
+                                                {filteredSelectedHabits.map((habitId) => {
                                                     const habit = habits.find(h => h.id === habitId);
                                                     return (
                                                         <Area
@@ -339,7 +350,7 @@ const Analytics = ({ habits, selectedHabitId, setSelectedHabitId }) => {
                                                 <YAxis tick={{ fill: chartColors.text, fontSize: 10 }} />
                                                 <Tooltip contentStyle={{ backgroundColor: chartColors.tooltipBg, border: `1px solid ${chartColors.tooltipBorder}`, borderRadius: '12px', fontSize: '11px', color: chartColors.tooltipText }} />
                                                 <Legend wrapperStyle={{ paddingTop: '20px' }} />
-                                                {selectedHabits.map((habitId) => {
+                                                {filteredSelectedHabits.map((habitId) => {
                                                     const habit = habits.find(h => h.id === habitId);
                                                     return <Bar key={habitId} dataKey={habitId} name={habit?.name} fill={habitColors[habitId]} fillOpacity={0.9} radius={[4, 4, 0, 0]} />;
                                                 })}
@@ -351,11 +362,12 @@ const Analytics = ({ habits, selectedHabitId, setSelectedHabitId }) => {
                                                 <YAxis tick={{ fill: chartColors.text, fontSize: 10 }} />
                                                 <Tooltip contentStyle={{ backgroundColor: chartColors.tooltipBg, border: `1px solid ${chartColors.tooltipBorder}`, borderRadius: '12px', fontSize: '11px', color: chartColors.tooltipText }} />
                                                 <Legend wrapperStyle={{ paddingTop: '20px' }} />
-                                                {selectedHabits.map((habitId) => {
+                                                {filteredSelectedHabits.map((habitId) => {
                                                     const habit = habits.find(h => h.id === habitId);
                                                     return <Line key={habitId} type="monotone" dataKey={habitId} name={habit?.name} stroke={habitColors[habitId]} strokeWidth={2.5} strokeOpacity={0.9} dot={{ fill: habitColors[habitId], r: 3, fillOpacity: 0.9 }} activeDot={{ r: 5, fill: habitColors[habitId] }} />;
                                                 })}
                                             </LineChart>
+
                                         )}
                                     </ResponsiveContainer>
                                 </div>
@@ -370,7 +382,101 @@ const Analytics = ({ habits, selectedHabitId, setSelectedHabitId }) => {
                     </Card>
                 </div>
             </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {selectedHabits.length === 1 && habits.find(h => h.id === selectedHabits[0]) && (
+                    <>
+                        <Card className="p-5 flex flex-col gap-3 hover:translate-y-0">
+                            <div className="flex items-center gap-3">
+                                <div className="p-2 bg-blue-500/10 text-blue-500 rounded-lg">
+                                    <Icon name="calendar" size={18} />
+                                </div>
+                                <div>
+                                    <p className="text-[10px] font-black text-text-secondary uppercase tracking-widest">Consistency Rate</p>
+                                    <h4 className="text-xl font-bold text-text-primary">
+                                        {calculateConsistency(habits.find(h => h.id === selectedHabits[0]).logs || [], 30).toFixed(0)}%
+                                    </h4>
+                                </div>
+                            </div>
+                            <p className="text-[10px] text-text-secondary">You completed this habit {calculateConsistency(habits.find(h => h.id === selectedHabits[0]).logs || [], 30).toFixed(0)}% of the time this month.</p>
+                        </Card>
+
+                        <Card className="p-5 flex flex-col gap-3 hover:translate-y-0">
+                            <div className="flex items-center gap-3">
+                                <div className="p-2 bg-green-500/10 text-green-500 rounded-lg">
+                                    <Icon name="trending-up" size={18} />
+                                </div>
+                                <div>
+                                    <p className="text-[10px] font-black text-text-secondary uppercase tracking-widest">Productive Day</p>
+                                    <h4 className="text-xl font-bold text-text-primary">
+                                        {findMostProductiveDay(habits.find(h => h.id === selectedHabits[0]).logs || [])}
+                                    </h4>
+                                </div>
+                            </div>
+                            <p className="text-[10px] text-text-secondary">
+                                {findMostProductiveDay(habits.find(h => h.id === selectedHabits[0]).logs || []) !== 'N/A' 
+                                    ? `${findMostProductiveDay(habits.find(h => h.id === selectedHabits[0]).logs || [])} is usually your most active day for this habit.`
+                                    : 'No data yet to determine most productive day.'}
+                            </p>
+
+                        </Card>
+
+                        <Card className="p-5 flex flex-col gap-3 hover:translate-y-0">
+                            <div className="flex items-center gap-3">
+                                <div className="p-2 bg-purple-500/10 text-purple-500 rounded-lg">
+                                    <Icon name="zap" size={18} />
+                                </div>
+                                <div>
+                                    <p className="text-[10px] font-black text-text-secondary uppercase tracking-widest">Habit Strength</p>
+                                    <h4 className="text-xl font-bold text-text-primary">
+                                        {calculateHabitStrength(habits.find(h => h.id === selectedHabits[0]).logs || [])}%
+                                    </h4>
+                                </div>
+                            </div>
+                            <div className="w-full bg-accent-dim h-1.5 rounded-full overflow-hidden mt-1">
+                                <div 
+                                    className="h-full bg-purple-500 transition-all duration-500" 
+                                    style={{ width: `${calculateHabitStrength(habits.find(h => h.id === selectedHabits[0]).logs || [])}%` }} 
+                                />
+                            </div>
+                        </Card>
+                    </>
+                )}
+            </div>
+
+            {habits.length >= 2 && (
+                <Card className="p-6 hover:translate-y-0">
+                    <div className="flex items-center gap-3 mb-6">
+                        <div className="p-2 bg-accent/10 text-accent rounded-lg">
+                            <Icon name="link" size={18} />
+                        </div>
+                        <div>
+                            <h3 className="text-lg font-bold text-text-primary">Habit Correlation Analysis</h3>
+                            <p className="text-[10px] text-text-secondary uppercase tracking-widest font-black">AI Insights from last 30 days</p>
+                        </div>
+                    </div>
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {generateCorrelationInsights(habits).length > 0 ? (
+                            generateCorrelationInsights(habits).map((insight, idx) => (
+                                <div key={idx} className="p-4 rounded-xl bg-accent-dim border border-border-color flex items-start gap-3">
+                                    <div className={`mt-1 p-1 rounded-full ${insight.correlation > 0 ? 'bg-green-500/20 text-green-500' : 'bg-red-500/20 text-red-500'}`}>
+                                        <Icon name={insight.correlation > 0 ? "arrow-up-right" : "arrow-down-right"} size={14} />
+                                    </div>
+                                    <p className="text-xs text-text-primary leading-relaxed">
+                                        {insight.text}
+                                    </p>
+                                </div>
+                            ))
+                        ) : (
+                            <div className="col-span-full py-8 text-center bg-accent-dim rounded-xl border border-dashed border-border-color">
+                                <p className="text-xs text-text-secondary">Not enough data to find significant correlations yet.</p>
+                            </div>
+                        )}
+                    </div>
+                </Card>
+            )}
         </div>
+
     );
 };
 
