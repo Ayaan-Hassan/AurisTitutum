@@ -552,14 +552,10 @@ const Logs = ({ habits, setHabits }) => {
         <div className="flex flex-col items-center gap-4 pt-4 border-t border-white/5">
           <button
             onClick={() => setVisibleCount(prev => prev + 15)}
-            className="group px-8 py-4 bg-bg-main/50 border border-border-color rounded-2xl flex items-center gap-3 transition-all hover:bg-accent hover:border-accent hover:text-bg-main active:scale-[0.98] shadow-sm"
+            className="flex items-center gap-2 px-8 py-4 rounded-xl border border-border-color bg-bg-main text-[10px] font-bold uppercase tracking-[0.2em] text-text-secondary hover:text-text-primary hover:border-text-secondary transition-all active:scale-[0.98]"
           >
-            <div className="w-6 h-6 rounded-lg bg-white/5 flex items-center justify-center transition-colors group-hover:bg-bg-main/20">
-              <Icon name="plus" size={14} />
-            </div>
-            <span className="text-[10px] font-black uppercase tracking-[0.2em]">
-              Load Older Activities
-            </span>
+            <Icon name="plus" size={12} />
+            Load Older Activities
           </button>
           
           <p className="text-[9px] font-mono text-text-secondary opacity-40 uppercase tracking-widest">

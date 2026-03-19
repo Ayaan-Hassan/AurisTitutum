@@ -241,6 +241,7 @@ const DashboardRatingControl = ({ habit, logActivity }) => {
 
 // ─── Day Detail Popup ──────────────────────────────────────────────────────
 const DayDetailPopup = ({ dateStr, habits, onClose }) => {
+  const [visibleCount, setVisibleCount] = useState(15);
   const formatted = dateStr ? new Date(dateStr + "T12:00:00").toLocaleDateString("en-US", {
     weekday: "long", year: "numeric", month: "long", day: "numeric"
   }) : "";
@@ -270,6 +271,10 @@ const DayDetailPopup = ({ dateStr, habits, onClose }) => {
     });
     return all;
   }, [dateStr, habits]);
+
+  const paginatedEntries = useMemo(() => {
+    return entries.slice(0, visibleCount);
+  }, [entries, visibleCount]);
 
   useEffect(() => {
     const esc = (e) => { if (e.key === "Escape") onClose(); };
@@ -321,7 +326,7 @@ const DayDetailPopup = ({ dateStr, habits, onClose }) => {
                  <Icon name="inbox" size={32} className="opacity-30" />
                  <p className="text-sm font-medium">No activity logged on this day.</p>
               </div>
-            ) : entries.map((e, i) => (
+            ) : paginatedEntries.map((e, i) => (
               <div key={i} className="flex gap-4 mb-5 relative z-10 group">
                 <div className={`w-10 h-10 rounded-2xl border-2 flex items-center justify-center shrink-0 z-10 bg-bg-main shadow-lg transition-transform group-hover:scale-110 ${e.type === "Good" ? "border-success text-success" : "border-danger text-danger"}`}>
                   {e.emoji ? (
@@ -342,6 +347,18 @@ const DayDetailPopup = ({ dateStr, habits, onClose }) => {
                 </div>
               </div>
             ))}
+
+            {entries.length > visibleCount && (
+              <div className="flex justify-center pt-2 pb-6">
+                <button
+                  onClick={() => setVisibleCount(prev => prev + 15)}
+                  className="flex items-center gap-2 px-6 py-3 rounded-xl border border-border-color bg-bg-main text-[10px] font-bold uppercase tracking-[0.2em] text-text-secondary hover:text-text-primary hover:border-text-secondary transition-all"
+                >
+                  <Icon name="plus" size={12} />
+                  Load More
+                </button>
+              </div>
+            )}
           </div>
 
           {/* Summary */}
@@ -653,7 +670,7 @@ const Dashboard = ({ habits, logActivity, insights, dataLoading }) => {
             </Link>
           </div>
           <div className="space-y-2 overflow-y-auto custom-scrollbar pr-2 flex-1 min-h-0" style={{ maxHeight: habitListHeight }}>
-            {flattenedLogs.slice(0, 50).map((log, i) => (
+            {flattenedLogs.slice(0, 15).map((log, i) => (
               <div key={i} className={`flex gap-3 items-start border-l-2 pl-3 py-1.5 transition-colors ${log.type === "Good" ? "border-success/60 hover:border-success" : "border-danger/60 hover:border-danger"}`}>
                 <div className={`mt-0.5 w-7 h-7 rounded-lg border flex items-center justify-center shrink-0 ${log.type === "Good" ? "border-success/30 bg-success/10 text-success" : "border-danger/30 bg-danger/10 text-danger"}`}>
                   <span className="text-xs font-bold">{log.type === "Good" ? "+" : "−"}</span>
@@ -672,6 +689,16 @@ const Dashboard = ({ habits, logActivity, insights, dataLoading }) => {
                 </div>
               </div>
             ))}
+            {flattenedLogs.length > 15 && (
+              <div className="pt-2">
+                <Link 
+                  to="/app/logs" 
+                  className="block w-full py-3 rounded-xl border border-dashed border-border-color bg-bg-main text-center text-[10px] font-bold uppercase tracking-widest text-text-secondary hover:text-text-primary hover:border-text-secondary transition-all"
+                >
+                  View older entries in Logs page
+                </Link>
+              </div>
+            )}
             {flattenedLogs.length === 0 && (
               <div className="flex flex-col items-center justify-center text-center py-12 text-[10px] uppercase text-text-secondary tracking-widest">
                 No logs yet. Log activity above.
