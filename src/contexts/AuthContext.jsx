@@ -163,8 +163,11 @@ googleProvider.addScope('profile');
 const facebookProvider = new FacebookAuthProvider();
 
 // Admin UID — this account is permanently exempt from ban enforcement
-const ADMIN_UID = import.meta.env.VITE_ADMIN_UID || "";
-const isAdminUid = (uid) => ADMIN_UID && uid === ADMIN_UID;
+const ADMIN_UID = (import.meta.env.VITE_ADMIN_UID || "").replace(/['"]/g, '').trim();
+const isAdminUid = (uid) => {
+  if (!ADMIN_UID || !uid) return false;
+  return uid.trim() === ADMIN_UID;
+};
 
 export const useAuth = () => {
   const context = useContext(AuthContext);
@@ -517,11 +520,20 @@ export const AuthProvider = ({ children }) => {
         redirectUser = null;
 
         const mappedUser = mapFirebaseUser(resolvedUser);
+        const isUserAdmin = isAdminUid(mappedUser.uid);
+        
         identifyUser(mappedUser.uid, mappedUser.email, mappedUser.name);
+
+        // Fail-safe: ensure preloader disappears after 5 seconds regardless of sync progress
+        const innerForceTimeout = setTimeout(() => {
+          if (authCycleRef.current === cycleId) {
+            setAuthLoading(false);
+          }
+        }, 5000);
         
         try {
           // Pre-sync Ban Check (skip for admin)
-          if (!isAdminUid(resolvedUser.uid)) {
+          if (!isUserAdmin) {
             const userDoc = await getDoc(doc(db, "users", resolvedUser.uid));
             if (userDoc.exists() && userDoc.data().isBanned === true) {
                const reason = userDoc.data().banReason || "Your account is temporarily suspended due to violation of system protocols.";
@@ -532,36 +544,52 @@ export const AuthProvider = ({ children }) => {
                setUser(null);
                setAuthLoading(false);
                setDataLoading(false);
+               clearTimeout(innerForceTimeout);
                return;
             }
           }
 
-          // Set user immediately so the app knows who is logged in,
-          // but keep authLoading true until Firestore setup completes.
+          // Set user immediately so the app knows who is logged in
           setUser(mappedUser);
 
-          try {
-            await ensureUserDocument({
-              uid: resolvedUser.uid,
-              email: resolvedUser.email,
-              displayName: resolvedUser.displayName,
-            });
-
-            await upsertUserSetting(
-              resolvedUser.uid,
-              "profile",
-              mergeUserIdentityIntoConfig({}, mappedUser),
-              true,
-            );
-
-            await migrateLegacyDataIfNeeded(resolvedUser);
-          } catch (setupErr) {
-            // Firestore setup failed (e.g. permission denied) — log it but
-            // don't block the user. They can still use the app.
-            console.warn("Firestore setup warning (non-fatal):", setupErr?.message);
+          // For admin, we release the preloader IMMEDIATELY.
+          // For regular users, we keep it true for a moment while we run setup.
+          if (isUserAdmin) {
+            setAuthLoading(false);
           }
 
-          setAuthLoading(false);
+          const runSetup = async () => {
+             try {
+              await ensureUserDocument({
+                uid: resolvedUser.uid,
+                email: resolvedUser.email,
+                displayName: resolvedUser.displayName,
+              });
+
+              await upsertUserSetting(
+                resolvedUser.uid,
+                "profile",
+                mergeUserIdentityIntoConfig({}, mappedUser),
+                true,
+              );
+
+              await migrateLegacyDataIfNeeded(resolvedUser);
+            } catch (setupErr) {
+              console.warn("Firestore setup warning (non-fatal):", setupErr?.message);
+            } finally {
+              if (authCycleRef.current === cycleId) {
+                setAuthLoading(false);
+                clearTimeout(innerForceTimeout);
+              }
+            }
+          };
+
+          // Run setup - regular users block on this (unless timeout hits), admin runs it async
+          if (isUserAdmin) {
+            runSetup(); // Background
+          } else {
+            await runSetup(); // Blocking
+          }
 
           if (authCycleRef.current !== cycleId) return;
           startRealtimeListeners(resolvedUser.uid, cycleId);
@@ -571,6 +599,7 @@ export const AuthProvider = ({ children }) => {
           setError(err?.message || "Failed to initialize synced data");
           setDataLoading(false);
           setAuthLoading(false);
+          clearTimeout(innerForceTimeout);
         }
       });
     };
