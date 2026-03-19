@@ -13,13 +13,12 @@ import {
 } from "../services/sheetsApi";
 import { getLocalDateKey } from "../utils/date";
 
-const Logs = ({ habits, setHabits }) => {
+const Logs = ({ habits, setHabits, setFeatureLockConfig }) => {
   const navigate = useNavigate();
   const authContext = useAuth();
   const { user } = authContext;
   const [clearConfirmOpen, setClearConfirmOpen] = useState(false);
   const [syncing, setSyncing] = useState(false);
-  const [featureLockOpen, setFeatureLockOpen] = useState(false);
   const [filter, setFilter] = useState("all"); // all | good | bad
   const [sheetsStatus, setSheetsStatus] = useState({
     connected: false,
@@ -219,7 +218,11 @@ const Logs = ({ habits, setHabits }) => {
   // ── CSV export ────────────────────────────────────────────────────────────
   const exportToCSV = () => {
     if (!user) {
-      setFeatureLockOpen(true);
+      setFeatureLockConfig({
+          title: "Unlock full console",
+          subtitle: "Sign in for free to unlock this feature.",
+          description: "Sign in for free to unlock CSV exports, Google Sheets sync, and advanced analytics for your habits."
+      });
       return;
     }
     const headers = ["Habit Name", "Date", "Time", "Type", "Value", "Unit"];
@@ -249,7 +252,11 @@ const Logs = ({ habits, setHabits }) => {
   // ── Sync to Sheets ────────────────────────────────────────────────────────
   const handleSyncToSheets = async () => {
     if (!user) {
-      setFeatureLockOpen(true);
+      setFeatureLockConfig({
+          title: "Unlock full console",
+          subtitle: "Sign in for free to unlock this feature.",
+          description: "Sign in for free to unlock CSV exports, Google Sheets sync, and advanced analytics for your habits."
+      });
       return;
     }
 
@@ -290,7 +297,11 @@ const Logs = ({ habits, setHabits }) => {
   // ── Connect button (from Logs page) ───────────────────────────────────────
   const handleConnectFromLogs = () => {
     if (!user) {
-      setFeatureLockOpen(true);
+      setFeatureLockConfig({
+          title: "Unlock full console",
+          subtitle: "Sign in for free to unlock this feature.",
+          description: "Sign in for free to unlock CSV exports, Google Sheets sync, and advanced analytics for your habits."
+      });
       return;
     }
     const toastEvent = new CustomEvent("showToast", {
@@ -583,18 +594,7 @@ const Logs = ({ habits, setHabits }) => {
         }}
         onCancel={() => setClearConfirmOpen(false)}
       />
-      <ConfirmModal
-        open={featureLockOpen}
-        title="Sign in required"
-        message="Sign in for free to unlock exports, Google Sheets sync, and analytics."
-        confirmLabel="Sign in"
-        variant="primary"
-        onConfirm={() => {
-          setFeatureLockOpen(false);
-          window.location.href = "/login";
-        }}
-        onCancel={() => setFeatureLockOpen(false)}
-      />
+
     </div>
   );
 };

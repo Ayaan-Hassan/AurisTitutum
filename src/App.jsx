@@ -181,6 +181,7 @@ const DEFAULT_USER_CONFIG = {
     audit: true,
     devConsole: false,
     notificationsEnabled: true,
+    hasSeenTour: false,
   },
 };
 
@@ -381,13 +382,14 @@ function AppContent() {
   // Fire scheduled reminder notifications
   useReminderNotifications(reminders);
 
-  const [featureLockOpen, setFeatureLockOpen] = useState(false);
-  const [activeSystemMsg, setActiveSystemMsg] = useState(null);
-  const [confirmAction, setConfirmAction] = useState(null);
-
+  const [featureLockConfig, setFeatureLockConfig] = useState(null);
   const handleAddHabitRequest = useCallback(() => {
     if (!user && habits.length >= 1) {
-      setFeatureLockOpen(true);
+      setFeatureLockConfig({
+        title: "Unlock full console",
+        subtitle: "Sign in for free to unlock this feature.",
+        description: "Create one local habit without an account. To add more streams, enable notifications, analytics, and external sync, sign in and we'll keep everything synced across devices."
+      });
       return;
     }
     setAddHabitStep(1);
@@ -732,88 +734,92 @@ function AppContent() {
         <Route
           path="/app/*"
           element={
-            <Layout
-              userConfig={displayUserConfig}
-              onAddHabit={handleAddHabitRequest}
-              habits={displayHabits}
-              notifications={notifications}
-              onNotificationsRead={markAllRead}
-            >
-              <ToastContainer toasts={toasts} onClose={removeToast} />
-              <Routes>
-                <Route
-                  path=""
-                  element={
-                    <Dashboard
-                      habits={displayHabits}
-                      setHabits={user ? authContext.replaceHabitsState : setHabits}
-                      logActivity={logActivity}
-                      insights={dailyInsight}
-                      dataLoading={dataLoading}
-                    />
-                  }
-                />
-                <Route
-                  path="dashboard"
-                  element={
-                    <Dashboard
-                      habits={displayHabits}
-                      setHabits={user ? authContext.replaceHabitsState : setHabits}
-                      logActivity={logActivity}
-                      insights={dailyInsight}
-                      dataLoading={dataLoading}
-                    />
-                  }
-                />
-                <Route
-                  path="analytics"
-                  element={
-                    <Analytics
-                      habits={displayHabits}
-                      selectedHabitId={selectedHabitId}
-                      setSelectedHabitId={setSelectedHabitId}
-                    />
-                  }
-                />
-                <Route
-                  path="habits"
-                  element={
-                    <Habits
-                      habits={displayHabits}
-                      setHabits={user ? authContext.replaceHabitsState : setHabits}
-                      logActivity={logActivity}
-                    />
-                  }
-                />
-                <Route
-                  path="logs"
-                  element={<Logs habits={user ? authContext.habits : habits} setHabits={user ? authContext.replaceHabitsState : setHabits} />}
-                />
-                <Route
-                  path="notes"
-                  element={<Notes notes={displayNotes} setNotes={user ? authContext.replaceNotesState : setNotes} />}
-                />
-                <Route
-                  path="reminders"
-                  element={
-                    <Reminders
-                      reminders={displayReminders}
-                      setReminders={user ? authContext.replaceRemindersState : setReminders}
-                    />
-                  }
-                />
-                <Route
-                  path="settings"
-                  element={
-                    <Settings
-                      userConfig={displayUserConfig}
-                      setUserConfig={user ? authContext.updateUserConfig : setUserConfig}
-                      handleAvatarUpload={handleAvatarUpload}
-                      fileInputRef={fileInputRef}
-                      habits={displayHabits}
-                    />
-                  }
-                />
+              <Layout
+                userConfig={displayUserConfig}
+                onAddHabit={handleAddHabitRequest}
+                habits={displayHabits}
+                notifications={notifications}
+                onNotificationsRead={markAllRead}
+              >
+                <ToastContainer toasts={toasts} onClose={removeToast} />
+                <Routes>
+                  <Route
+                    path=""
+                    element={
+                      <Dashboard
+                        habits={displayHabits}
+                        setHabits={user ? authContext.replaceHabitsState : setHabits}
+                        logActivity={logActivity}
+                        insights={dailyInsight}
+                        dataLoading={dataLoading}
+                        setFeatureLockConfig={setFeatureLockConfig}
+                      />
+                    }
+                  />
+                  <Route
+                    path="dashboard"
+                    element={
+                      <Dashboard
+                        habits={displayHabits}
+                        setHabits={user ? authContext.replaceHabitsState : setHabits}
+                        logActivity={logActivity}
+                        insights={dailyInsight}
+                        dataLoading={dataLoading}
+                        setFeatureLockConfig={setFeatureLockConfig}
+                      />
+                    }
+                  />
+                  <Route
+                    path="analytics"
+                    element={
+                      <Analytics
+                        habits={displayHabits}
+                        selectedHabitId={selectedHabitId}
+                        setSelectedHabitId={setSelectedHabitId}
+                      />
+                    }
+                  />
+                  <Route
+                    path="habits"
+                    element={
+                      <Habits
+                        habits={displayHabits}
+                        setHabits={user ? authContext.replaceHabitsState : setHabits}
+                        logActivity={logActivity}
+                        setFeatureLockConfig={setFeatureLockConfig}
+                      />
+                    }
+                  />
+                  <Route
+                    path="logs"
+                    element={<Logs habits={user ? authContext.habits : habits} setHabits={user ? authContext.replaceHabitsState : setHabits} setFeatureLockConfig={setFeatureLockConfig} />}
+                  />
+                  <Route
+                    path="notes"
+                    element={<Notes notes={displayNotes} setNotes={user ? authContext.replaceNotesState : setNotes} setFeatureLockConfig={setFeatureLockConfig} />}
+                  />
+                  <Route
+                    path="reminders"
+                    element={
+                      <Reminders
+                        reminders={displayReminders}
+                        setReminders={user ? authContext.replaceRemindersState : setReminders}
+                        setFeatureLockConfig={setFeatureLockConfig}
+                      />
+                    }
+                  />
+                  <Route
+                    path="settings"
+                    element={
+                      <Settings
+                        userConfig={displayUserConfig}
+                        setUserConfig={user ? authContext.updateUserConfig : setUserConfig}
+                        handleAvatarUpload={handleAvatarUpload}
+                        fileInputRef={fileInputRef}
+                        habits={displayHabits}
+                      />
+                    }
+                  />
                 <Route path="contact" element={<Contact />} />
                 <Route path="admin" element={<AdminDashboard />} />
                 <Route path="*" element={<Navigate to="" replace />} />
@@ -1054,11 +1060,11 @@ function AppContent() {
         </div>
       )}
 
-      {featureLockOpen && (
+      {featureLockConfig && (
         <div
           className="fixed inset-0 bg-black/60 backdrop-blur-md flex items-center justify-center z-[110] p-4"
           onClick={(e) =>
-            e.target === e.currentTarget && setFeatureLockOpen(false)
+            e.target === e.currentTarget && setFeatureLockConfig(null)
           }
         >
           <div className="glass-card modal-enter w-full max-w-md p-8 rounded-[2rem] border-white/10 relative overflow-hidden">
@@ -1066,28 +1072,26 @@ function AppContent() {
             <div className="flex justify-between items-center mb-6 relative z-10">
               <div>
                 <h3 className="text-lg font-bold tracking-tight text-text-primary">
-                  Unlock full console
+                  {featureLockConfig.title || "Unlock full console"}
                 </h3>
                 <p className="text-[10px] text-text-secondary uppercase tracking-[0.25em] mt-1 font-mono">
-                  Sign in for free to unlock this feature.
+                  {featureLockConfig.subtitle || "Sign in for free to unlock this feature."}
                 </p>
               </div>
               <button
-                onClick={() => setFeatureLockOpen(false)}
+                onClick={() => setFeatureLockConfig(null)}
                 className="w-8 h-8 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-text-secondary hover:text-text-primary hover:border-text-secondary transition-all"
               >
                 <Icon name="x" size={14} />
               </button>
             </div>
             <p className="text-xs text-text-secondary mb-6">
-              Create one local habit without an account. To add more streams,
-              enable notifications, analytics, and external sync, sign in and
-              we&apos;ll keep everything synced across devices.
+              {featureLockConfig.description || "Sign in and we'll keep everything synced across devices."}
             </p>
             <div className="flex flex-col sm:flex-row gap-3">
               <button
                 onClick={() => {
-                  setFeatureLockOpen(false);
+                  setFeatureLockConfig(null);
                   window.location.href = "/login";
                 }}
                 className="flex-1 py-3 rounded-xl bg-accent text-bg-main text-[11px] font-black uppercase tracking-[0.3em]"
@@ -1095,7 +1099,7 @@ function AppContent() {
                 Sign in for free
               </button>
               <button
-                onClick={() => setFeatureLockOpen(false)}
+                onClick={() => setFeatureLockConfig(null)}
                 className="flex-1 py-3 rounded-xl border border-border-color text-[11px] font-black uppercase tracking-[0.3em] text-text-secondary hover:text-text-primary hover:bg-bg-main"
               >
                 Not now

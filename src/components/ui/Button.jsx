@@ -15,7 +15,7 @@ export const Button = ({
         primary: "bg-accent text-bg-main hover:opacity-90 shadow-sm",
         secondary: "bg-accent-dim text-text-primary border border-border-color hover:border-text-secondary hover:bg-accent-dim/80",
         ghost: "bg-transparent text-text-secondary hover:text-text-primary hover:bg-accent-dim",
-        danger: "bg-transparent text-text-secondary hover:text-danger hover:border-danger border border-transparent hover:bg-danger/5",
+        danger: "bg-transparent text-text-secondary border border-border-color hover:text-red-500 hover:border-red-500 hover:bg-red-500/10",
         outline: "bg-transparent border border-border-color text-text-primary hover:border-text-secondary"
     };
 

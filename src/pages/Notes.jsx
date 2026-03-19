@@ -16,7 +16,7 @@ const NOTE_COLORS = [
     { id: 'admin-white', colorClass: 'var(--admin-white)' },
 ];
 
-const Notes = ({ notes, setNotes }) => {
+const Notes = ({ notes, setNotes, setFeatureLockConfig }) => {
     const { user, upsertNote, deleteNote: remoteDeleteNote } = useAuth();
     const [editingId, setEditingId] = useState(null);
     const [editTitle, setEditTitle] = useState('');
@@ -27,7 +27,6 @@ const Notes = ({ notes, setNotes }) => {
     const [newBody, setNewBody] = useState('');
     const [newColor, setNewColor] = useState('default');
     const [showAdd, setShowAdd] = useState(false);
-    const [featureLockOpen, setFeatureLockOpen] = useState(false);
 
     const [deleteTarget, setDeleteTarget] = useState(null);
     const [search, setSearch] = useState('');
@@ -161,7 +160,11 @@ const Notes = ({ notes, setNotes }) => {
                     <Button
                         onClick={() => {
                             if (!user && notes.length >= 2) {
-                                setFeatureLockOpen(true);
+                                setFeatureLockConfig({
+                                    title: "Unlock full console",
+                                    subtitle: "Sign in for free to unlock this feature.",
+                                    description: "You've reached the guest limit of 2 notes. Sign in for free to create unlimited notes, enable secure cloud storage, and sync across all your devices."
+                                });
                             } else {
                                 setShowAdd(true);
                             }
@@ -322,7 +325,11 @@ const Notes = ({ notes, setNotes }) => {
                             <button
                                 onClick={() => {
                                     if (!user && notes.length >= 2) {
-                                        setFeatureLockOpen(true);
+                                        setFeatureLockConfig({
+                                            title: "Unlock full console",
+                                            subtitle: "Sign in for free to unlock this feature.",
+                                            description: "You've reached the guest limit of 2 notes. Sign in for free to create unlimited notes, enable secure cloud storage, and sync across all your devices."
+                                        });
                                     } else {
                                         setShowAdd(true);
                                     }
@@ -385,18 +392,7 @@ const Notes = ({ notes, setNotes }) => {
                 </div>
             )}
 
-            <ConfirmModal
-                open={featureLockOpen}
-                title="Sign in required"
-                message="Sign in to create more than 2 notes, unlock secure cloud storage, and sync seamlessly."
-                confirmLabel="Sign in"
-                variant="primary"
-                onConfirm={() => {
-                    setFeatureLockOpen(false);
-                    window.location.href = '/login';
-                }}
-                onCancel={() => setFeatureLockOpen(false)}
-            />
+
         </div>
     );
 };

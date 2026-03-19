@@ -64,6 +64,7 @@ const DEFAULT_USER_CONFIG = {
     audit: true,
     devConsole: false,
     notificationsEnabled: true,
+    hasSeenTour: false,
   },
 };
 
@@ -468,6 +469,10 @@ export const AuthProvider = ({ children }) => {
     }, 10000);
 
     const initAuth = async () => {
+      // Ensure persistence is initialized before we start
+      const { authPersistenceReady } = await import("../firebase.config");
+      await authPersistenceReady;
+      
       // First, resolve any pending redirect result (mobile OAuth flow).
       // This MUST complete before we start listening to auth state changes
       // so that when onAuthStateChanged fires with the signed-in user we

@@ -225,13 +225,13 @@ const ReminderCard = ({ reminder, onDelete, onEdit, onMarkDone }) => {
 };
 
 // ─── Main Reminders Page ──────────────────────────────────────────────────────
-const Reminders = ({ reminders, setReminders }) => {
+const Reminders = ({ reminders, setReminders, setFeatureLockConfig }) => {
   const { user, upsertReminder, deleteReminder: remoteDeleteReminder } = useAuth();
   const [showAdd, setShowAdd] = useState(false);
   const [editTarget, setEditTarget] = useState(null); // reminder object being edited
   const [deleteTarget, setDeleteTarget] = useState(null);
+  const [deleteTarget, setDeleteTarget] = useState(null);
   const [notifPermission, setNotifPermission] = useState("default");
-  const [featureLockOpen, setFeatureLockOpen] = useState(false);
 
   const [tick, setTick] = useState(0);
 
@@ -348,7 +348,11 @@ const Reminders = ({ reminders, setReminders }) => {
              if (showAdd) {
                  setShowAdd(false); setEditTarget(null);
              } else if (!user && reminders.length >= 2) {
-                 setFeatureLockOpen(true);
+                 setFeatureLockConfig({
+                    title: "Unlock full console",
+                    subtitle: "Sign in for free to unlock this feature.",
+                    description: "You've reached the guest limit of 2 reminders. Sign in for free to create unlimited alerts, enable push notifications, and sync across all your devices."
+                 });
              } else {
                  setShowAdd(true); setEditTarget(null);
              }
@@ -444,7 +448,11 @@ const Reminders = ({ reminders, setReminders }) => {
           <button
             onClick={() => {
                if (!user && reminders.length >= 2) {
-                   setFeatureLockOpen(true);
+                   setFeatureLockConfig({
+                       title: "Unlock full console",
+                       subtitle: "Sign in for free to unlock this feature.",
+                       description: "You've reached the guest limit of 2 reminders. Sign in for free to create unlimited alerts, enable push notifications, and sync across all your devices."
+                   });
                } else {
                    setShowAdd(true);
                }
@@ -466,18 +474,7 @@ const Reminders = ({ reminders, setReminders }) => {
         onConfirm={confirmDelete}
         onCancel={() => setDeleteTarget(null)}
       />
-      <ConfirmModal
-        open={featureLockOpen}
-        title="Sign in required"
-        message="Sign in to create more than 2 reminders and unlock push notifications."
-        confirmLabel="Sign in"
-        variant="primary"
-        onConfirm={() => {
-          setFeatureLockOpen(false);
-          window.location.href = '/login';
-        }}
-        onCancel={() => setFeatureLockOpen(false)}
-      />
+
     </div>
   );
 };

@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { Button } from './ui/Button';
 import Icon from './Icon';
 import { useLocation } from 'react-router-dom';
+import { useAuth } from '../contexts/AuthContext';
 
 const DESKTOP_STEPS = [
     {
@@ -52,6 +53,7 @@ const MOBILE_STEPS = [
 ];
 
 const TourGuide = () => {
+    const { user, userConfig, updateUserConfig } = useAuth();
     const [activeStepIndex, setActiveStepIndex] = useState(-1);
     const [targetRect, setTargetRect] = useState(null);
     const [hasSeenTour, setHasSeenTour] = useState(false);
@@ -62,23 +64,31 @@ const TourGuide = () => {
         // Only start tour if on /app dashboard
         if (location.pathname !== '/app' && location.pathname !== '/app/') return;
 
-        const seen = localStorage.getItem('auris_tour_complete');
+        const seenLocally = localStorage.getItem('auris_tour_complete') === 'true';
+        const seenInCloud = userConfig?.settings?.hasSeenTour;
+        
         // Need both user configuration ready AND haven't seen tour
-        if (seen !== 'true') {
+        if (!seenLocally && !seenInCloud) {
             const timer = setTimeout(() => {
                 setActiveStepIndex(0);
                 localStorage.setItem('auris_tour_complete', 'true'); // Flag it as seen immediately
+                if (user) {
+                    updateUserConfig({ settings: { hasSeenTour: true } });
+                }
             }, 1000);
             return () => clearTimeout(timer);
         } else {
             setHasSeenTour(true);
         }
-    }, [location.pathname]);
+    }, [location.pathname, userConfig?.settings?.hasSeenTour, user]);
 
     const completeTour = () => {
         setActiveStepIndex(-1);
         setHasSeenTour(true);
         localStorage.setItem('auris_tour_complete', 'true');
+        if (user) {
+            updateUserConfig({ settings: { hasSeenTour: true } });
+        }
     };
 
     useEffect(() => {
