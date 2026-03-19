@@ -218,7 +218,7 @@ const UploadControl = ({ habit, logActivity, onViewGallery }) => {
     const dataUrl = canvas.toDataURL("image/jpeg", 0.75);
     setCooldown(10);
     stopCamera();
-    logActivity(habit.id, true, 1, "upload", { photoData: dataUrl });
+    logActivity(habit.id, true, 1, "photo", dataUrl);
   };
 
   const handleFileUpload = (e) => {
@@ -229,7 +229,7 @@ const UploadControl = ({ habit, logActivity, onViewGallery }) => {
     const reader = new FileReader();
     reader.onload = async (ev) => {
       const compressed = await compressPhoto(ev.target.result);
-      logActivity(habit.id, true, 1, "upload", { photoData: compressed });
+      logActivity(habit.id, true, 1, "photo", compressed);
     };
     reader.readAsDataURL(file);
     e.target.value = null;
@@ -413,45 +413,45 @@ const CompareView = ({ firstLog, latestLog, habit, onClose }) => {
            </div>
         </div>
 
-        <div className="w-full grid grid-cols-1 md:grid-cols-2 gap-6 lg:gap-12 items-stretch">
+        <div className="w-full grid grid-cols-1 md:grid-cols-2 gap-6 lg:gap-12 items-stretch max-h-[60vh] overflow-y-auto custom-scrollbar p-2">
            <div className="flex flex-col items-stretch group relative">
               <div className="absolute top-1/2 -right-6 lg:-right-9 -translate-y-1/2 z-10 hidden md:block">
                  <div className="w-12 h-12 lg:w-16 lg:h-16 rounded-full bg-black border border-white/10 flex items-center justify-center text-white/50 italic font-black text-2xl lg:text-3xl shadow-3xl">VS</div>
               </div>
 
               <div className="mb-4 flex items-center justify-between px-4">
-                 <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center text-white/30 font-black italic text-lg">01</div>
-                    <div>
-                       <p className="text-[8px] font-black tracking-[0.2em] text-white/20 uppercase">Initial Record</p>
-                       <p className="text-sm font-black text-white italic">DAY {day1}</p>
-                    </div>
-                 </div>
-                 <p className="text-[9px] font-mono text-white/10">{firstLog.date}</p>
-              </div>
-              <div className="aspect-[4/5] w-full rounded-[2.5rem] overflow-hidden border border-white/5 bg-white/5 relative shadow-2xl transition-all duration-500 hover:border-white/20">
-                 <div className="absolute inset-0 bg-cover bg-center bg-no-repeat transition-transform duration-700 group-hover:scale-[1.03]" style={{ backgroundImage: `url(${firstLog.img})` }} />
-                 <div className="absolute inset-x-0 bottom-0 h-40 bg-gradient-to-t from-black/40 to-transparent pointer-events-none" />
-              </div>
-           </div>
+                  <div className="flex items-center gap-3">
+                     <div className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center text-white/30 font-black italic text-lg">01</div>
+                     <div>
+                        <p className="text-[8px] font-black tracking-[0.2em] text-white/20 uppercase">Initial Record</p>
+                        <p className="text-sm font-black text-white italic">DAY {day1}</p>
+                     </div>
+                  </div>
+                  <p className="text-[9px] font-mono text-white/10">{firstLog.date}</p>
+               </div>
+               <div className="aspect-[4/5] w-full max-h-[40vh] sm:max-h-[50vh] rounded-[2.5rem] overflow-hidden border border-white/5 bg-white/5 relative shadow-2xl transition-all duration-500 hover:border-white/20">
+                  <div className="absolute inset-0 bg-cover bg-center bg-no-repeat transition-transform duration-700 group-hover:scale-[1.03]" style={{ backgroundImage: `url(${firstLog.img})` }} />
+                  <div className="absolute inset-x-0 bottom-0 h-40 bg-gradient-to-t from-black/40 to-transparent pointer-events-none" />
+               </div>
+            </div>
 
-           <div className="flex flex-col items-stretch group">
-              <div className="mb-4 flex items-center justify-between px-4">
-                 <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-accent text-bg-main flex items-center justify-center font-black italic text-lg shadow-[0_0_20px_rgba(var(--accent-rgb),0.3)]">L</div>
-                    <div>
-                       <p className="text-[8px] font-black tracking-[0.2em] text-accent/40 uppercase">Latest Entry</p>
-                       <p className="text-sm font-black text-accent italic">DAY {day2}</p>
-                    </div>
-                 </div>
-                 <p className="text-[9px] font-mono text-accent/20 font-bold">{latestLog.date}</p>
-              </div>
-              <div className="aspect-[4/5] w-full rounded-[2.5rem] overflow-hidden border-2 border-accent/20 bg-accent/5 relative shadow-[0_0_100px_rgba(var(--accent-rgb),0.1)] transition-all duration-500 hover:border-accent/40">
-                 <div className="absolute inset-0 bg-cover bg-center bg-no-repeat transition-transform duration-700 group-hover:scale-[1.03]" style={{ backgroundImage: `url(${latestLog.img})` }} />
-                 <div className="absolute inset-x-0 bottom-0 h-40 bg-gradient-to-t from-black/30 to-transparent pointer-events-none" />
-              </div>
-           </div>
-        </div>
+            <div className="flex flex-col items-stretch group">
+               <div className="mb-4 flex items-center justify-between px-4">
+                  <div className="flex items-center gap-3">
+                     <div className="w-10 h-10 rounded-xl bg-accent text-bg-main flex items-center justify-center font-black italic text-lg shadow-[0_0_20px_rgba(var(--accent-rgb),0.3)]">L</div>
+                     <div>
+                        <p className="text-[8px] font-black tracking-[0.2em] text-accent/40 uppercase">Latest Entry</p>
+                        <p className="text-sm font-black text-accent italic">DAY {day2}</p>
+                     </div>
+                  </div>
+                  <p className="text-[9px] font-mono text-accent/20 font-bold">{latestLog.date}</p>
+               </div>
+               <div className="aspect-[4/5] w-full max-h-[40vh] sm:max-h-[50vh] rounded-[2.5rem] overflow-hidden border-2 border-accent/20 bg-accent/5 relative shadow-[0_0_100px_rgba(var(--accent-rgb),0.1)] transition-all duration-500 hover:border-accent/40">
+                  <div className="absolute inset-0 bg-cover bg-center bg-no-repeat transition-transform duration-700 group-hover:scale-[1.03]" style={{ backgroundImage: `url(${latestLog.img})` }} />
+                  <div className="absolute inset-x-0 bottom-0 h-40 bg-gradient-to-t from-black/30 to-transparent pointer-events-none" />
+               </div>
+            </div>
+         </div>
 
         <p className="mt-12 text-[10px] font-black uppercase tracking-[0.8em] text-white/10 italic text-center">Comparing your journey over {day2 - day1 + 1} daily records</p>
       </div>
@@ -525,6 +525,7 @@ const SlideshowView = ({ photos, onClose }) => {
 const GalleryModal = ({ open, habit, onClose, setHabits }) => {
   const [zoomedImg, setZoomedImg] = useState(null);
   const [mode, setMode] = useState("grid"); // "grid", "slideshow", "compare"
+  const [deleteTarget, setDeleteTarget] = useState(null);
 
   useEffect(() => {
     if (!open) {
@@ -535,31 +536,33 @@ const GalleryModal = ({ open, habit, onClose, setHabits }) => {
       if (e.key === "Escape") {
         if (mode !== "grid") setMode("grid");
         else if (zoomedImg) setZoomedImg(null);
+        else if (deleteTarget) setDeleteTarget(null);
         else onClose?.();
       }
     };
     document.addEventListener("keydown", onEsc);
     return () => document.removeEventListener("keydown", onEsc);
-  }, [open, onClose, zoomedImg, mode]);
+  }, [open, onClose, zoomedImg, mode, deleteTarget]);
 
   if (!open || !habit) return null;
 
   const photoLogs = (habit.logs || []).flatMap((l) =>
     (l.entries || [])
       .filter((e) => typeof e === "string" && e.startsWith("data:image"))
-      .map((img) => ({ date: l.date, img }))
+      .map((img) => ({ date: l.date, img, logId: l.id }))
   ).sort((a, b) => a.date.localeCompare(b.date));
 
   const latestImg = photoLogs[0]?.img;
   const firstImg = photoLogs[photoLogs.length - 1]?.img;
 
-  const { user, deleteLog, replaceHabitsState } = useAuth();
+  const { user, deleteLog } = useAuth();
 
-  const handleDelete = async (entryImg) => {
-    const confirmDelete = window.confirm("Are you sure you want to delete this photo entry?");
-    if (!confirmDelete) return;
+  const handleConfirmDelete = async () => {
+    if (!deleteTarget) return;
+    const entryImg = deleteTarget;
+    setDeleteTarget(null);
 
-    await setHabits?.((prev) => prev.map((h) => {
+    setHabits?.((prev) => prev.map((h) => {
         if (h.id !== habit.id) return h;
         const updatedLogs = (h.logs || []).map((l) => ({
           ...l,
@@ -642,7 +645,7 @@ const GalleryModal = ({ open, habit, onClose, setHabits }) => {
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
-                          handleDelete(entry.img);
+                          setDeleteTarget(entry.img);
                         }}
                         className="w-8 h-8 rounded-xl bg-red-500/90 flex items-center justify-center transition-all hover:bg-red-500 hover:scale-110 text-white"
                         title="Delete photo"
@@ -655,6 +658,15 @@ const GalleryModal = ({ open, habit, onClose, setHabits }) => {
               </div>
             )}
           </div>
+          <ConfirmModal
+            open={!!deleteTarget}
+            title="Delete photo entry"
+            message="Are you sure you want to remove this captured record? This will also update your habit progress for that day."
+            confirmLabel="Delete"
+            variant="danger"
+            onConfirm={handleConfirmDelete}
+            onCancel={() => setDeleteTarget(null)}
+          />
         </div>
       </div>
 

@@ -96,11 +96,18 @@ const compressPhoto = (base64Str) => {
 const DashboardUploadControl = ({ habit, logActivity }) => {
   const fileInputRef = useRef(null);
   const cameraRef = useRef(null);
-  const [cameraOpen, setCameraOpen] = useState(false);
-  const [stream, setStream] = useState(null);
-  const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+  const [cooldown, setCooldown] = useState(0);
+
+  useEffect(() => {
+    let timer;
+    if (cooldown > 0) {
+      timer = setInterval(() => setCooldown(prev => prev - 1), 1000);
+    }
+    return () => clearInterval(timer);
+  }, [cooldown]);
 
   const openCamera = async () => {
+    if (cooldown > 0) return;
     if (isMobile) {
       // On mobile, just trigger the file picker with camera capture
       fileInputRef.current.setAttribute("capture", "environment");
@@ -129,20 +136,23 @@ const DashboardUploadControl = ({ habit, logActivity }) => {
   };
 
   const capturePhoto = async () => {
-    if (!cameraRef.current) return;
+    if (!cameraRef.current || cooldown > 0) return;
     const canvas = document.createElement("canvas");
     canvas.width = cameraRef.current.videoWidth;
     canvas.height = cameraRef.current.videoHeight;
     canvas.getContext("2d").drawImage(cameraRef.current, 0, 0);
     const dataUrl = canvas.toDataURL("image/jpeg", 0.75);
+    setCooldown(10);
     stopCamera();
     const compressed = await compressPhoto(dataUrl);
     logActivity(habit.id, true, 1, "photo", compressed);
   };
 
   const handleFile = (e) => {
+    if (cooldown > 0) return;
     const file = e.target.files[0];
     if (!file) return;
+    setCooldown(10);
     const reader = new FileReader();
     reader.onload = async (ev) => {
       const compressed = await compressPhoto(ev.target.result);
@@ -172,18 +182,19 @@ const DashboardUploadControl = ({ habit, logActivity }) => {
         <button
           id="tour-camera-upload"
           onClick={openCamera}
-          className="w-8 h-8 border border-border-color bg-bg-main text-text-secondary hover:text-text-primary rounded-lg flex items-center justify-center transition-all shrink-0 active:scale-95"
-          title="Capture"
+          disabled={cooldown > 0}
+          className="w-8 h-8 border border-border-color bg-bg-main text-text-secondary hover:text-text-primary rounded-lg flex items-center justify-center transition-all shrink-0 active:scale-95 disabled:opacity-50"
+          title={cooldown > 0 ? `Wait ${cooldown}s` : "Capture"}
         >
           <Icon name="camera" size={12} />
         </button>
         <button
           onClick={() => { fileInputRef.current.removeAttribute("capture"); fileInputRef.current.click(); }}
-          className="h-8 px-2 border border-border-color bg-bg-main text-text-secondary hover:text-text-primary rounded-lg flex items-center justify-center transition-all shrink-0 active:scale-95 gap-1.5"
-          title="Upload"
+          disabled={cooldown > 0}
+          className="w-8 h-8 border border-border-color bg-bg-main text-text-secondary hover:text-text-primary rounded-lg flex items-center justify-center transition-all shrink-0 active:scale-95 disabled:opacity-50"
+          title={cooldown > 0 ? `Wait ${cooldown}s` : "Upload"}
         >
-          <Icon name="image" size={12} />
-          {photoCount > 0 && <span className="text-[10px] font-bold">{photoCount}</span>}
+          <Icon name="upload" size={12} />
         </button>
         <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleFile} />
       </div>
