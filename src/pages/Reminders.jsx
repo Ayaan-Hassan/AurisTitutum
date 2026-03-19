@@ -230,7 +230,6 @@ const Reminders = ({ reminders, setReminders, setFeatureLockConfig }) => {
   const [showAdd, setShowAdd] = useState(false);
   const [editTarget, setEditTarget] = useState(null); // reminder object being edited
   const [deleteTarget, setDeleteTarget] = useState(null);
-  const [deleteTarget, setDeleteTarget] = useState(null);
   const [notifPermission, setNotifPermission] = useState("default");
 
   const [tick, setTick] = useState(0);

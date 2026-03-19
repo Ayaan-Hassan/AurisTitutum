@@ -35,12 +35,16 @@ const compressImage = (base64Str) => {
   });
 };
 
-const Onboarding = ({ onAddHabit, habits = [] }) => {
-  const { user, userConfig, updateUserConfig } = useAuth();
+const Onboarding = ({ onAddHabit, habits = [], userConfig: propUserConfig, updateUserConfig: propUpdateUserConfig }) => {
+  const { user } = useAuth();
   const location = useLocation();
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
   const fileInputRef = useRef(null);
+
+  // Use props if provided, otherwise fallback to context (though props are preferred here)
+  const userConfig = propUserConfig;
+  const updateUserConfig = propUpdateUserConfig;
 
   const [profile, setProfile] = useState({
     name: userConfig?.name || user?.displayName || "",
