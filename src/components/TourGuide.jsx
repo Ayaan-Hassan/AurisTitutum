@@ -69,8 +69,8 @@ const TourGuide = () => {
         const onboardingFinished = userConfig?.settings?.onboardingComplete;
         const hasHabits = habits?.length > 0;
         
-        // Need both user configuration ready AND haven't seen tour AND (onboarding complete + a habit exists)
-        if (!seenLocally && !seenInCloud && onboardingFinished && hasHabits) {
+        // Need both user configuration ready AND haven't seen tour AND (onboarding complete OR a habit exists to imply user skipped/existing)
+        if (!seenLocally && !seenInCloud && (onboardingFinished || hasHabits)) {
             const timer = setTimeout(() => {
                 setActiveStepIndex(0);
                 localStorage.setItem('auris_tour_complete', 'true'); // Flag it as seen immediately
