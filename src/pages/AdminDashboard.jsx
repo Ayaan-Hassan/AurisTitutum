@@ -340,7 +340,7 @@ export default function AdminDashboard() {
                 </div>
             ) : loading ? (
                 <div className="flex items-center gap-3 text-text-secondary text-xs font-mono uppercase py-20 justify-center">
-                    <Icon name="loader" className="animate-spin text-accent" size={24} />
+                    <Icon name="loader-2" className="animate-spin text-accent" size={24} />
                     Calculating network density...
                 </div>
             ) : (
@@ -448,7 +448,7 @@ export default function AdminDashboard() {
                                 </div>
                             ) : userLoading || !userData || !userStats ? (
                                 <div className="flex-1 flex flex-col items-center justify-center gap-4 text-text-secondary animate-in fade-in">
-                                    <Icon name="loader" className="animate-spin text-accent" size={32} />
+                                    <Icon name="loader-2" className="animate-spin text-accent" size={32} />
                                     <p className="text-[10px] tracking-widest uppercase font-black text-accent">Loading Data...</p>
                                 </div>
                             ) : (
@@ -586,7 +586,7 @@ export default function AdminDashboard() {
                                                                                                                 className="absolute inset-0 bg-black/0 group-hover/img:bg-black/40 flex items-center justify-center opacity-0 group-hover/img:opacity-100 transition-all cursor-pointer"
                                                                                                                 onClick={() => setZoomedImg(e.photoData)}
                                                                                                              >
-                                                                                                                <Icon name="maximize" size={14} className="text-white" />
+                                                                                                                <Icon name="maximize-2" size={14} className="text-white" />
                                                                                                              </div>
                                                                                                          </div>
                                                                                                      )}

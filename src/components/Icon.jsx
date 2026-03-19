@@ -66,7 +66,10 @@ import {
     EyeOff,
     Link,
     ArrowUpRight,
-    ArrowDownRight
+    ArrowDownRight,
+    Loader2,
+    Hash,
+    Maximize2
 } from 'lucide-react';
 
 
@@ -140,7 +143,10 @@ const Icon = ({ name, size = 18, className = "" }) => {
         'eye-off': EyeOff,
         'link': Link,
         'arrow-up-right': ArrowUpRight,
-        'arrow-down-right': ArrowDownRight
+        'arrow-down-right': ArrowDownRight,
+        'loader-2': Loader2,
+        'hash': Hash,
+        'maximize-2': Maximize2
     };
 
 
