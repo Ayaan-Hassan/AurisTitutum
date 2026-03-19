@@ -99,15 +99,7 @@ const DashboardUploadControl = ({ habit, logActivity }) => {
   const [cameraOpen, setCameraOpen] = useState(false);
   const [stream, setStream] = useState(null);
   const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
-  const [cooldown, setCooldown] = useState(0);
-
-  useEffect(() => {
-    let timer;
-    if (cooldown > 0) {
-      timer = setInterval(() => setCooldown(prev => prev - 1), 1000);
-    }
-    return () => clearInterval(timer);
-  }, [cooldown]);
+  const { uploadCooldown: cooldown, triggerUploadCooldown } = useAuth();
 
   const openCamera = async () => {
     if (cooldown > 0) return;
@@ -145,7 +137,7 @@ const DashboardUploadControl = ({ habit, logActivity }) => {
     canvas.height = cameraRef.current.videoHeight;
     canvas.getContext("2d").drawImage(cameraRef.current, 0, 0);
     const dataUrl = canvas.toDataURL("image/jpeg", 0.75);
-    setCooldown(10);
+    triggerUploadCooldown();
     stopCamera();
     const compressed = await compressPhoto(dataUrl);
     logActivity(habit.id, true, 1, "photo", compressed);
@@ -155,7 +147,7 @@ const DashboardUploadControl = ({ habit, logActivity }) => {
     if (cooldown > 0) return;
     const file = e.target.files[0];
     if (!file) return;
-    setCooldown(10);
+    triggerUploadCooldown();
     const reader = new FileReader();
     reader.onload = async (ev) => {
       const compressed = await compressPhoto(ev.target.result);
@@ -393,19 +385,19 @@ const Dashboard = ({ habits, logActivity, insights, dataLoading }) => {
           const isString = typeof entry === "string";
           const isObjectWithPhoto = !isString && entry && typeof entry === "object" && "photoData" in entry;
 
-          // Skip base64 photo entries in recent logs summary, but handle both string and object formats
-          if (isString && entry.startsWith("data:image")) return;
-          if (isObjectWithPhoto) return;
+          // Include base64 photo entries in recent logs summary but flag them
+          const photoUrl = isString && entry.startsWith("data:image") ? entry : isObjectWithPhoto ? entry.photoData : null;
+          const isPhoto = !!photoUrl;
 
           const isCount = isString && entry.includes("|");
           const parts = isCount ? entry.split("|") : [];
-          const [time, value] = isCount ? [parts[0], parts[1]] : [(isString ? entry : "Logged"), null];
+          const [time, value] = isCount ? [parts[0], parts[1]] : (isPhoto ? [null, "📷 Photo"] : [(isString ? entry : "Logged"), null]);
           const unit = isCount ? (parts[2] || (h.mode === "count" ? "Unit" : h.mode === "rating" ? "Stars" : h.mode === "timer" ? "sec" : "")) : null;
           const formattedDate = new Date(day.date + "T12:00:00")
             .toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" })
             .toUpperCase();
 
-          all.push({ habit: h.name, emoji: h.emoji || "", type: h.type, date: day.date, formattedDate, time, value, unit });
+          all.push({ habit: h.name, emoji: h.emoji || "", type: h.type, date: day.date, formattedDate, time, value, unit, isPhoto, photoUrl });
         });
       });
     });
@@ -668,8 +660,8 @@ const Dashboard = ({ habits, logActivity, insights, dataLoading }) => {
                 <div className="flex-1 min-w-0">
                   <div className="text-[11px] font-bold text-text-primary truncate flex items-center gap-1.5">
                     <div className="flex items-center gap-2 min-w-0">
-                      <span className="leading-none shrink-0" style={{ filter: "grayscale(1) saturate(0) brightness(1.2)", fontSize: "0.75rem" }}>{log.emoji || (log.type === "Good" ? "+" : "−")}</span>
-                      <p className="text-[11px] font-bold text-text-primary truncate">{log.habit}</p>
+                      <span className="leading-none shrink-0" style={{ filter: "grayscale(1) saturate(0) brightness(1.2)", fontSize: "0.75rem" }}>{log.isPhoto ? "📷" : (log.emoji || (log.type === "Good" ? "+" : "−"))}</span>
+                      <p className="text-[11px] font-bold text-text-primary truncate">{log.habit} {log.isPhoto && "Photo"}</p>
                     </div>
                   </div>
                   <div className="text-[9px] font-mono text-text-secondary">

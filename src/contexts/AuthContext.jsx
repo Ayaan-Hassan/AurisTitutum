@@ -603,6 +603,18 @@ export const AuthProvider = ({ children }) => {
     };
   }, []);
 
+  const [uploadCooldown, setUploadCooldown] = useState(0);
+
+  useEffect(() => {
+    let timer;
+    if (uploadCooldown > 0) {
+      timer = setInterval(() => setUploadCooldown(prev => Math.max(0, prev - 1)), 1000);
+    }
+    return () => clearInterval(timer);
+  }, [uploadCooldown]);
+
+  const triggerUploadCooldown = () => setUploadCooldown(10);
+
 
   const guestSessionId = useMemo(() => {
     let id = localStorage.getItem("auris_guest_sid");
@@ -923,6 +935,8 @@ export const AuthProvider = ({ children }) => {
     deleteNote,
     upsertReminder,
     deleteReminder,
+    uploadCooldown,
+    triggerUploadCooldown
   };
 
   return (

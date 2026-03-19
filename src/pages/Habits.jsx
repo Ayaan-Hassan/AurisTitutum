@@ -169,17 +169,9 @@ const UploadControl = ({ habit, logActivity, onViewGallery }) => {
   const cameraRef = useRef(null);
   const [cameraOpen, setCameraOpen] = useState(false);
   const [stream, setStream] = useState(null);
-  const [cooldown, setCooldown] = useState(0);
+  const { uploadCooldown: cooldown, triggerUploadCooldown } = useAuth();
 
   const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
-
-  useEffect(() => {
-    let timer;
-    if (cooldown > 0) {
-      timer = setInterval(() => setCooldown(prev => prev - 1), 1000);
-    }
-    return () => clearInterval(timer);
-  }, [cooldown]);
 
   const openDesktopCamera = async () => {
     if (cooldown > 0) return;
@@ -216,7 +208,7 @@ const UploadControl = ({ habit, logActivity, onViewGallery }) => {
     canvas.height = cameraRef.current.videoHeight;
     canvas.getContext("2d").drawImage(cameraRef.current, 0, 0);
     const dataUrl = canvas.toDataURL("image/jpeg", 0.75);
-    setCooldown(10);
+    triggerUploadCooldown();
     stopCamera();
     logActivity(habit.id, true, 1, "photo", dataUrl);
   };
@@ -225,7 +217,7 @@ const UploadControl = ({ habit, logActivity, onViewGallery }) => {
     if (cooldown > 0) return;
     const file = e.target.files[0];
     if (!file) return;
-    setCooldown(10);
+    triggerUploadCooldown();
     const reader = new FileReader();
     reader.onload = async (ev) => {
       const compressed = await compressPhoto(ev.target.result);
@@ -297,7 +289,7 @@ const UploadControl = ({ habit, logActivity, onViewGallery }) => {
 
 const CompareView = ({ firstLog, latestLog, habit, onClose }) => {
   const [exporting, setExporting] = useState(false);
-  const [viewMode, setViewMode] = useState("side-by-side"); // side-by-side, slider
+  const [viewMode, setViewMode] = useState("slider"); // Default to slider
   const [sliderPos, setSliderPos] = useState(50);
   const containerRef = useRef(null);
 
@@ -343,19 +335,17 @@ const CompareView = ({ firstLog, latestLog, habit, onClose }) => {
       ctx.fillRect(0, 0, canvas.width, canvas.height);
 
       // --- BRANDING (Logo & Name) ---
-      const logoSize = 100;
+      const logoBoxSize = 100;
       const logoX = canvas.width / 2;
       const logoY = 120;
       
-      // Draw Stylized Diamond Logo
-      ctx.save();
-      ctx.translate(logoX, logoY);
-      ctx.rotate(Math.PI / 4);
-      ctx.fillStyle = "#4ade80";
-      ctx.shadowBlur = 40;
-      ctx.shadowColor = "rgba(74, 222, 128, 0.4)";
-      ctx.fillRect(-logoSize/2.5, -logoSize/2.5, logoSize/1.25, logoSize/1.25);
-      ctx.restore();
+      // Draw Black Background with White Square Center Logo
+      ctx.fillStyle = "#ffffff";
+      ctx.fillRect(logoX - logoBoxSize/2, logoY - logoBoxSize/2, logoBoxSize, logoBoxSize);
+      ctx.fillStyle = "#000000";
+      ctx.fillRect(logoX - 40, logoY - 40, 80, 80);
+      ctx.fillStyle = "#ffffff";
+      ctx.fillRect(logoX - 15, logoY - 15, 30, 30);
       
       ctx.textAlign = "center";
       ctx.fillStyle = "#ffffff";
@@ -399,29 +389,34 @@ const CompareView = ({ firstLog, latestLog, habit, onClose }) => {
           ctx.beginPath();
           ctx.roundRect(x, y, width, height, radius);
           ctx.clip();
+          
+          ctx.fillStyle = "#111111"; // Background for contain gaps
+          ctx.fill();
 
-          // Object-cover calculations
+          // Object-contain calculations
           const imgAspect = img.width / img.height;
           const targetAspect = width / height;
-          let sw, sh, sx, sy;
+          let dw, dh, dx, dy;
           if (imgAspect > targetAspect) {
-              sh = img.height;
-              sw = img.height * targetAspect;
-              sx = (img.width - sw) / 2;
-              sy = 0;
+              dw = width;
+              dh = width / imgAspect;
+              dx = x;
+              dy = y + (height - dh) / 2;
           } else {
-              sw = img.width;
-              sh = img.width / targetAspect;
-              sx = 0;
-              sy = (img.height - sh) / 2;
+              dh = height;
+              dw = height * imgAspect;
+              dx = x + (width - dw) / 2;
+              dy = y;
           }
 
-          const finalSx = sx + (clipX * sw);
-          const finalSw = sw * clipW;
-          const finalDx = x + (clipX * width);
-          const finalDw = width * clipW;
+          if (clipW < 1) {
+              // For slider clipping in contain mode, we still clip the container width
+              ctx.beginPath();
+              ctx.rect(x + (clipX * width), y, width * clipW, height);
+              ctx.clip();
+          }
 
-          ctx.drawImage(img, finalSx, sy, finalSw, sh, finalDx, y, finalDw, height);
+          ctx.drawImage(img, dx, dy, dw, dh);
           ctx.restore();
           
           ctx.strokeStyle = "rgba(255,255,255,0.08)";
@@ -548,7 +543,7 @@ const CompareView = ({ firstLog, latestLog, habit, onClose }) => {
                      <p className="text-xs font-mono text-white/10 font-bold bg-white/5 px-3 py-1 rounded-lg">{firstLog.date}</p>
                   </div>
                   <div className="aspect-[4/5] w-full max-h-[50vh] rounded-[3rem] overflow-hidden border border-white/5 bg-white/5 relative shadow-3xl transition-all duration-700 group-hover:border-white/20">
-                     <img src={firstLog.img} alt="Before" className="absolute inset-0 w-full h-full object-cover transition-transform duration-1000 group-hover:scale-110" />
+                      <img src={firstLog.img} alt="Before" className="absolute inset-0 w-full h-full object-contain transition-transform duration-1000 group-hover:scale-105" />
                      <div className="absolute inset-x-0 bottom-0 h-48 bg-gradient-to-t from-black/60 to-transparent pointer-events-none" />
                   </div>
                 </div>
@@ -565,7 +560,7 @@ const CompareView = ({ firstLog, latestLog, habit, onClose }) => {
                      <p className="text-xs font-mono text-accent/20 font-bold bg-accent/5 px-3 py-1 rounded-lg">{latestLog.date}</p>
                   </div>
                   <div className="aspect-[4/5] w-full max-h-[50vh] rounded-[3rem] overflow-hidden border-2 border-accent/20 bg-accent/5 relative shadow-[0_0_120px_rgba(var(--accent-rgb),0.1)] transition-all duration-700 group-hover:border-accent/40">
-                     <img src={latestLog.img} alt="After" className="absolute inset-0 w-full h-full object-cover transition-transform duration-1000 group-hover:scale-110" />
+                      <img src={latestLog.img} alt="After" className="absolute inset-0 w-full h-full object-contain transition-transform duration-1000 group-hover:scale-105" />
                      <div className="absolute inset-x-0 bottom-0 h-48 bg-gradient-to-t from-black/50 to-transparent pointer-events-none" />
                   </div>
                 </div>
@@ -581,14 +576,14 @@ const CompareView = ({ firstLog, latestLog, habit, onClose }) => {
                   onTouchStart={(e) => { setIsDragging(true); handleSliderMove(e); e.preventDefault(); }}
                 >
                    {/* Latest Image (Bottom) */}
-                   <img src={latestLog.img} className="absolute inset-0 w-full h-full object-cover" alt="After" draggable={false} />
+                    <img src={latestLog.img} className="absolute inset-0 w-full h-full object-contain" alt="After" draggable={false} />
                    
                    {/* First Image (Clipped Layer) */}
                    <div 
                      className="absolute inset-0 overflow-hidden pointer-events-none" 
                      style={{ clipPath: `inset(0 ${100 - sliderPos}% 0 0)` }}
                    >
-                      <img src={firstLog.img} className="absolute inset-0 w-full h-full object-cover" alt="Before" draggable={false} />
+                       <img src={firstLog.img} className="absolute inset-0 w-full h-full object-contain" alt="Before" draggable={false} />
                    </div>
 
                    {/* Vertical Line & Handle */}
