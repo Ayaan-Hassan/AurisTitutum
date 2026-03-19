@@ -41,8 +41,6 @@ export default function AdminDashboard() {
     const [liveTick, setLiveTick] = useState(0);
     const [zoomedImg, setZoomedImg] = useState(null);
 
-    const [graphRange, setGraphRange] = useState("30d");
-    const [graphType, setGraphType] = useState("area");
     const [showRangeDropdown, setShowRangeDropdown] = useState(false);
     const [showTypeDropdown, setShowTypeDropdown] = useState(false);
     const [createComplex, setCreateComplex] = useState(null);
