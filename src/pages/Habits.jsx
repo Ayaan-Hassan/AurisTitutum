@@ -139,8 +139,7 @@ const compressPhoto = (base64Str) => {
     img.src = base64Str;
     img.onload = () => {
       const canvas = document.createElement("canvas");
-      // Scale down image safely before saving to Firestore to prevent memory crash
-      const MAX_SIZE = 1080;
+      const MAX_SIZE = 1200;
       let width = img.width;
       let height = img.height;
       if (width > height) {
@@ -158,8 +157,7 @@ const compressPhoto = (base64Str) => {
       canvas.height = height;
       const ctx = canvas.getContext("2d");
       ctx.drawImage(img, 0, 0, width, height);
-      // Reduce quality to 0.6 standard
-      resolve(canvas.toDataURL("image/jpeg", 0.6));
+      resolve(canvas.toDataURL("image/jpeg", 0.7));
     };
   });
 };
@@ -167,15 +165,24 @@ const compressPhoto = (base64Str) => {
 // ─── Upload Mode Component ───────────────────────────────────────────────────
 const UploadControl = ({ habit, logActivity, onViewGallery }) => {
   const fileInputRef = useRef(null);
-  const cameraInputRef = useRef(null); // mobile camera-only input
+  const cameraInputRef = useRef(null);
   const cameraRef = useRef(null);
   const [cameraOpen, setCameraOpen] = useState(false);
   const [stream, setStream] = useState(null);
+  const [cooldown, setCooldown] = useState(0);
 
   const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
 
-  // Desktop: open browser webcam (no confirmation dialog — just open)
+  useEffect(() => {
+    let timer;
+    if (cooldown > 0) {
+      timer = setInterval(() => setCooldown(prev => prev - 1), 1000);
+    }
+    return () => clearInterval(timer);
+  }, [cooldown]);
+
   const openDesktopCamera = async () => {
+    if (cooldown > 0) return;
     try {
       const s = await navigator.mediaDevices.getUserMedia({ video: true });
       setStream(s);
@@ -185,8 +192,8 @@ const UploadControl = ({ habit, logActivity, onViewGallery }) => {
     }
   };
 
-  // Mobile: trigger camera-capture file picker
   const openMobileCamera = () => {
+    if (cooldown > 0) return;
     cameraInputRef.current?.click();
   };
 
@@ -203,30 +210,29 @@ const UploadControl = ({ habit, logActivity, onViewGallery }) => {
   };
 
   const capturePhoto = () => {
-    if (!cameraRef.current) return;
+    if (!cameraRef.current || cooldown > 0) return;
     const canvas = document.createElement("canvas");
     canvas.width = cameraRef.current.videoWidth;
     canvas.height = cameraRef.current.videoHeight;
     canvas.getContext("2d").drawImage(cameraRef.current, 0, 0);
     const dataUrl = canvas.toDataURL("image/jpeg", 0.75);
+    setCooldown(10);
     stopCamera();
-    savePhoto(dataUrl);
+    logActivity(habit.id, true, 1, "upload", { photoData: dataUrl });
   };
 
   const handleFileUpload = (e) => {
+    if (cooldown > 0) return;
     const file = e.target.files[0];
     if (!file) return;
+    setCooldown(10);
     const reader = new FileReader();
     reader.onload = async (ev) => {
       const compressed = await compressPhoto(ev.target.result);
-      savePhoto(compressed);
+      logActivity(habit.id, true, 1, "upload", { photoData: compressed });
     };
     reader.readAsDataURL(file);
     e.target.value = null;
-  };
-
-  const savePhoto = (dataUrl) => {
-    logActivity(habit.id, true, 1, "photo", dataUrl);
   };
 
   const photoLogs = (habit.logs || []).flatMap((l) =>
@@ -237,12 +243,15 @@ const UploadControl = ({ habit, logActivity, onViewGallery }) => {
 
   return (
     <>
-      {/* Desktop webcam modal */}
       {cameraOpen && (
         <div className="fixed inset-0 z-[200] bg-black flex flex-col items-center justify-center">
           <video ref={cameraRef} autoPlay playsInline className="w-full max-h-[70vh] object-contain" />
           <div className="flex gap-4 mt-6">
-            <button onClick={capturePhoto} className="w-16 h-16 rounded-full bg-white flex items-center justify-center shadow-2xl">
+            <button
+               onClick={capturePhoto}
+               disabled={cooldown > 0}
+               className="w-16 h-16 rounded-full bg-white flex items-center justify-center shadow-2xl disabled:opacity-50"
+            >
               <div className="w-12 h-12 rounded-full border-4 border-gray-300" />
             </button>
             <button onClick={stopCamera} className="px-6 py-3 rounded-xl bg-white/20 text-white font-bold">Cancel</button>
@@ -251,22 +260,22 @@ const UploadControl = ({ habit, logActivity, onViewGallery }) => {
       )}
 
       <div className="flex gap-2 w-full">
-        {/* Camera button: mobile opens native camera picker; desktop opens webcam */}
         <button
           onClick={isMobile ? openMobileCamera : openDesktopCamera}
-          className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl border-2 border-border-color bg-bg-main text-text-secondary hover:border-accent hover:text-accent transition-all text-xs font-bold"
+          disabled={cooldown > 0}
+          className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl border-2 border-border-color bg-bg-main text-text-secondary hover:border-accent hover:text-accent transition-all text-xs font-bold disabled:opacity-50"
         >
           <Icon name="camera" size={14} />
-          Camera
+          {cooldown > 0 ? `Wait ${cooldown}s` : "Camera"}
         </button>
 
-        {/* Upload button: always just opens file picker (no capture attribute) */}
         <button
           onClick={() => fileInputRef.current?.click()}
-          className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl border-2 border-border-color bg-bg-main text-text-secondary hover:border-accent hover:text-accent transition-all text-xs font-bold"
+          disabled={cooldown > 0}
+          className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl border-2 border-border-color bg-bg-main text-text-secondary hover:border-accent hover:text-accent transition-all text-xs font-bold disabled:opacity-50"
         >
-          <Icon name="image" size={14} />
-          Upload
+          <Icon name="upload" size={14} />
+          {cooldown > 0 ? `Wait ${cooldown}s` : "Upload"}
         </button>
 
         {photoLogs.length > 0 && (
@@ -279,9 +288,7 @@ const UploadControl = ({ habit, logActivity, onViewGallery }) => {
           </button>
         )}
 
-        {/* Mobile camera-only file input (with capture) */}
         <input ref={cameraInputRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={handleFileUpload} />
-        {/* Regular file picker (no capture) */}
         <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleFileUpload} />
       </div>
     </>
@@ -289,19 +296,7 @@ const UploadControl = ({ habit, logActivity, onViewGallery }) => {
 };
 
 const CompareView = ({ firstLog, latestLog, habit, onClose }) => {
-  const [sliderPos, setSliderPos] = useState(50);
-  const containerRef = useRef(null);
-  const [width, setWidth] = useState(0);
   const [exporting, setExporting] = useState(false);
-
-  useEffect(() => {
-    if (containerRef.current) setWidth(containerRef.current.offsetWidth);
-    const handleResize = () => {
-      if (containerRef.current) setWidth(containerRef.current.offsetWidth);
-    };
-    window.addEventListener("resize", handleResize);
-    return () => window.removeEventListener("resize", handleResize);
-  }, []);
 
   const getDayNumber = (dateStr) => {
     if (!habit.createdAt || !dateStr) return null;
@@ -332,20 +327,21 @@ const CompareView = ({ firstLog, latestLog, habit, onClose }) => {
 
       const w = 1200;
       const h = 900;
-      const headerH = 180;
+      const headerH = 260;
       
-      canvas.width = w * 2 + 120;
-      canvas.height = h + headerH + 80;
+      canvas.width = w * 2 + 160;
+      canvas.height = h + headerH + 100;
       
-      ctx.fillStyle = "#0c0c0c";
+      ctx.fillStyle = "#020202";
       ctx.fillRect(0, 0, canvas.width, canvas.height);
       
       ctx.fillStyle = "#ffffff";
-      ctx.font = "bold 64px Inter, sans-serif";
-      ctx.fillText("AURISTITUTUM", 60, 90);
-      ctx.font = "28px Inter, sans-serif";
-      ctx.fillStyle = "#aaaaaa";
-      ctx.fillText(`Transformation Progress: ${habit.name}`, 60, 140);
+      ctx.font = "bold 96px Inter, sans-serif";
+      ctx.textAlign = "center";
+      ctx.fillText("AURISTITUTUM", canvas.width / 2, 110);
+      ctx.font = "32px Inter, sans-serif";
+      ctx.fillStyle = "#555555";
+      ctx.fillText(`HABIT PROGRESS: ${habit.name.toUpperCase()}`, canvas.width / 2, 165);
       
       const drawImg = (img, x, y) => {
           const dw = w;
@@ -363,16 +359,16 @@ const CompareView = ({ firstLog, latestLog, habit, onClose }) => {
       };
 
       drawImg(img1, 40, headerH + 40);
-      drawImg(img2, w + 80, headerH + 40);
+      drawImg(img2, w + 120, headerH + 40);
       
-      ctx.fillStyle = "rgba(255,255,255,0.7)";
-      ctx.font = "bold 40px Inter";
-      ctx.fillText(`DAY ${day1}`, 60, headerH + 110);
+      ctx.fillStyle = "#ffffff";
+      ctx.font = "bold 48px Inter";
+      ctx.fillText(`START: DAY ${day1}`, 40 + w/2, headerH + 90);
       ctx.fillStyle = "#4ade80";
-      ctx.fillText(`DAY ${day2}`, w + 100, headerH + 110);
+      ctx.fillText(`NOW: DAY ${day2}`, w + 120 + w/2, headerH + 90);
 
       const link = document.createElement("a");
-      link.download = `Compare_Day${day1}_vs_Day${day2}.png`;
+      link.download = `Evolution_Day${day1}_vs_Day${day2}.png`;
       link.href = canvas.toDataURL("image/png");
       link.click();
     } catch (err) {
@@ -383,71 +379,72 @@ const CompareView = ({ firstLog, latestLog, habit, onClose }) => {
   };
 
   return (
-    <div className="fixed inset-0 z-[160] bg-black/98 backdrop-blur-3xl flex flex-col items-center justify-center p-4">
-      <div className="absolute top-8 left-1/2 -translate-x-1/2 bg-white/5 backdrop-blur-xl px-10 py-5 rounded-[2rem] flex items-center gap-16 z-[170] border border-white/10 shadow-3xl">
-         <div className="flex flex-col items-center">
-            <span className="text-[10px] font-black tracking-widest uppercase text-white/30 mb-2">First Entry</span>
-            <span className="text-xl font-mono font-black text-white px-4 py-1.5 rounded-xl bg-white/5 border border-white/5">DAY {day1}</span>
-         </div>
-         <div className="text-white/20 font-light text-3xl">vs</div>
-         <div className="flex flex-col items-center">
-            <span className="text-[10px] font-black tracking-widest uppercase text-accent mb-2">Latest Status</span>
-            <span className="text-xl font-mono font-black text-accent px-4 py-1.5 rounded-xl bg-accent/10 border border-accent/20">DAY {day2}</span>
-         </div>
-      </div>
-      
-      <div className="absolute top-8 right-8 flex items-center gap-4 z-[170]">
-        <button
-          onClick={exportComparison}
-          disabled={exporting}
-          className="h-14 px-8 rounded-2xl bg-white text-black hover:bg-white/90 font-black flex items-center gap-3 transition-all hover:scale-105 active:scale-95 shadow-2xl disabled:opacity-50"
-        >
-          <Icon name={exporting ? "loader" : "download"} size={20} className={exporting ? "animate-spin" : ""} />
-          {exporting ? "RENDERING..." : "EXPORT RESULT"}
-        </button>
-        <button onClick={onClose} className="w-14 h-14 rounded-2xl bg-white/10 hover:bg-white/20 text-white flex items-center justify-center border border-white/10 transition-all hover:rotate-90">
-          <Icon name="x" size={24} />
-        </button>
-      </div>
-
-      <div 
-         ref={containerRef}
-         className="w-full max-w-7xl aspect-[4/3] bg-black/80 rounded-[3rem] overflow-hidden shadow-[0_0_150px_rgba(0,0,0,0.8)] border border-white/5 relative cursor-col-resize select-none touch-none"
-         onMouseMove={(e) => {
-            if (e.buttons === 1 && containerRef.current) {
-               const rect = containerRef.current.getBoundingClientRect();
-               const x = Math.max(0, Math.min(e.clientX - rect.left, rect.width));
-               setSliderPos((x / rect.width) * 100);
-            }
-         }}
-         onTouchMove={(e) => {
-            if (containerRef.current) {
-               const rect = containerRef.current.getBoundingClientRect();
-               const touch = e.touches[0];
-               const x = Math.max(0, Math.min(touch.clientX - rect.left, rect.width));
-               setSliderPos((x / rect.width) * 100);
-            }
-         }}
-      >
-        <div className="absolute inset-0 bg-contain bg-center bg-no-repeat opacity-90" style={{ backgroundImage: `url(${latestLog.img})` }} />
+    <div className="fixed inset-0 z-[165] bg-black/98 backdrop-blur-3xl flex flex-col items-center justify-center p-4">
+      <div className="w-full max-w-[98vw] lg:max-w-[1500px] flex flex-col items-center">
         
-        <div 
-          className="absolute inset-y-0 left-0 overflow-hidden border-r-[3px] border-white shadow-[15px_0_60px_rgba(0,0,0,1)]"
-          style={{ width: `${sliderPos}%` }}
-        >
-          <div className="absolute inset-y-0 left-0 bg-contain bg-center bg-no-repeat opacity-90" style={{ backgroundImage: `url(${firstLog.img})`, width: width ? `${width}px` : '100vw' }} />
-        </div>
-
-        <div 
-           className="absolute inset-y-0 flex items-center justify-center pointer-events-none -translate-x-1/2"
-           style={{ left: `${sliderPos}%` }}
-        >
-           <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center shadow-[0_0_30px_rgba(255,255,255,0.4)] text-black">
-             <Icon name="code" size={32} className="rotate-90" />
+        <div className="w-full flex flex-col sm:flex-row justify-between items-center mb-8 px-4 gap-6">
+           <div>
+              <p className="text-[10px] font-black tracking-[0.5em] text-accent mb-1 uppercase opacity-60">Transformation Archive</p>
+              <h1 className="text-4xl font-black text-white italic tracking-tighter uppercase leading-none">{habit.name}</h1>
+           </div>
+           
+           <div className="flex items-center gap-3">
+              <button
+                onClick={exportComparison}
+                disabled={exporting}
+                className="h-12 px-6 rounded-2xl bg-white text-black hover:bg-white/90 font-black flex items-center gap-2.5 transition-all active:scale-95 disabled:opacity-50 text-xs shadow-xl"
+              >
+                <Icon name={exporting ? "loader" : "download"} size={16} className={exporting ? "animate-spin" : ""} />
+                {exporting ? "SAVING..." : "EXPORT IMAGE"}
+              </button>
+              <button onClick={onClose} className="w-12 h-12 rounded-2xl bg-white/10 hover:bg-white/20 text-white flex items-center justify-center border border-white/10 transition-all">
+                <Icon name="x" size={20} />
+              </button>
            </div>
         </div>
+
+        <div className="w-full grid grid-cols-1 md:grid-cols-2 gap-6 lg:gap-12 items-stretch">
+           <div className="flex flex-col items-stretch group relative">
+              <div className="absolute top-1/2 -right-6 lg:-right-9 -translate-y-1/2 z-10 hidden md:block">
+                 <div className="w-12 h-12 lg:w-16 lg:h-16 rounded-full bg-black border border-white/10 flex items-center justify-center text-white/10 italic font-black text-2xl lg:text-3xl shadow-3xl">VS</div>
+              </div>
+
+              <div className="mb-4 flex items-center justify-between px-4">
+                 <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center text-white/30 font-black italic text-lg">01</div>
+                    <div>
+                       <p className="text-[8px] font-black tracking-[0.2em] text-white/20 uppercase">Initial Record</p>
+                       <p className="text-lg font-black text-white italic">DAY {day1}</p>
+                    </div>
+                 </div>
+                 <p className="text-[9px] font-mono text-white/10">{firstLog.date}</p>
+              </div>
+              <div className="aspect-[4/3] w-full rounded-[2.5rem] overflow-hidden border border-white/5 bg-white/5 relative shadow-2xl transition-all duration-500 hover:border-white/20">
+                 <div className="absolute inset-0 bg-contain bg-center bg-no-repeat transition-transform duration-700 group-hover:scale-[1.03]" style={{ backgroundImage: `url(${firstLog.img})` }} />
+                 <div className="absolute inset-x-0 bottom-0 h-40 bg-gradient-to-t from-black/20 to-transparent pointer-events-none" />
+              </div>
+           </div>
+
+           <div className="flex flex-col items-stretch group">
+              <div className="mb-4 flex items-center justify-between px-4">
+                 <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-accent text-bg-main flex items-center justify-center font-black italic text-lg shadow-[0_0_20px_rgba(var(--accent-rgb),0.3)]">L</div>
+                    <div>
+                       <p className="text-[8px] font-black tracking-[0.2em] text-accent/40 uppercase">Latest Entry</p>
+                       <p className="text-lg font-black text-accent italic">DAY {day2}</p>
+                    </div>
+                 </div>
+                 <p className="text-[9px] font-mono text-accent/20 font-bold">{latestLog.date}</p>
+              </div>
+              <div className="aspect-[4/3] w-full rounded-[2.5rem] overflow-hidden border-2 border-accent/20 bg-accent/5 relative shadow-[0_0_100px_rgba(var(--accent-rgb),0.1)] transition-all duration-500 hover:border-accent/40">
+                 <div className="absolute inset-0 bg-contain bg-center bg-no-repeat transition-transform duration-700 group-hover:scale-[1.03]" style={{ backgroundImage: `url(${latestLog.img})` }} />
+                 <div className="absolute inset-x-0 bottom-0 h-40 bg-gradient-to-t from-black/10 to-transparent pointer-events-none" />
+              </div>
+           </div>
+        </div>
+
+        <p className="mt-12 text-[10px] font-black uppercase tracking-[0.8em] text-white/10 italic text-center">Comparing your journey over {day2 - day1 + 1} daily records</p>
       </div>
-      <p className="text-white/50 mt-6 text-xs uppercase tracking-widest animate-pulse">Drag or swipe to compare</p>
     </div>
   );
 };
@@ -541,7 +538,7 @@ const GalleryModal = ({ open, habit, onClose, setHabits }) => {
     (l.entries || [])
       .filter((e) => typeof e === "string" && e.startsWith("data:image"))
       .map((img) => ({ date: l.date, img }))
-  ).reverse();
+  );
 
   const latestImg = photoLogs[0]?.img;
   const firstImg = photoLogs[photoLogs.length - 1]?.img;
@@ -549,25 +546,10 @@ const GalleryModal = ({ open, habit, onClose, setHabits }) => {
   const { user, deleteLog, replaceHabitsState } = useAuth();
 
   const handleDelete = async (entryImg) => {
-    if (user) {
-      // Find the log document ID for this specific image entry
-      // This requires finding which log doc has this photoData
-      const relevantLog = (habit.logs || []).find(l => (l.entries || []).includes(entryImg));
-      // Wait, we need the log document ID, not the habit.logs which is aggregated.
-      // In the refined AuthContext, logDocs is exported.
-      // But habit.logs entries for photos ARE the photoData itself.
-      // So we can search in logDocs for a doc with matching photoData.
-      // For now, if we can't find it easily, we fallback to replaceHabitsState (the previous behavior) 
-      // but await it.
-      
-      const nextHabits = habit.logs ? habit.logs.map(l => ({
-        ...l,
-        entries: (l.entries || []).filter(e => e !== entryImg)
-      })).filter(l => l.entries.length > 0) : [];
-      
-      // Better: search through authContext.logDocs
-      // But for simplicity in this specific gallery view, we'll use a confirmed replace.
-      await setHabits?.((prev) => prev.map((h) => {
+    const confirmDelete = window.confirm("Are you sure you want to delete this photo entry?");
+    if (!confirmDelete) return;
+
+    await setHabits?.((prev) => prev.map((h) => {
         if (h.id !== habit.id) return h;
         const updatedLogs = (h.logs || []).map((l) => ({
           ...l,
@@ -575,27 +557,22 @@ const GalleryModal = ({ open, habit, onClose, setHabits }) => {
           count: Math.max(0, (l.entries || []).filter((e) => e !== entryImg).length),
         })).filter((l) => l.count > 0 || (l.entries || []).length > 0);
         return { ...h, logs: updatedLogs };
-      }));
-    } else {
-      setHabits?.((prev) => prev.map((h) => {
-        if (h.id !== habit.id) return h;
-        const updatedLogs = (h.logs || []).map((l) => ({
-          ...l,
-          entries: (l.entries || []).filter((e) => e !== entryImg),
-          count: Math.max(0, (l.entries || []).filter((e) => e !== entryImg).length),
-        })).filter((l) => l.count > 0 || (l.entries || []).length > 0);
-         return { ...h, logs: updatedLogs };
-      }));
-    }
+    }));
   };
 
   if (mode === "compare" && photoLogs.length >= 2) {
-    return <CompareView latestLog={photoLogs[0]} firstLog={photoLogs[photoLogs.length - 1]} habit={habit} onClose={() => setMode("grid")} />;
+    return (
+      <CompareView 
+        latestLog={photoLogs[photoLogs.length - 1]} 
+        firstLog={photoLogs[0]} 
+        habit={habit} 
+        onClose={() => setMode("grid")} 
+      />
+    );
   }
 
   if (mode === "slideshow" && photoLogs.length > 0) {
-    const chronological = [...photoLogs].reverse();
-    return <SlideshowView photos={chronological} onClose={() => setMode("grid")} />;
+    return <SlideshowView photos={photoLogs} onClose={() => setMode("grid")} />;
   }
 
   return (
@@ -820,8 +797,8 @@ const Habits = ({ habits, setHabits, logActivity }) => {
                       : h.mode === "quick"
                         ? `${h.totalLogs} log(s)`
                         : h.mode === "rating"
-                          ? `avg ${h.totalLogs ? Math.round((h.logs || []).reduce((s, l) => s + l.count, 0) / Math.max(1, (h.logs || []).filter(l => l.count > 0).length)) : 0} ★`
-                          : `${(h.logs || []).reduce((s, d) => s + (d.entries || []).length, 0)} log(s) · ${h.totalLogs} ${h.unit || ""}`
+                          ? `${(h.logs || []).reduce((s, d) => s + (d.entries || []).length, 0)} log(s) · Stars`
+                          : `${(h.logs || []).reduce((s, d) => s + (d.entries || []).length, 0)} log(s) · ${h.totalLogs} ${h.unit || (h.mode === "count" ? "Unit" : "")}`
                     }
                   </span>
                   {/* Mode badge */}

@@ -128,16 +128,18 @@ const HabitPerformanceModal = ({ open, habit, onClose }) => {
   // Chart data: last 30 days
   const chartData = useMemo(() => {
     if (!habit) return [];
-    return Array.from({ length: 30 }).map((_, i) => {
+    const data = Array.from({ length: 30 }).map((_, i) => {
       const d = new Date();
       d.setDate(d.getDate() - (29 - i));
       const dateStr = getDateKey(d);
       const log = (habit.logs || []).find((l) => l.date === dateStr);
       return {
         name: d.getDate().toString(),
-        value: log ? log.count : 0,
+        value: log ? Number(log.count) || 0 : 0,
+        fullDate: dateStr
       };
     });
+    return data;
   }, [habit]);
 
   if (!open || !habit || !metrics) return null;
@@ -244,26 +246,50 @@ const HabitPerformanceModal = ({ open, habit, onClose }) => {
             {hasAnyData ? (
               <ResponsiveContainer width="100%" height={180}>
                 {chartType === "bar" ? (
-                  <BarChart data={chartData} margin={{ top: 4, right: 4, left: -20, bottom: 0 }}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="var(--border-color)" />
-                    <XAxis dataKey="name" tick={{ fill: "var(--text-secondary)", fontSize: 9 }} interval={4} />
-                    <YAxis tick={{ fill: "var(--text-secondary)", fontSize: 9 }} />
+                  <BarChart data={chartData} margin={{ top: 20, right: 20, left: 0, bottom: 0 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="var(--border-color)" vertical={false} />
+                    <XAxis 
+                      dataKey="name" 
+                      tick={{ fill: "var(--text-secondary)", fontSize: 9 }} 
+                      interval={4}
+                      axisLine={{ stroke: 'var(--border-color)' }}
+                      tickLine={false}
+                    />
+                    <YAxis 
+                      tick={{ fill: "var(--text-secondary)", fontSize: 9 }}
+                      axisLine={{ stroke: 'var(--border-color)' }}
+                      tickLine={false}
+                      width={30}
+                    />
                     <Tooltip
+                      cursor={{ fill: 'var(--accent-dim)', opacity: 0.4 }}
                       contentStyle={{
                         backgroundColor: "var(--bg-main)",
                         border: "1px solid var(--border-color)",
                         borderRadius: "10px",
                         fontSize: "11px",
                         color: "var(--text-primary)",
+                        boxShadow: '0 10px 25px rgba(0,0,0,0.2)'
                       }}
                     />
-                    <Bar dataKey="value" fill={chartColor} radius={[3, 3, 0, 0]} fillOpacity={0.9} />
+                    <Bar dataKey="value" fill={chartColor} radius={[4, 4, 0, 0]} fillOpacity={1} />
                   </BarChart>
                 ) : (
-                  <LineChart data={chartData} margin={{ top: 4, right: 4, left: -20, bottom: 0 }}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="var(--border-color)" />
-                    <XAxis dataKey="name" tick={{ fill: "var(--text-secondary)", fontSize: 9 }} interval={4} />
-                    <YAxis tick={{ fill: "var(--text-secondary)", fontSize: 9 }} />
+                  <LineChart data={chartData} margin={{ top: 20, right: 20, left: 0, bottom: 0 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="var(--border-color)" vertical={false} />
+                    <XAxis 
+                      dataKey="name" 
+                      tick={{ fill: "var(--text-secondary)", fontSize: 9 }} 
+                      interval={4}
+                      axisLine={{ stroke: 'var(--border-color)' }}
+                      tickLine={false}
+                    />
+                    <YAxis 
+                      tick={{ fill: "var(--text-secondary)", fontSize: 9 }}
+                      axisLine={{ stroke: 'var(--border-color)' }}
+                      tickLine={false}
+                      width={30}
+                    />
                     <Tooltip
                       contentStyle={{
                         backgroundColor: "var(--bg-main)",
@@ -271,15 +297,17 @@ const HabitPerformanceModal = ({ open, habit, onClose }) => {
                         borderRadius: "10px",
                         fontSize: "11px",
                         color: "var(--text-primary)",
+                        boxShadow: '0 10px 25px rgba(0,0,0,0.2)'
                       }}
                     />
                     <Line
                       type="monotone"
                       dataKey="value"
                       stroke={chartColor}
-                      strokeWidth={2.5}
-                      dot={{ fill: chartColor, r: 3 }}
-                      activeDot={{ r: 5, fill: chartColor }}
+                      strokeWidth={3}
+                      dot={{ fill: chartColor, r: 4, strokeWidth: 0 }}
+                      activeDot={{ r: 6, fill: chartColor, stroke: 'white' }}
+                      animationDuration={1000}
                     />
                   </LineChart>
                 )}
@@ -347,12 +375,12 @@ const HabitPerformanceModal = ({ open, habit, onClose }) => {
                   if (dateStr) {
                     if (hasActivity) {
                       themeClass = isBad
-                        ? "bg-[#ef4444] text-white border-[#ef4444] shadow-[0_0_12px_rgba(239,68,68,0.25)] opacity-100"
-                        : "bg-[#4ade80] text-black border-[#4ade80] shadow-[0_0_12px_rgba(74,222,128,0.25)] opacity-100";
+                        ? "bg-[#ef4444] text-white border border-[#ef4444] shadow-sm opacity-100"
+                        : "bg-[#4ade80] text-black border border-[#4ade80] shadow-sm opacity-100";
                     } else {
                       themeClass = isToday
-                        ? "bg-bg-main border-accent/60 text-accent opacity-100 ring-1 ring-accent/30"
-                        : "bg-bg-main border-border-color text-text-secondary opacity-60";
+                        ? "bg-bg-main border-2 border-accent/60 text-accent opacity-100"
+                        : "bg-bg-main border border-border-color text-text-secondary hover:border-text-secondary opacity-60";
                     }
                   }
 

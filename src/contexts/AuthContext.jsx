@@ -243,20 +243,24 @@ export const AuthProvider = ({ children }) => {
     [settingsMap.sheets],
   );
 
-  const replaceHabitsAndLogs = async (uid, nextHabits) => {
-    const normalizedHabits = (Array.isArray(nextHabits) ? nextHabits : []).map(
-      normalizeHabit,
-    );
+  const replaceHabitsAndLogs = async (uid, nextHabitsArg) => {
+    const currentHabits = habits; // From context scope
+    const nextHabits = typeof nextHabitsArg === "function" ? nextHabitsArg(currentHabits) : nextHabitsArg;
+    const normalizedHabits = (Array.isArray(nextHabits) ? nextHabits : []).map(normalizeHabit);
     await replaceHabits(uid, normalizedHabits);
     await replaceLogs(uid, serializeLogsFromHabits(normalizedHabits));
   };
 
-  const replaceNotes = async (uid, nextNotes) => {
+  const replaceNotes = async (uid, nextNotesArg) => {
+    const currentNotes = notes; // From context scope
+    const nextNotes = typeof nextNotesArg === "function" ? nextNotesArg(currentNotes) : nextNotesArg;
     const normalized = (Array.isArray(nextNotes) ? nextNotes : []).map(normalizeNote);
     await replaceCollectionById(uid, USER_SUBCOLLECTIONS.notes, normalized);
   };
 
-  const replaceUserReminders = async (uid, nextReminders) => {
+  const replaceUserReminders = async (uid, nextRemindersArg) => {
+    const currentReminders = reminders; // From context scope
+    const nextReminders = typeof nextRemindersArg === "function" ? nextRemindersArg(currentReminders) : nextRemindersArg;
     const normalized = (Array.isArray(nextReminders) ? nextReminders : []).map(
       normalizeReminder,
     );
