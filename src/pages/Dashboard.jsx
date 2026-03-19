@@ -569,8 +569,9 @@ const Dashboard = ({ habits, logActivity, insights, dataLoading }) => {
                       )}
                     </div>
                     <div className="min-w-0">
-                      <div className={`text-sm font-bold truncate ${isWhite ? "text-black" : "text-text-primary"}`}>
+                      <div className={`text-sm font-bold truncate flex items-center gap-2 ${isWhite ? "text-black" : "text-text-primary"}`}>
                         {h.name}
+                        {h.isPinned && <Icon name="pin" size={10} className={`${isWhite ? 'text-black/40' : 'text-accent'} rotate-45`} />}
                         {h.adminCreated && <span className="ml-2 px-1 py-0.5 rounded bg-black text-white text-[7px] font-black uppercase tracking-tighter align-middle">Admin Stream</span>}
                       </div>
                       <div className={`text-[10px] uppercase font-mono truncate ${isWhite ? "text-black/60" : "text-text-secondary"}`}>

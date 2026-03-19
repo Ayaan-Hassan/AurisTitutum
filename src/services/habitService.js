@@ -16,6 +16,7 @@ const toHabitDoc = (habit = {}) => ({
   mode: habit.mode || "quick",
   unit: habit.unit || "",
   emoji: habit.emoji || "",
+  isPinned: !!habit.isPinned,
   createdAt: habit.createdAt || new Date().toISOString(),
   updatedAt: new Date().toISOString(),
 });
@@ -35,6 +36,7 @@ export const aggregateHabitsFromDocs = (habitDocs = [], logDocs = []) => {
       mode: doc?.mode || "quick",
       unit: doc?.unit || "",
       emoji: doc?.emoji || "",
+      isPinned: !!doc?.isPinned,
       createdAt: doc?.createdAt || new Date().toISOString(),
       updatedAt: doc?.updatedAt || new Date().toISOString(),
       totalLogs: 0,
@@ -106,6 +108,10 @@ export const aggregateHabitsFromDocs = (habitDocs = [], logDocs = []) => {
       ),
     }))
     .sort((a, b) => {
+      // Prioritize pinned habits
+      if (a.isPinned && !b.isPinned) return -1;
+      if (!a.isPinned && b.isPinned) return 1;
+
       const left = String(a.createdAt || "");
       const right = String(b.createdAt || "");
       if (left === right) return a.name.localeCompare(b.name);

@@ -853,6 +853,22 @@ const Habits = ({ habits, setHabits, logActivity }) => {
   const performanceHabit = habits.find((h) => h.id === performanceTarget) || null;
   const galleryHabit = habits.find((h) => h.id === galleryTarget) || null;
   const { user, deleteHabit, updateHabit } = useAuth();
+  
+  const togglePin = async (habitId, currentPinned) => {
+    if (user) {
+      await updateHabit(habitId, { isPinned: !currentPinned });
+    } else {
+      setHabits(prev => prev.map(h => h.id === habitId ? { ...h, isPinned: !currentPinned } : h));
+    }
+  };
+
+  const sortedHabits = useMemo(() => {
+    return [...habits].sort((a, b) => {
+       if (a.isPinned && !b.isPinned) return -1;
+       if (!a.isPinned && b.isPinned) return 1;
+       return 0;
+    });
+  }, [habits]);
 
   return (
     <div className="page-fade space-y-10 pb-20">
@@ -866,7 +882,7 @@ const Habits = ({ habits, setHabits, logActivity }) => {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-        {habits.map((h) => {
+        {sortedHabits.map((h) => {
           const todayKey = getLocalDateKey();
           const checkedToday = (h.logs || []).some(
             (l) => l.date === todayKey && l.count > 0,
@@ -896,6 +912,15 @@ const Habits = ({ habits, setHabits, logActivity }) => {
               </div>
               {/* Action buttons */}
               <div className="absolute top-0 right-0 p-6 flex gap-2 z-[30]">
+                <Button
+                  onClick={(e) => { e.stopPropagation(); togglePin(h.id, h.isPinned); }}
+                  variant="outline"
+                  size="sm"
+                  className={`w-8 h-8 p-0 rounded-lg flex items-center justify-center border transition-all ${h.isPinned ? 'border-accent text-accent bg-accent/10 shadow-[0_0_10px_rgba(var(--accent-rgb),0.2)]' : 'border-border-color bg-bg-main hover:border-accent hover:text-accent'}`}
+                  title={h.isPinned ? "Unpin habit" : "Pin habit to top"}
+                >
+                  <Icon name="pin" size={13} className={h.isPinned ? "rotate-45" : ""} />
+                </Button>
                 <Button
                   onClick={(e) => { e.stopPropagation(); setPerformanceTarget(h.id); }}
                   variant="outline"
@@ -953,8 +978,9 @@ const Habits = ({ habits, setHabits, logActivity }) => {
                   </div>
                 )}
 
-                <h4 className="text-xl font-bold truncate max-w-[200px] mb-1 text-text-primary">
+                <h4 className="text-xl font-bold truncate max-w-[200px] mb-1 text-text-primary flex items-center gap-2">
                   {h.name}
+                  {h.isPinned && <Icon name="pin" size={12} className="text-accent rotate-45" />}
                 </h4>
                 <div className="flex items-center gap-2 flex-wrap">
                   <span
