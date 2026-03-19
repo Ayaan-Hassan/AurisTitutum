@@ -283,7 +283,7 @@ const UploadControl = ({ habit, logActivity, onViewGallery }) => {
             onClick={onViewGallery}
             className="flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl border-2 border-accent/40 bg-accent/10 text-accent transition-all text-xs font-bold"
           >
-            <Icon name="grid" size={13} />
+            <Icon name="image" size={13} />
             {photoLogs.length}
           </button>
         )}
@@ -297,9 +297,9 @@ const UploadControl = ({ habit, logActivity, onViewGallery }) => {
 
 const CompareView = ({ firstLog, latestLog, habit, onClose }) => {
   const [exporting, setExporting] = useState(false);
-  const [viewMode, setViewMode] = useState("side-by-side"); // side-by-side, slider, overlay
+  const [viewMode, setViewMode] = useState("side-by-side"); // side-by-side, slider
   const [sliderPos, setSliderPos] = useState(50);
-  const [overlayOpacity, setOverlayOpacity] = useState(0.5);
+  const containerRef = useRef(null);
 
   const getDayNumber = (dateStr) => {
     if (!habit.createdAt || !dateStr) return null;
@@ -328,72 +328,75 @@ const CompareView = ({ firstLog, latestLog, habit, onClose }) => {
         new Promise(r => { img2.onload = r; img2.src = latestImg; })
       ]);
 
-      const w = 1400;
-      const h = 1750; // 4:5 Aspect Ratio
-      const padding = 80;
-      const headerH = 450;
-      const footerH = 300;
+      const w = 1200;
+      const h = 1500; // 4:5 Aspect Ratio
+      const padding = 100;
+      const headerH = 500;
+      const footerH = 250;
       
-      canvas.width = w * 2 + padding * 3;
-      canvas.height = h + headerH + footerH;
+      const isSliderExport = viewMode === "slider";
       
-      // Background Gradient
-      const bgGrade = ctx.createLinearGradient(0, 0, 0, canvas.height);
-      bgGrade.addColorStop(0, "#0a0a0a");
-      bgGrade.addColorStop(1, "#020202");
-      ctx.fillStyle = bgGrade;
+      if (isSliderExport) {
+          canvas.width = w + padding * 2;
+          canvas.height = h + headerH + footerH;
+      } else {
+          canvas.width = w * 2 + padding * 3;
+          canvas.height = h + headerH + footerH;
+      }
+      
+      // Professional Dark Background
+      ctx.fillStyle = "#050505";
       ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-      // Decorative elements
-      ctx.strokeStyle = "rgba(255,255,255,0.05)";
-      ctx.lineWidth = 2;
-      ctx.beginPath();
-      ctx.moveTo(padding, headerH - 100);
-      ctx.lineTo(canvas.width - padding, headerH - 100);
-      ctx.stroke();
-      
-      // Header branding
-      ctx.fillStyle = "#ffffff";
-      ctx.font = "black 48px Inter, system-ui, sans-serif";
-      ctx.letterSpacing = "15px";
+      // Branding Header
       ctx.textAlign = "center";
-      ctx.globalAlpha = 0.5;
-      ctx.fillText("AURISTITUTUM ARCHIVE", canvas.width / 2, 120);
+      ctx.fillStyle = "#ffffff";
+      ctx.font = "bold 50px Inter, sans-serif";
+      ctx.letterSpacing = "20px";
+      ctx.globalAlpha = 0.3;
+      ctx.fillText("AURIS TITUTUM", canvas.width / 2, 100);
       ctx.globalAlpha = 1.0;
 
-      // Habit Title
-      ctx.font = "italic 900 120px Inter, system-ui, sans-serif";
+      ctx.font = "italic 900 140px Inter, sans-serif";
       ctx.letterSpacing = "-2px";
-      ctx.fillText(habit.name.toUpperCase(), canvas.width / 2, 280);
+      ctx.fillText("TRANSFORMATION LOG", canvas.width / 2, 260);
 
-      const drawImgProfessional = (img, x, y) => {
+      // Progress Arrow Header
+      const headerY = 380;
+      ctx.font = "bold 60px Inter";
+      ctx.fillStyle = "#ffffff";
+      ctx.fillText(`DAY ${day1}`, isSliderExport ? canvas.width/2 - 150 : padding + w/2, headerY);
+      
+      ctx.fillStyle = "#4ade80";
+      ctx.font = "80px Inter";
+      ctx.fillText("→", isSliderExport ? canvas.width/2 : padding + w + padding/2, headerY);
+      
+      ctx.fillStyle = "#4ade80";
+      ctx.font = "bold 60px Inter";
+      ctx.fillText(`DAY ${day2}`, isSliderExport ? canvas.width/2 + 150 : padding * 2 + w + w/2, headerY);
+
+      const drawImg = (img, x, y, width, height, clipX = 0, clipW = 1) => {
           ctx.save();
-          // Draw Shadow/Glow
-          ctx.shadowColor = "rgba(0,0,0,0.8)";
-          ctx.shadowBlur = 50;
-          ctx.shadowOffsetY = 20;
-
-          // Clip for rounded corners
-          const radius = 60;
+          // Clip path for rounded corners
+          const radius = 50;
           ctx.beginPath();
           ctx.moveTo(x + radius, y);
-          ctx.lineTo(x + w - radius, y);
-          ctx.quadraticCurveTo(x + w, y, x + w, y + radius);
-          ctx.lineTo(x + w, y + h - radius);
-          ctx.quadraticCurveTo(x + w, y + h, x + w - radius, y + h);
-          ctx.lineTo(x + radius, y + h);
-          ctx.quadraticCurveTo(x, y + h, x, y + h - radius);
+          ctx.lineTo(x + width - radius, y);
+          ctx.quadraticCurveTo(x + width, y, x + width, y + radius);
+          ctx.lineTo(x + width, y + height - radius);
+          ctx.quadraticCurveTo(x + width, y + height, x + width - radius, y + height);
+          ctx.lineTo(x + radius, y + height);
+          ctx.quadraticCurveTo(x, y + height, x, y + height - radius);
           ctx.lineTo(x, y + radius);
           ctx.quadraticCurveTo(x, y, x + radius, y);
           ctx.closePath();
-          ctx.fill(); // fill black first
           ctx.clip();
 
-          const aspect = img.width / img.height;
-          const targetAspect = w / h;
-          
+          // Image calculations (object-cover)
+          const imgAspect = img.width / img.height;
+          const targetAspect = width / height;
           let sw, sh, sx, sy;
-          if (aspect > targetAspect) {
+          if (imgAspect > targetAspect) {
               sh = img.height;
               sw = img.height * targetAspect;
               sx = (img.width - sw) / 2;
@@ -404,43 +407,51 @@ const CompareView = ({ firstLog, latestLog, habit, onClose }) => {
               sx = 0;
               sy = (img.height - sh) / 2;
           }
+
+          // Slider clipping if needed
+          const finalSx = sx + (clipX * sw);
+          const finalSw = sw * clipW;
+          const finalDx = x + (clipX * width);
+          const finalDw = width * clipW;
+
+          ctx.drawImage(img, finalSx, sy, finalSw, sh, finalDx, y, finalDw, height);
+          ctx.restore();
           
-          ctx.drawImage(img, sx, sy, sw, sh, x, y, w, h);
-          
-          // Inner border/shading
+          // Border
           ctx.strokeStyle = "rgba(255,255,255,0.1)";
           ctx.lineWidth = 4;
+          ctx.beginPath();
+          ctx.roundRect(x, y, width, height, radius);
           ctx.stroke();
-          ctx.restore();
       };
 
-      drawImgProfessional(img1, padding, headerH);
-      drawImgProfessional(img2, w + padding * 2, headerH);
+      if (isSliderExport) {
+          // Draw combined for Slider
+          const mx = padding;
+          drawImg(img2, mx, headerH, w, h);
+          drawImg(img1, mx, headerH, w, h, 0, 0.5);
+          // Vertical separator
+          ctx.strokeStyle = "#ffffff";
+          ctx.lineWidth = 6;
+          ctx.beginPath();
+          ctx.moveTo(mx + w/2, headerH);
+          ctx.lineTo(mx + w/2, headerH + h);
+          ctx.stroke();
+      } else {
+          drawImg(img1, padding, headerH, w, h);
+          drawImg(img2, padding * 2 + w, headerH, w, h);
+      }
       
-      // Footer labels
-      const labelY = headerH + h + 150;
-      
+      // Footer
       ctx.textAlign = "center";
-      
-      // Label 1
       ctx.fillStyle = "#ffffff";
-      ctx.font = "900 70px Inter";
-      ctx.fillText(`START: DAY ${day1}`, padding + w/2, labelY);
-      ctx.font = "500 40px Inter";
-      ctx.globalAlpha = 0.4;
-      ctx.fillText(firstLog.date, padding + w/2, labelY + 60);
-
-      // Label 2
-      ctx.globalAlpha = 1.0;
-      ctx.fillStyle = "#4ade80";
-      ctx.font = "900 70px Inter";
-      ctx.fillText(`LATEST: DAY ${day2}`, w + padding*2 + w/2, labelY);
-      ctx.font = "500 40px Inter";
-      ctx.globalAlpha = 0.4;
-      ctx.fillText(latestLog.date, w + padding*2 + w/2, labelY + 60);
+      ctx.globalAlpha = 0.5;
+      ctx.font = "bold 40px Inter";
+      ctx.letterSpacing = "5px";
+      ctx.fillText(habit.name.toUpperCase(), canvas.width / 2, headerH + h + 150);
 
       const link = document.createElement("a");
-      link.download = `TRANSFORMATION_${habit.name.replace(/\s+/g, '_')}.png`;
+      link.download = `TRANSFORMATION_${habit.name.replace(/\s+/g, '_')}_D${day1}_D${day2}.png`;
       link.href = canvas.toDataURL("image/png");
       link.click();
     } catch (err) {
@@ -451,10 +462,10 @@ const CompareView = ({ firstLog, latestLog, habit, onClose }) => {
   };
 
   const handleSliderMove = (e) => {
-    const rect = e.currentTarget.getBoundingClientRect();
-    const x = e.clientX || (e.touches && e.touches[0].clientX);
-    if (!x) return;
-    const pos = ((x - rect.left) / rect.width) * 100;
+    if (!containerRef.current) return;
+    const rect = containerRef.current.getBoundingClientRect();
+    const x = (e.clientX || (e.touches && e.touches[0].clientX)) - rect.left;
+    const pos = (x / rect.width) * 100;
     setSliderPos(Math.max(0, Math.min(100, pos)));
   };
 
@@ -462,143 +473,127 @@ const CompareView = ({ firstLog, latestLog, habit, onClose }) => {
     <div className="fixed inset-0 z-[165] bg-black/98 backdrop-blur-3xl flex flex-col items-center justify-center p-4">
       <div className="w-full max-w-[98vw] lg:max-w-[1500px] flex flex-col items-center h-full max-h-[95vh]">
         
-        <div className="w-full flex flex-col sm:flex-row justify-between items-center mb-6 px-4 gap-6 shrink-0">
+        <div className="w-full flex flex-col sm:flex-row justify-between items-center mb-10 px-4 gap-6 shrink-0">
            <div>
               <p className="text-[10px] font-black tracking-[0.5em] text-accent mb-1 uppercase opacity-60">Transformation Archive</p>
-              <h1 className="text-4xl font-black text-white italic tracking-tighter uppercase leading-none">{habit.name}</h1>
+              <h1 className="text-5xl font-black text-white italic tracking-tighter uppercase leading-none">{habit.name}</h1>
            </div>
            
            <div className="flex items-center gap-4">
               <div className="flex bg-white/5 border border-white/10 p-1 rounded-2xl">
                  {[
                    { id: "side-by-side", icon: "columns", label: "Split" },
-                   { id: "slider", icon: "sliders", label: "Slide" },
-                   { id: "overlay", icon: "layers", label: "Fade" }
+                   { id: "slider", icon: "sliders", label: "Slide" }
                  ].map(m => (
                    <button
                      key={m.id}
                      onClick={() => setViewMode(m.id)}
-                     className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center gap-2 ${viewMode === m.id ? 'bg-white text-black' : 'text-white/40 hover:text-white'}`}
+                     className={`px-5 py-2.5 rounded-xl text-[11px] font-black uppercase tracking-widest transition-all flex items-center gap-2 ${viewMode === m.id ? 'bg-white text-black shadow-xl' : 'text-white/40 hover:text-white'}`}
                    >
-                     <Icon name={m.icon} size={12} />
-                     <span className="hidden sm:inline">{m.label}</span>
+                     <Icon name={m.icon} size={13} />
+                     <span>{m.label}</span>
                    </button>
                  ))}
               </div>
               <button
                 onClick={exportComparison}
                 disabled={exporting}
-                className="h-10 px-5 rounded-2xl bg-accent text-bg-main hover:opacity-90 font-black flex items-center gap-2 transition-all active:scale-95 disabled:opacity-50 text-[10px] uppercase tracking-widest"
+                className="h-11 px-6 rounded-2xl bg-accent text-bg-main hover:opacity-90 font-black flex items-center gap-2.5 transition-all active:scale-95 disabled:opacity-50 text-[11px] uppercase tracking-widest shadow-lg shadow-accent/20"
               >
-                <Icon name={exporting ? "loader" : "download"} size={14} className={exporting ? "animate-spin" : ""} />
-                {exporting ? "Saving..." : "Export"}
+                <Icon name={exporting ? "loader" : "download"} size={16} className={exporting ? "animate-spin" : ""} />
+                {exporting ? "Saving..." : "Export Image"}
               </button>
-              <button onClick={onClose} className="w-10 h-10 rounded-2xl bg-white/10 hover:bg-white/20 text-white flex items-center justify-center border border-white/10 transition-all">
-                <Icon name="x" size={20} />
+              <button onClick={onClose} className="w-11 h-11 rounded-2xl bg-white/5 hover:bg-white/10 text-white flex items-center justify-center border border-white/10 transition-all">
+                <Icon name="x" size={24} />
               </button>
            </div>
         </div>
 
         <div className="w-full flex-1 min-h-0 flex flex-col items-center justify-center">
            {viewMode === "side-by-side" && (
-             <div className="w-full grid grid-cols-1 md:grid-cols-2 gap-6 lg:gap-10 items-stretch overflow-y-auto custom-scrollbar p-2 pb-10">
+             <div className="w-full grid grid-cols-1 md:grid-cols-2 gap-8 lg:gap-12 items-stretch overflow-y-auto custom-scrollbar p-2 pb-12">
                 <div className="flex flex-col items-stretch group relative">
-                  <div className="mb-4 flex items-center justify-between px-4">
-                     <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center text-white/30 font-black italic text-lg">01</div>
+                  <div className="mb-6 flex items-center justify-between px-6">
+                     <div className="flex items-center gap-4">
+                        <div className="w-14 h-14 rounded-2xl bg-white/5 flex items-center justify-center text-white/30 font-black italic text-2xl border border-white/5">01</div>
                         <div>
-                           <p className="text-[8px] font-black tracking-[0.2em] text-white/20 uppercase">Initial Record</p>
-                           <p className="text-sm font-black text-white italic">DAY {day1}</p>
+                           <p className="text-[10px] font-black tracking-[0.3em] text-white/20 uppercase mb-0.5">Start point</p>
+                           <p className="text-2xl font-black text-white italic tracking-tight">DAY {day1}</p>
                         </div>
                      </div>
-                     <p className="text-[9px] font-mono text-white/10 font-bold">{firstLog.date}</p>
+                     <p className="text-xs font-mono text-white/10 font-bold bg-white/5 px-3 py-1 rounded-lg">{firstLog.date}</p>
                   </div>
-                  <div className="aspect-[4/5] w-full rounded-[2.5rem] overflow-hidden border border-white/5 bg-white/5 relative shadow-2xl transition-all duration-500 hover:border-white/20">
-                     <img src={firstLog.img} alt="Before" className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-[1.03]" />
-                     <div className="absolute inset-x-0 bottom-0 h-40 bg-gradient-to-t from-black/40 to-transparent pointer-events-none" />
+                  <div className="aspect-[4/5] w-full rounded-[3.5rem] overflow-hidden border border-white/5 bg-white/5 relative shadow-3xl transition-all duration-700 group-hover:border-white/20">
+                     <img src={firstLog.img} alt="Before" className="absolute inset-0 w-full h-full object-cover transition-transform duration-1000 group-hover:scale-110" />
+                     <div className="absolute inset-x-0 bottom-0 h-48 bg-gradient-to-t from-black/60 to-transparent pointer-events-none" />
                   </div>
                 </div>
 
                 <div className="flex flex-col items-stretch group relative">
-                  <div className="mb-4 flex items-center justify-between px-4">
-                     <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-xl bg-accent text-bg-main flex items-center justify-center font-black italic text-lg shadow-[0_0_20px_rgba(var(--accent-rgb),0.3)]">L</div>
+                  <div className="mb-6 flex items-center justify-between px-6">
+                     <div className="flex items-center gap-4">
+                        <div className="w-14 h-14 rounded-2xl bg-accent text-bg-main flex items-center justify-center font-black italic text-2xl shadow-[0_0_30px_rgba(var(--accent-rgb),0.3)]">L</div>
                         <div>
-                           <p className="text-[8px] font-black tracking-[0.2em] text-accent/40 uppercase">Latest Entry</p>
-                           <p className="text-sm font-black text-accent italic">DAY {day2}</p>
+                           <p className="text-[10px] font-black tracking-[0.3em] text-accent/40 uppercase mb-0.5">Latest state</p>
+                           <p className="text-2xl font-black text-accent italic tracking-tight">DAY {day2}</p>
                         </div>
                      </div>
-                     <p className="text-[9px] font-mono text-accent/20 font-bold">{latestLog.date}</p>
+                     <p className="text-xs font-mono text-accent/20 font-bold bg-accent/5 px-3 py-1 rounded-lg">{latestLog.date}</p>
                   </div>
-                  <div className="aspect-[4/5] w-full rounded-[2.5rem] overflow-hidden border-2 border-accent/20 bg-accent/5 relative shadow-[0_0_100px_rgba(var(--accent-rgb),0.1)] transition-all duration-500 hover:border-accent/40">
-                     <img src={latestLog.img} alt="After" className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-[1.03]" />
-                     <div className="absolute inset-x-0 bottom-0 h-40 bg-gradient-to-t from-black/30 to-transparent pointer-events-none" />
+                  <div className="aspect-[4/5] w-full rounded-[3.5rem] overflow-hidden border-2 border-accent/20 bg-accent/5 relative shadow-[0_0_120px_rgba(var(--accent-rgb),0.1)] transition-all duration-700 group-hover:border-accent/40">
+                     <img src={latestLog.img} alt="After" className="absolute inset-0 w-full h-full object-cover transition-transform duration-1000 group-hover:scale-110" />
+                     <div className="absolute inset-x-0 bottom-0 h-48 bg-gradient-to-t from-black/50 to-transparent pointer-events-none" />
                   </div>
                 </div>
              </div>
            )}
 
            {viewMode === "slider" && (
-             <div 
-               className="relative aspect-[4/5] h-full max-h-[70vh] rounded-[3rem] overflow-hidden border border-white/10 group cursor-col-resize shadow-3xl"
-               onMouseMove={handleSliderMove}
-               onTouchMove={handleSliderMove}
-             >
-                <img src={latestLog.img} className="absolute inset-0 w-full h-full object-cover" alt="After" />
+             <div className="flex flex-col items-center gap-8 w-full h-full max-h-[75vh]">
                 <div 
-                  className="absolute inset-y-0 left-0 overflow-hidden border-r-2 border-white shadow-[10px_0_30px_rgba(0,0,0,0.5)] z-10" 
-                  style={{ width: `${sliderPos}%` }}
+                  ref={containerRef}
+                  className="relative aspect-[4/5] h-full rounded-[4rem] overflow-hidden border border-white/10 group cursor-col-resize shadow-[0_0_100px_rgba(0,0,0,0.5)] bg-bg-sidebar select-none"
+                  onMouseMove={(e) => e.buttons === 1 && handleSliderMove(e)}
+                  onMouseDown={handleSliderMove}
+                  onTouchMove={handleSliderMove}
                 >
-                   <img src={firstLog.img} className="absolute inset-y-0 left-0 h-full object-cover" style={{ width: `${100 / (Math.max(1, sliderPos)/100)}%` }} alt="Before" />
-                </div>
-                {/* Labels */}
-                <div className="absolute top-6 left-6 z-20 bg-black/40 backdrop-blur-md px-4 py-1.5 rounded-full border border-white/10">
-                   <p className="text-[10px] font-black uppercase text-white">Before</p>
-                </div>
-                <div className="absolute top-6 right-6 z-20 bg-accent/40 backdrop-blur-md px-4 py-1.5 rounded-full border border-accent/20">
-                   <p className="text-[10px] font-black uppercase text-accent">After</p>
-                </div>
-                {/* Handle icon */}
-                <div 
-                  className="absolute inset-y-0 z-20 flex items-center justify-center pointer-events-none"
-                  style={{ left: `${sliderPos}%` }}
-                >
-                   <div className="w-10 h-10 rounded-full bg-white border-4 border-black/20 flex items-center justify-center shadow-2xl -translate-x-1/2">
-                      <Icon name="sliders" size={16} className="text-black" />
+                   {/* Latest Image (Bottom) */}
+                   <img src={latestLog.img} className="absolute inset-0 w-full h-full object-cover" alt="After" />
+                   
+                   {/* First Image (Clipped Layer) */}
+                   <div 
+                     className="absolute inset-0 overflow-hidden pointer-events-none" 
+                     style={{ clipPath: `inset(0 ${100 - sliderPos}% 0 0)` }}
+                   >
+                      <img src={firstLog.img} className="absolute inset-0 w-full h-full object-cover" alt="Before" />
+                   </div>
+
+                   {/* Vertical Line & Handle */}
+                   <div 
+                     className="absolute inset-y-0 z-20 w-1 bg-white shadow-[0_0_20px_rgba(0,0,0,0.5)] pointer-events-none"
+                     style={{ left: `${sliderPos}%` }}
+                   >
+                      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-12 h-12 rounded-full bg-white flex items-center justify-center shadow-2xl border-4 border-black/10">
+                         <Icon name="sliders" size={20} className="text-black rotate-90" />
+                      </div>
+                   </div>
+
+                   {/* Indicators */}
+                   <div className="absolute bottom-8 left-12 z-30 flex flex-col items-start pointer-events-none transform transition-all duration-500 group-hover:translate-x-2">
+                       <p className="text-[10px] font-black uppercase tracking-widest text-white/40 mb-1">Before</p>
+                       <p className="text-2xl font-black text-white italic">DAY {day1}</p>
+                   </div>
+                   <div className="absolute bottom-8 right-12 z-30 flex flex-col items-end pointer-events-none transform transition-all duration-500 group-hover:-translate-x-2 text-right">
+                       <p className="text-[10px] font-black uppercase tracking-widest text-accent/40 mb-1">After</p>
+                       <p className="text-2xl font-black text-accent italic">DAY {day2}</p>
                    </div>
                 </div>
-             </div>
-           )}
-
-           {viewMode === "overlay" && (
-             <div className="flex flex-col items-center gap-8 w-full">
-                <div className="relative aspect-[4/5] h-full max-h-[60vh] rounded-[3rem] overflow-hidden border border-white/10 bg-bg-sidebar shadow-3xl">
-                   <img src={firstLog.img} className="absolute inset-0 w-full h-full object-cover grayscale opacity-30" alt="Reference" />
-                   <img 
-                    src={latestLog.img} 
-                    className="absolute inset-0 w-full h-full object-cover transition-opacity duration-300" 
-                    style={{ opacity: overlayOpacity }} 
-                    alt="Current" 
-                   />
-                </div>
-                <div className="w-full max-w-sm px-6 py-4 bg-white/5 border border-white/10 rounded-3xl flex items-center gap-4">
-                   <span className="text-[10px] font-black uppercase text-white/40">Opacity</span>
-                   <input 
-                    type="range" 
-                    min="0" 
-                    max="1" 
-                    step="0.01" 
-                    value={overlayOpacity} 
-                    onChange={(e) => setOverlayOpacity(e.target.value)}
-                    className="flex-1 accent-white"
-                   />
-                   <span className="text-[10px] font-bold text-white min-w-[30px]">{Math.round(overlayOpacity * 100)}%</span>
-                </div>
+                <p className="text-[10px] font-bold text-white/30 uppercase tracking-[0.4em] animate-pulse">Drag to see transformation</p>
              </div>
            )}
         </div>
 
-        <p className="mt-6 mb-6 text-[10px] font-black uppercase tracking-[0.8em] text-white/10 italic text-center shrink-0">Comparing your journey over {day2 - day1 + 1} daily records</p>
+        <p className="mt-8 mb-6 text-[10px] font-black uppercase tracking-[0.8em] text-white/5 italic text-center shrink-0">Progress Verification Archive // {day2 - day1 + 1} Records</p>
       </div>
     </div>
   );
