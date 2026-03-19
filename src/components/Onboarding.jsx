@@ -40,6 +40,7 @@ const Onboarding = ({ onAddHabit, habits = [], userConfig: propUserConfig, updat
   const location = useLocation();
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
+  const [isInitializing, setIsInitializing] = useState(false);
   const fileInputRef = useRef(null);
 
   // Use props if provided, otherwise fallback to context (though props are preferred here)
@@ -90,6 +91,7 @@ const Onboarding = ({ onAddHabit, habits = [], userConfig: propUserConfig, updat
   };
 
   const handleStartHabit = () => {
+    setIsInitializing(true);
     onAddHabit();
     // Use a listener to detect when a habit is added and then mark onboarding as complete
     const checkHabitAdded = setInterval(() => {
@@ -104,8 +106,10 @@ const Onboarding = ({ onAddHabit, habits = [], userConfig: propUserConfig, updat
     setTimeout(() => clearInterval(checkHabitAdded), 60000);
   };
 
+  if (isInitializing) return null;
+
   return (
-    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/60 backdrop-blur-md animate-in fade-in duration-300">
+    <div className="fixed inset-0 z-[50] flex items-center justify-center p-4 bg-black/60 backdrop-blur-md animate-in fade-in duration-300">
       <Card className="w-full max-w-lg p-8 space-y-8 bg-bg-main border border-border-color shadow-[0_32px_64px_-16px_rgba(0,0,0,0.6)] overflow-hidden relative">
         {/* Decorative Background */}
         <div className="absolute top-[-100px] right-[-100px] w-64 h-64 bg-accent/5 rounded-full blur-[100px] pointer-events-none" />
@@ -159,9 +163,16 @@ const Onboarding = ({ onAddHabit, habits = [], userConfig: propUserConfig, updat
                 <Input 
                   label="Age" 
                   type="number"
+                  min="1"
+                  max="120"
                   placeholder="Years"
                   value={profile.age}
-                  onChange={(e) => setProfile(prev => ({ ...prev, age: e.target.value }))}
+                  onChange={(e) => {
+                    const val = (e.target.value || "").replace(/[^0-9]/g, "");
+                    if (val === "" || (parseInt(val) >= 1 && parseInt(val) <= 120)) {
+                      setProfile(prev => ({ ...prev, age: val }));
+                    }
+                  }}
                 />
                 <div className="space-y-2 relative group-select">
                   <label className="text-[10px] font-black text-text-secondary uppercase tracking-widest block px-1">Gender</label>
@@ -169,12 +180,12 @@ const Onboarding = ({ onAddHabit, habits = [], userConfig: propUserConfig, updat
                     <select 
                       value={profile.gender}
                       onChange={(e) => setProfile(prev => ({ ...prev, gender: e.target.value }))}
-                      className="w-full h-[46px] rounded-xl border border-border-color bg-bg-main px-4 pr-10 text-xs text-text-primary outline-none focus:border-accent transition-all appearance-none cursor-pointer hover:border-accent/50"
+                      className="w-full h-[46px] rounded-xl border border-border-color bg-bg-main px-4 pr-10 text-xs text-text-primary outline-none focus:border-accent transition-all appearance-none cursor-pointer hover:border-accent hover:bg-bg-sidebar/30"
                     >
-                      <option value="" disabled>Select Orientation</option>
-                      <option value="male">Male</option>
-                      <option value="female">Female</option>
-                      <option value="private">Prefer not to say</option>
+                      <option value="" disabled>Select</option>
+                      <option value="male" className="bg-bg-sidebar">Male</option>
+                      <option value="female" className="bg-bg-sidebar">Female</option>
+                      <option value="private" className="bg-bg-sidebar">Prefer not to say</option>
                     </select>
                     <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-text-secondary">
                         <Icon name="chevron-down" size={14} />
