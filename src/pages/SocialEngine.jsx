@@ -1,165 +1,228 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import Icon from "../components/Icon";
 import { Card } from "../components/ui/Card";
 import { Button } from "../components/ui/Button";
-import { useAuth } from "../contexts/AuthContext";
 import { Input } from "../components/ui/Input";
+import { Select } from "../components/ui/Select";
+import { useAuth } from "../contexts/AuthContext";
+import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
 
 const MOCK_PUBLIC_SERVERS = [
   {
     id: "pub1",
-    name: "75 Hard Challenge",
-    habit: "Fitness & Reading",
-    mode: "check",
+    name: "Focus Intensive",
+    habit: "Study/Work",
+    mode: "timer",
     totalJoined: 15420,
-    online: 1205,
+    onlineCount: 1205,
     startDate: "2026-04-01",
     endDate: "2026-06-15",
+    habitType: "Good",
     joined: false,
   },
   {
     id: "pub2",
-    name: "10k Steps Daily",
+    name: "Step Master",
     habit: "Walking",
     mode: "count",
     totalJoined: 8321,
-    online: 402,
+    onlineCount: 402,
     startDate: "2026-03-01",
     endDate: "2026-04-01",
+    habitType: "Good",
     joined: true,
   },
   {
     id: "pub3",
-    name: "LeetCode Daily",
-    habit: "Coding",
+    name: "Code Zero",
+    habit: "Programming",
     mode: "check",
     totalJoined: 5102,
-    online: 890,
+    onlineCount: 890,
     startDate: "2026-01-01",
     endDate: "2026-12-31",
-    joined: false,
-  },
-  {
-    id: "pub4",
-    name: "Meditation Mornings",
-    habit: "Mindfulness",
-    mode: "timer",
-    totalJoined: 3420,
-    online: 150,
-    startDate: "2026-03-20",
-    endDate: "2026-05-20",
+    habitType: "Good",
     joined: false,
   }
 ];
 
-const MOCK_SOCIAL_HISTORY = [
-  { id: "hist1", name: "January Fitness", rank: "Top 5%", state: "Won" },
-  { id: "hist2", name: "Read 10 Books", rank: "Top 20%", state: "Won" },
-  { id: "hist3", name: "Morning Wakeup", rank: "Bottom 10%", state: "Lost" },
+const MOCK_HISTORY = [
+  { id: "h1", name: "Winter Sprint", rank: 12, total: 1500, status: "completed", date: "2026-02-15" },
+  { id: "h2", name: "Peak Performance", rank: 3, total: 450, status: "completed", date: "2026-01-10" },
 ];
 
-const SocialEngine = ({ habits }) => {
+const SocialEngine = () => {
   const { user } = useAuth();
-  const [activeTab, setActiveTab] = useState("public"); // "public", "private", "history"
-  const [servers, setServers] = useState(MOCK_PUBLIC_SERVERS);
+  const [activeTab, setActiveTab] = useState("public");
+  const [activeServer, setActiveServer] = useState(null);
   const [searchQuery, setSearchQuery] = useState("");
-  const [activeServer, setActiveServer] = useState(null); // When opened
+  const [filterMode, setFilterMode] = useState("all");
+  const [servers, setServers] = useState(MOCK_PUBLIC_SERVERS);
+  const [inviteUid, setInviteUid] = useState("");
 
-  const joinedServers = servers.filter(s => s.joined);
-  const discoverServers = servers.filter(s => !s.joined).sort((a, b) => b.totalJoined - a.totalJoined);
+  const filteredServers = useMemo(() => {
+    return servers.filter(s => {
+      const matchesSearch = s.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
+                          s.habit.toLowerCase().includes(searchQuery.toLowerCase());
+      const matchesMode = filterMode === "all" || s.mode === filterMode;
+      return matchesSearch && matchesMode;
+    });
+  }, [servers, searchQuery, filterMode]);
 
-  const toggleJoin = (id) => {
-    setServers(servers.map(s => s.id === id ? { ...s, joined: !s.joined } : s));
+  const joinedServers = useMemo(() => filteredServers.filter(s => s.joined), [filteredServers]);
+  const publicServers = useMemo(() => filteredServers.filter(s => !s.joined).sort((a, b) => b.totalJoined - a.totalJoined), [filteredServers]);
+
+  const handleJoin = (id) => {
+    setServers(prev => prev.map(s => s.id === id ? { ...s, joined: true } : s));
   };
 
-  const openServer = (server) => {
-    setActiveServer(server);
+  const handleLeave = (id) => {
+    setServers(prev => prev.map(s => s.id === id ? { ...s, joined: false } : s));
+    setActiveServer(null);
   };
 
   if (activeServer) {
     return (
-      <div className="page-fade max-w-7xl w-full pb-20 fade-in">
-        <button 
-          onClick={() => setActiveServer(null)}
-          className="flex items-center gap-2 mb-6 text-[10px] font-black uppercase tracking-[0.2em] text-text-secondary hover:text-text-primary transition-all"
-        >
-          <Icon name="arrow-left" size={14} /> Back to Social Hub
-        </button>
-        <div className="flex flex-col md:flex-row gap-6">
-          <div className="flex-1 space-y-6">
-            <Card className="p-8 relative overflow-hidden group">
+      <div className="page-fade space-y-8 animate-in fade-in duration-500 pb-20">
+        <div className="flex items-center gap-4">
+          <Button variant="ghost" size="sm" icon="arrow-left" onClick={() => setActiveServer(null)}>
+            Back to Hub
+          </Button>
+          <div className="h-4 w-px bg-border-color" />
+          <h2 className="text-xl font-bold tracking-tight text-text-primary capitalize">{activeServer.name}</h2>
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          <div className="lg:col-span-2 space-y-8">
+            <Card className="p-8 relative overflow-hidden group border-none bg-gradient-to-br from-bg-sidebar to-bg-main">
               <div className="absolute top-0 right-0 w-64 h-64 bg-accent/5 rounded-full blur-[100px] pointer-events-none" />
-              <div className="flex justify-between items-start mb-6">
-                <div>
-                  <h2 className="text-3xl font-black tracking-tighter text-text-primary capitalize mb-2">{activeServer.name}</h2>
-                  <div className="flex gap-4">
-                    <span className="text-[10px] font-mono text-text-secondary tracking-[0.2em] uppercase flex items-center gap-1">
-                      <Icon name="activity" size={12} className="text-accent" /> {activeServer.habit}
-                    </span>
-                    <span className="text-[10px] font-mono text-text-secondary tracking-[0.2em] uppercase flex items-center gap-1">
-                      <Icon name="users" size={12} className="text-success" /> {activeServer.totalJoined.toLocaleString()} Operators
-                    </span>
-                  </div>
-                </div>
-                {!activeServer.joined ? (
-                  <Button variant="primary" onClick={() => toggleJoin(activeServer.id)} className="shadow-lg shadow-accent/20">Join Challenge</Button>
-                ) : (
-                  <Button variant="outline" onClick={() => setActiveServer(null)}>Leave</Button>
-                )}
-              </div>
               
-              <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-                 <div className="bg-bg-sidebar/50 rounded-2xl p-4 border border-border-color">
-                    <p className="text-[10px] uppercase font-black tracking-[0.2em] text-text-secondary mb-1">Your Rank</p>
-                    <p className="text-2xl font-bold font-mono text-accent">#42</p>
-                 </div>
-                 <div className="bg-bg-sidebar/50 rounded-2xl p-4 border border-border-color">
-                    <p className="text-[10px] uppercase font-black tracking-[0.2em] text-text-secondary mb-1">Your Streak</p>
-                    <p className="text-2xl font-bold font-mono text-success">14d</p>
-                 </div>
-                 <div className="bg-bg-sidebar/50 rounded-2xl p-4 border border-border-color">
-                    <p className="text-[10px] uppercase font-black tracking-[0.2em] text-text-secondary mb-1">Time Left</p>
-                    <p className="text-2xl font-bold font-mono text-text-primary">45d</p>
-                 </div>
-                 <div className="bg-bg-sidebar/50 rounded-2xl p-4 border border-border-color">
-                    <p className="text-[10px] uppercase font-black tracking-[0.2em] text-text-secondary mb-1">Action</p>
-                    <Button variant="primary" className="w-full mt-1 text-[10px]">Log Habit</Button>
-                 </div>
+              <div className="flex justify-between items-start mb-8 relative z-10">
+                <div>
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className="text-[10px] font-black uppercase tracking-[0.2em] text-accent">{activeServer.habitType} Challenge</span>
+                    <span className="w-1 h-1 rounded-full bg-border-color" />
+                    <span className="text-[10px] font-mono font-bold text-text-secondary uppercase">{activeServer.mode}</span>
+                  </div>
+                  <h3 className="text-3xl font-black tracking-tighter text-text-primary mb-2">{activeServer.name}</h3>
+                  <p className="text-sm text-text-secondary max-w-lg">Master your {activeServer.habit} consistency alongside {activeServer.totalJoined.toLocaleString()} operators globally.</p>
+                </div>
+                <Button variant="danger" size="sm" icon="log-out" onClick={() => handleLeave(activeServer.id)}>Leave Server</Button>
               </div>
 
-              <h3 className="text-lg font-bold tracking-tight mb-4 flex items-center gap-2">
-                <Icon name="trophy" size={18} className="text-yellow-500" /> Leaderboard
-              </h3>
-              <div className="bg-bg-main/30 rounded-2xl border border-border-color overflow-hidden">
-                {[1, 2, 3, 4, 5].map((i) => (
-                  <div key={i} className="flex items-center justify-between p-4 border-b border-white/5 hover:bg-white/5 transition-colors">
-                    <div className="flex items-center gap-4">
-                      <span className="font-mono text-xs font-bold w-6 text-text-secondary">#{i}</span>
-                      <div className="w-8 h-8 rounded-full bg-accent/20 flex items-center justify-center font-bold text-xs uppercase text-accent border border-accent/30">{String.fromCharCode(64 + i)}</div>
-                      <span className="text-sm font-semibold tracking-wide">Operator_{Math.floor(Math.random() * 9000) + 1000}</span>
-                    </div>
-                    <div className="flex gap-4">
-                      <span className="text-xs font-mono font-bold text-success">{Math.floor(Math.random() * 30 + 10)}d streak</span>
-                    </div>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-8 relative z-10">
+                <MetricBox label="Global Rank" value="#42" icon="trending-up" color="text-accent" />
+                <MetricBox label="Active Streak" value="14d" icon="flame" color="text-success" />
+                <MetricBox label="Completion" value="88%" icon="check-circle" color="text-text-primary" />
+                <MetricBox label="Time Remaining" value="12d" icon="clock" color="text-text-secondary" />
+              </div>
+
+              <div className="space-y-4 relative z-10">
+                <div className="flex items-center justify-between">
+                  <h4 className="text-[10px] font-black uppercase tracking-[0.3em] text-text-secondary">Performance Velocity</h4>
+                  <div className="flex items-center gap-4">
+                    <span className="flex items-center gap-1.5 text-[10px] font-bold text-success"><div className="w-1.5 h-1.5 rounded-full bg-success" /> You</span>
+                    <span className="flex items-center gap-1.5 text-[10px] font-bold text-text-secondary/40"><div className="w-1.5 h-1.5 rounded-full bg-text-secondary/40" /> Avg.</span>
                   </div>
-                ))}
+                </div>
+                <div className="h-48 w-full bg-bg-main/30 rounded-2xl border border-border-color/50 p-4">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <AreaChart data={[
+                      { name: 'Mon', you: 4, avg: 3 },
+                      { name: 'Tue', you: 6, avg: 4 },
+                      { name: 'Wed', you: 5, avg: 4 },
+                      { name: 'Thu', you: 8, avg: 5 },
+                      { name: 'Fri', you: 7, avg: 4 },
+                      { name: 'Sat', you: 9, avg: 6 },
+                      { name: 'Sun', you: 6, avg: 5 },
+                    ]}>
+                      <defs>
+                        <linearGradient id="colorYou" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="5%" stopColor="var(--accent)" stopOpacity={0.3}/>
+                          <stop offset="95%" stopColor="var(--accent)" stopOpacity={0}/>
+                        </linearGradient>
+                      </defs>
+                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--border-color)" opacity={0.1} />
+                      <XAxis dataKey="name" stroke="var(--text-secondary)" fontSize={9} tickLine={false} axisLine={false} />
+                      <Tooltip contentStyle={{ backgroundColor: 'var(--card-bg)', borderColor: 'var(--border-color)', borderRadius: '12px', fontSize: '10px' }} />
+                      <Area type="monotone" dataKey="you" stroke="var(--accent)" fillOpacity={1} fill="url(#colorYou)" strokeWidth={3} />
+                      <Area type="monotone" dataKey="avg" stroke="var(--border-color)" fill="transparent" strokeDasharray="5 5" strokeWidth={1} />
+                    </AreaChart>
+                  </ResponsiveContainer>
+                </div>
               </div>
             </Card>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+              <Card className="p-6 space-y-4">
+                <h4 className="text-sm font-bold tracking-tight text-text-primary flex items-center gap-2">
+                  <Icon name="trophy" size={16} className="text-yellow-500" /> Leaderboard (Real-time)
+                </h4>
+                <div className="space-y-2">
+                  {[
+                    { rank: 1, name: "Operator_992", val: "244d", color: "text-accent" },
+                    { rank: 2, name: "System_X", val: "210d", color: "text-text-primary" },
+                    { rank: 3, name: "Auris_User", val: "188d", color: "text-text-primary" },
+                    { rank: 42, name: "You", val: "14d", color: "text-success", active: true },
+                  ].map((p) => (
+                    <div key={p.rank} className={`flex items-center justify-between p-3 rounded-xl border transition-all ${p.active ? 'bg-accent/10 border-accent/30' : 'bg-bg-main/50 border-border-color/50 hover:border-text-secondary/30'}`}>
+                      <div className="flex items-center gap-3">
+                        <span className="text-[10px] font-mono font-black text-text-secondary w-5">#{p.rank}</span>
+                        <div className="w-7 h-7 rounded-lg bg-bg-sidebar border border-border-color flex items-center justify-center text-[10px] font-black">{p.name[0]}</div>
+                        <span className={`text-xs font-bold ${p.active ? 'text-accent' : 'text-text-primary'}`}>{p.name}</span>
+                      </div>
+                      <span className={`text-xs font-mono font-bold ${p.color}`}>{p.val}</span>
+                    </div>
+                  ))}
+                </div>
+                <Button variant="ghost" size="sm" className="w-full text-[9px]">View Complete Rankings</Button>
+              </Card>
+
+              <Card className="p-6 flex flex-col h-[400px]">
+                <h4 className="text-sm font-bold tracking-tight text-text-primary flex items-center justify-between mb-4">
+                  <div className="flex items-center gap-2"><Icon name="mail" size={16} className="text-accent" /> Server Transmission</div>
+                  <span className="text-[9px] font-mono text-success uppercase tracking-widest">{activeServer.onlineCount} Online</span>
+                </h4>
+                <div className="flex-1 overflow-y-auto custom-scrollbar space-y-4 mb-4 pr-1">
+                  <ChatMessage user="Auris_Bot" msg="New member identified. Protocol initiated." time="12:01" />
+                  <ChatMessage user="Operator_992" msg="The streak consistency is the only metric that matters." time="12:03" />
+                  <ChatMessage user="System_X" msg="Agreed. Logged my session early today." time="12:05" />
+                  <ChatMessage user="You" msg="On my way to top 10." time="12:08" self />
+                </div>
+                <div className="relative">
+                  <Input placeholder="Compose transmission..." className="pr-12" />
+                  <button className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-lg bg-accent text-bg-main flex items-center justify-center hover:opacity-90 active:scale-90 transition-all">
+                    <Icon name="send" size={14} />
+                  </button>
+                </div>
+              </Card>
+            </div>
           </div>
-          <div className="w-full md:w-80 flex flex-col gap-4">
-             <Card className="p-6 flex-1 flex flex-col">
-               <h3 className="text-sm font-bold uppercase tracking-widest text-text-secondary mb-4 flex items-center gap-2">
-                 <Icon name="message-square" size={16} /> Server Chat
-               </h3>
-               <div className="flex-1 bg-bg-main/50 rounded-xl border border-white/5 p-4 mb-4 min-h-[300px] flex flex-col justify-end gap-3 opacity-70">
-                 <div className="text-xs text-text-secondary bg-white/5 p-3 rounded-lg rounded-tl-none self-start max-w-[85%]">Hey everyone, keep up the good work!</div>
-                 <div className="text-xs text-text-primary bg-accent/20 border border-accent/20 p-3 rounded-lg rounded-tr-none self-end max-w-[85%]">Just logged my 10k steps for today.</div>
-                 <div className="text-xs text-text-secondary bg-white/5 p-3 rounded-lg rounded-tl-none self-start max-w-[85%]">Consistency is key. See you at the top.</div>
-               </div>
-               <div className="flex gap-2">
-                 <input type="text" placeholder="Send a message..." className="flex-1 bg-white/5 border border-white/10 rounded-xl px-4 text-xs outline-none focus:border-accent" />
-                 <Button variant="primary" className="px-4"><Icon name="send" size={14} /></Button>
-               </div>
+
+          <div className="space-y-6">
+             <Card className="p-6">
+                <h4 className="text-sm font-bold text-text-primary mb-4">Server Protocols</h4>
+                <div className="space-y-4">
+                  <ProtocolItem icon="shield-check" title="Verification" desc="Active log audit enabled" />
+                  <ProtocolItem icon="clock" title="Reset Period" desc="Daily cycle ends at 00:00 UTC" />
+                  <ProtocolItem icon="zap" title="Boosts" desc="Streak multipliers active" />
+                  <ProtocolItem icon="user" title="Admin" desc="@SystemRootV1" />
+                </div>
+                <div className="h-px bg-border-color my-6" />
+                <Button variant="primary" className="w-full" size="lg" icon="activity">Log Node Action</Button>
+             </Card>
+
+             <Card className="p-6 bg-accent-dim/20 border-accent/20">
+                <div className="flex items-center gap-3 mb-3">
+                  <div className="w-10 h-10 rounded-xl bg-accent text-bg-main flex items-center justify-center">
+                    <Icon name="sparkles" size={20} />
+                  </div>
+                  <div>
+                    <h4 className="text-xs font-black uppercase tracking-widest text-text-primary">Social Insight</h4>
+                    <p className="text-[10px] text-accent font-bold">Auris AI Analysis</p>
+                  </div>
+                </div>
+                <p className="text-xs text-text-secondary leading-relaxed">Based on your recent trajectory in this server, you are outperforming 65% of operators in the <span className="text-accent font-bold">Wednesday window</span>. Maintain current momentum to break the top 20 by weekend.</p>
              </Card>
           </div>
         </div>
@@ -168,27 +231,33 @@ const SocialEngine = ({ habits }) => {
   }
 
   return (
-    <div className="page-fade max-w-7xl w-full space-y-8 pb-20">
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
-        <div>
-          <h2 className="text-3xl font-black tracking-tighter text-text-primary capitalize">Social Hub</h2>
-          <p className="text-[10px] font-mono text-text-secondary tracking-[0.2em] uppercase mt-2">Connect, Compete, and Compound.</p>
+    <div className="page-fade space-y-10 animate-in fade-in duration-500 pb-20">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6">
+        <div className="space-y-2">
+          <div className="flex items-center gap-2">
+            <div className="w-2 h-2 rounded-full bg-accent animate-pulse" />
+            <span className="text-[10px] font-black uppercase tracking-[0.4em] text-accent">Node Connectivity Active</span>
+          </div>
+          <h2 className="text-4xl font-black tracking-tighter text-text-primary">Social Engine</h2>
+          <p className="text-xs text-text-secondary max-w-md font-medium">Coordinate with global operators, initiate private challenges, and track your competitive trajectory.</p>
         </div>
-        <div className="flex bg-bg-sidebar p-1.5 rounded-2xl border border-border-color">
+
+        <div className="flex bg-bg-sidebar p-1 rounded-2xl border border-border-color h-12 shadow-sm">
           {[
-            { id: "public", label: "Public" },
-            { id: "private", label: "Private" },
-            { id: "history", label: "History" }
+            { id: "public", label: "Global", icon: "layout" },
+            { id: "private", label: "Private", icon: "lock" },
+            { id: "history", label: "History", icon: "clock" }
           ].map(tab => (
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
-              className={`px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-[0.2em] transition-all flex items-center gap-2 ${
+              className={`px-5 py-2 rounded-xl text-[10px] font-black uppercase tracking-[0.2em] transition-all flex items-center gap-2.5 ${
                 activeTab === tab.id 
                   ? "bg-accent text-bg-main shadow-lg shadow-accent/20" 
-                  : "text-text-secondary hover:text-text-primary"
+                  : "text-text-secondary hover:text-text-primary hover:bg-white/[0.03]"
               }`}
             >
+              <Icon name={tab.icon} size={14} />
               {tab.label}
             </button>
           ))}
@@ -196,59 +265,53 @@ const SocialEngine = ({ habits }) => {
       </div>
 
       {activeTab === "public" && (
-        <div className="space-y-8 animate-in fade-in duration-500">
-          <div className="flex flex-wrap gap-4 items-center justify-between bg-bg-sidebar/50 p-4 rounded-3xl border border-border-color backdrop-blur-sm">
-            <div className="flex gap-4">
-              <select className="bg-bg-main border border-border-color rounded-xl px-4 py-2 text-xs font-bold text-text-secondary outline-none focus:border-accent cursor-pointer appearance-none">
-                <option value="">All Modes</option>
-                <option value="check">Check</option>
-                <option value="count">Count</option>
-                <option value="timer">Timer</option>
-              </select>
-              <select className="bg-bg-main border border-border-color rounded-xl px-4 py-2 text-xs font-bold text-text-secondary outline-none focus:border-accent cursor-pointer appearance-none">
-                <option value="">Sort By</option>
-                <option value="popular">Most Popular</option>
-                <option value="new">Newest</option>
-              </select>
+        <div className="space-y-10">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 bg-bg-sidebar/50 p-6 rounded-[2rem] border border-border-color backdrop-blur-md">
+            <div className="relative lg:col-span-2">
+              <Icon name="search" size={14} className="absolute left-4 top-1/2 -translate-y-1/2 text-text-secondary" />
+              <input 
+                type="text" 
+                placeholder="Locate public challenges..." 
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full h-11 bg-bg-main/50 border border-border-color/50 rounded-xl pl-11 pr-4 text-xs font-bold text-text-primary outline-none focus:border-accent transition-all placeholder:text-text-secondary/30"
+              />
             </div>
-            <div className="flex gap-4 items-center w-full sm:w-auto">
-              <div className="relative flex-1 sm:w-64">
-                <Icon name="search" size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-text-secondary" />
-                <input 
-                  type="text" 
-                  placeholder="Search servers..." 
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full bg-bg-main border border-border-color rounded-xl pl-9 pr-4 py-2.5 text-xs text-text-primary outline-none focus:border-accent transition-all"
-                />
-              </div>
-              <Button variant="outline" className="shrink-0 bg-accent/10 border-accent/20 text-accent hover:bg-accent hover:text-bg-main transition-colors">
-                <Icon name="plus" size={14} className="mr-2" />
-                Create Server
-              </Button>
-            </div>
+            <Select 
+              value={filterMode} 
+              onChange={(e) => setFilterMode(e.target.value)}
+              options={[
+                { value: "all", label: "All Modalities" },
+                { value: "check", label: "Check-in" },
+                { value: "count", label: "Numeric Count" },
+                { value: "timer", label: "Precision Timer" },
+              ]}
+              containerClassName="space-y-0"
+              className="h-11"
+            />
+            <Button variant="primary" className="h-11" icon="plus" size="md">Create Server</Button>
           </div>
 
           {joinedServers.length > 0 && (
-            <div className="space-y-4">
-              <h3 className="text-sm font-bold uppercase tracking-widest text-text-secondary flex items-center gap-2">
-                <div className="w-2 h-2 rounded-full bg-success shadow-[0_0_8px_rgba(74,222,128,0.5)]" /> Active Servers
+            <div className="space-y-6">
+              <h3 className="text-[11px] font-black uppercase tracking-[0.3em] text-text-secondary flex items-center gap-3">
+                <div className="w-1.5 h-1.5 rounded-full bg-success shadow-[0_0_8px_rgba(74,222,128,0.5)]" /> Active Sessions
               </h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                 {joinedServers.map(server => (
-                  <ServerCard key={server.id} server={server} onOpen={openServer} onToggleJoin={toggleJoin} />
+                   <ServerCard key={server.id} server={server} onOpen={setActiveServer} active />
                 ))}
               </div>
             </div>
           )}
 
-          <div className="space-y-4">
-            <h3 className="text-sm font-bold uppercase tracking-widest text-text-secondary flex items-center gap-2">
-              <Icon name="globe" size={16} /> Discover
+          <div className="space-y-6">
+            <h3 className="text-[11px] font-black uppercase tracking-[0.3em] text-text-secondary flex items-center gap-3">
+              <Icon name="layout" size={14} /> Discovery Matrix
             </h3>
-            <div className="grid grid-cols-1 overflow-hidden rounded-[2rem] border border-border-color bg-bg-sidebar/30 divide-y divide-border-color">
-              {discoverServers.map(server => (
-                <DiscoverRow key={server.id} server={server} onOpen={openServer} onToggleJoin={toggleJoin} />
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+              {publicServers.map(server => (
+                <ServerCard key={server.id} server={server} onOpen={setActiveServer} onJoin={handleJoin} />
               ))}
             </div>
           </div>
@@ -256,118 +319,163 @@ const SocialEngine = ({ habits }) => {
       )}
 
       {activeTab === "private" && (
-        <div className="space-y-8 animate-in fade-in duration-500">
-          <Card className="p-8 border-dashed border-2 bg-transparent text-center">
-            <div className="w-16 h-16 mx-auto rounded-full bg-accent/10 flex items-center justify-center text-accent mb-4">
-              <Icon name="user-plus" size={24} />
-            </div>
-            <h3 className="text-lg font-bold text-text-primary mb-2">Invite Friends via UID</h3>
-            <p className="text-xs text-text-secondary max-w-sm mx-auto mb-6">Create a private server and invite your friends using their unique ID found in Settings.</p>
-            <div className="flex max-w-md mx-auto gap-2">
-               <Input placeholder="Enter Friend's UID" className="flex-1" />
-               <Button variant="primary">Send Invite</Button>
-            </div>
-          </Card>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-             <Card className="p-6 opacity-60 grayscale cursor-not-allowed">
-               <h4 className="font-bold text-text-primary mb-1">Company Hustle (Private)</h4>
-               <p className="text-xs text-text-secondary mb-4">You & 3 friends</p>
-               <Button variant="outline" className="w-full text-xs" disabled>Coming Soon</Button>
-             </Card>
-          </div>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start animate-in fade-in duration-500">
+           <Card className="p-10 space-y-6 text-center lg:text-left flex flex-col items-center lg:items-start min-h-[400px] justify-center">
+              <div className="w-20 h-20 rounded-3xl bg-accent/10 border border-accent/20 flex items-center justify-center text-accent mb-4 shadow-2xl shadow-accent/5">
+                <Icon name="user-plus" size={32} />
+              </div>
+              <h3 className="text-3xl font-black tracking-tighter text-text-primary">Initiate Private Unit</h3>
+              <p className="text-sm text-text-secondary max-w-sm leading-relaxed">Establish a secure node for your inner circle. Requires targeted UID linkage for connection invitation.</p>
+              
+              <div className="w-full max-w-md space-y-4 pt-4">
+                 <div className="flex gap-3">
+                   <Input 
+                    placeholder="Enter Target Operator UID" 
+                    value={inviteUid} 
+                    onChange={(e) => setInviteUid(e.target.value)} 
+                    className="flex-1 bg-white/[0.02]"
+                   />
+                   <Button variant="primary" disabled={!inviteUid} className="h-11">Transmit</Button>
+                 </div>
+                 <div className="flex items-center gap-2 px-3 py-2 bg-accent-dim/30 rounded-lg border border-border-color/50">
+                    <Icon name="info" size={12} className="text-text-secondary" />
+                    <p className="text-[9px] font-mono font-bold text-text-secondary uppercase">Invitations are immutable until response received.</p>
+                 </div>
+              </div>
+           </Card>
+
+           <div className="space-y-6">
+              <h3 className="text-[11px] font-black uppercase tracking-[0.3em] text-text-secondary">Pending Identifiers</h3>
+              <div className="space-y-4">
+                 <Card className="p-6 border-none bg-accent/5">
+                    <div className="flex items-center justify-between">
+                       <div className="flex items-center gap-4">
+                         <div className="w-10 h-10 rounded-xl bg-bg-sidebar border border-border-color flex items-center justify-center font-bold text-xs">J</div>
+                         <div>
+                           <p className="text-sm font-bold text-text-primary">Jordan_Vault</p>
+                           <p className="text-[10px] text-text-secondary font-mono">UID: ux842...k2</p>
+                         </div>
+                       </div>
+                       <div className="flex gap-2">
+                         <Button variant="ghost" size="sm" className="text-danger hover:bg-danger/10 hover:border-danger/20">Reject</Button>
+                         <Button variant="primary" size="sm">Accept</Button>
+                       </div>
+                    </div>
+                 </Card>
+                 <p className="text-[10px] text-center text-text-secondary/40 font-mono italic">Searching for secure neighbor nodes...</p>
+              </div>
+           </div>
         </div>
       )}
 
       {activeTab === "history" && (
-        <div className="space-y-6 animate-in fade-in duration-500">
-           <h3 className="text-sm font-bold uppercase tracking-widest text-text-secondary flex items-center gap-2">
-             <Icon name="clock" size={16} /> Social History
-           </h3>
-           <Card className="overflow-hidden">
-             {MOCK_SOCIAL_HISTORY.map((hist, idx) => (
-                <div key={hist.id} className={`p-5 flex items-center justify-between hover:bg-white/5 transition-colors ${idx !== 0 ? 'border-t border-border-color' : ''}`}>
-                  <div>
-                    <h4 className="font-bold text-text-primary text-sm">{hist.name}</h4>
-                    <p className="text-xs text-text-secondary font-mono mt-1">Challenge Completed</p>
-                  </div>
-                  <div className="text-right">
-                    <p className={`text-xs font-black uppercase tracking-wider mb-1 ${hist.state === 'Won' ? 'text-success' : 'text-danger'}`}>{hist.state}</p>
-                    <p className="text-[10px] text-text-secondary font-mono">{hist.rank}</p>
-                  </div>
-                </div>
+        <div className="space-y-8 animate-in fade-in duration-500 max-w-4xl mx-auto">
+           <div className="flex items-center justify-between border-b border-border-color pb-4">
+              <h3 className="text-sm font-black uppercase tracking-widest text-text-secondary">Operator Social History</h3>
+              <Select containerClassName="space-y-0" className="h-9 py-0 text-[10px]" value="all" onChange={()=>{}} options={[{label: "All Records", value: "all"}]} />
+           </div>
+           
+           <div className="space-y-4">
+             {MOCK_HISTORY.map(h => (
+                <Card key={h.id} className="p-6 group flex items-center justify-between hover:bg-white/[0.02]">
+                   <div className="flex items-center gap-6">
+                      <div className="w-12 h-12 rounded-2xl bg-bg-main border border-border-color flex items-center justify-center text-text-secondary group-hover:text-accent transition-colors">
+                        <Icon name="trophy" size={20} />
+                      </div>
+                      <div>
+                        <h4 className="font-bold text-text-primary">{h.name}</h4>
+                        <p className="text-[11px] font-mono text-text-secondary mt-1 uppercase tracking-tighter opacity-60">Session Terminal: {h.date}</p>
+                      </div>
+                   </div>
+                   <div className="text-right">
+                      <p className="text-sm font-black text-text-primary">Rank #{h.rank}</p>
+                      <p className="text-[10px] text-text-secondary font-mono mt-1">Out of {h.total} Operators</p>
+                   </div>
+                </Card>
              ))}
-           </Card>
+           </div>
         </div>
       )}
     </div>
   );
 };
 
-const ServerCard = ({ server, onOpen, onToggleJoin }) => (
+const ServerCard = ({ server, onOpen, onJoin, active = false }) => (
   <Card 
-    className="p-0 overflow-hidden group cursor-pointer hover:-translate-y-1 hover:shadow-2xl hover:shadow-accent/10 transition-all border-none bg-gradient-to-br from-bg-sidebar to-bg-main relative"
+    className="p-0 overflow-hidden group cursor-pointer border-none bg-gradient-to-br from-bg-sidebar to-bg-main shadow-sm flex flex-col h-full"
     onClick={() => onOpen(server)}
   >
-    <div className="absolute inset-0 bg-accent/5 opacity-0 group-hover:opacity-100 transition-opacity" />
-    <div className="p-6 relative z-10">
-      <div className="flex justify-between items-start mb-4">
-        <div className="w-10 h-10 rounded-xl bg-accent/20 border border-accent/30 flex items-center justify-center text-accent font-bold">
-          <Icon name="activity" size={20} />
+    <div className="p-7 space-y-5 relative">
+      <div className="absolute top-0 right-0 w-32 h-32 bg-accent/5 rounded-full blur-[60px] opacity-0 group-hover:opacity-100 transition-opacity" />
+      
+      <div className="flex justify-between items-start relative z-10">
+        <div className={`w-12 h-12 rounded-2xl flex items-center justify-center text-accent shadow-lg shadow-accent/5 transition-all group-hover:scale-110 ${active ? 'bg-accent text-bg-main' : 'bg-accent/10'}`}>
+          <Icon name={active ? "activity" : "layers"} size={24} />
         </div>
-        <div className="flex gap-2">
-           <span className="flex items-center gap-1 text-[9px] font-black uppercase tracking-widest bg-success/10 text-success px-2 py-1 rounded-md">
-             <div className="w-1.5 h-1.5 rounded-full bg-success animate-pulse" /> {server.online} Online
+        <div className="flex items-center gap-2">
+           <span className="flex items-center gap-1.5 text-[10px] font-black tracking-widest bg-success/10 text-success border border-success/20 px-2.5 py-1 rounded-lg">
+             <div className="w-1.5 h-1.5 rounded-full bg-success animate-pulse" /> {server.onlineCount} Online
            </span>
         </div>
       </div>
-      <h3 className="text-lg font-black tracking-tight text-text-primary mb-1">{server.name}</h3>
-      <p className="text-xs text-text-secondary font-mono mb-4">{server.habit} • {server.mode}</p>
-      
-      <div className="w-full bg-black/20 rounded-full h-1.5 mb-2 overflow-hidden">
-        <div className="bg-accent h-full w-[65%]" />
-      </div>
-      <p className="text-[9px] font-mono text-text-secondary uppercase tracking-[0.2em] mb-4">
-        {server.totalJoined.toLocaleString()} / 20k Capacity
-      </p>
 
-      <div className="flex justify-between items-center text-[9px] text-text-secondary/60 font-mono uppercase tracking-[0.1em] border-t border-white/5 pt-4 mt-2">
-         <span>{server.startDate}</span>
-         <Icon name="arrow-right" size={10} />
-         <span>{server.endDate}</span>
+      <div className="space-y-1 relative z-10">
+        <h3 className="text-xl font-black tracking-tight text-text-primary leading-tight group-hover:text-accent transition-colors">{server.name}</h3>
+        <p className="text-xs font-bold text-text-secondary flex items-center gap-2">
+          {server.habit} <span className="w-1 h-1 rounded-full bg-border-color" /> {server.mode}
+        </p>
       </div>
+
+      <div className="space-y-2 relative z-10 pt-2">
+        <div className="flex justify-between text-[10px] font-mono font-black uppercase tracking-widest text-text-secondary/50">
+          <span>{server.totalJoined.toLocaleString()} Operators</span>
+          <span>95% Active</span>
+        </div>
+        <div className="w-full bg-black/20 rounded-full h-1 overflow-hidden">
+          <div className="bg-accent h-full w-[70%] group-hover:w-[75%] transition-all duration-700" />
+        </div>
+      </div>
+    </div>
+    <div className="mt-auto border-t border-border-color/30 p-5 flex items-center justify-between bg-white/[0.01]">
+        {active ? (
+          <Button variant="ghost" size="sm" className="w-full text-accent hover:bg-accent/10" onClick={(e) => { e.stopPropagation(); onOpen(server); }}>Enter Terminal</Button>
+        ) : (
+          <Button variant="primary" size="md" className="w-full shadow-lg shadow-accent/10" onClick={(e) => { e.stopPropagation(); onJoin?.(server.id); }}>Join Challenge</Button>
+        )}
     </div>
   </Card>
 );
 
-const DiscoverRow = ({ server, onOpen, onToggleJoin }) => (
-  <div 
-    className="p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 group hover:bg-bg-main/50 transition-colors cursor-pointer"
-    onClick={() => onOpen(server)}
-  >
-    <div className="flex items-center gap-5">
-      <div className="w-12 h-12 rounded-2xl bg-bg-main border border-border-color flex items-center justify-center text-text-secondary group-hover:text-accent group-hover:border-accent/40 transition-colors shrink-0">
-        <Icon name="hash" size={20} />
-      </div>
-      <div className="min-w-0">
-        <h4 className="font-bold text-text-primary mb-0.5 truncate">{server.name}</h4>
-        <p className="text-[11px] font-mono text-text-secondary truncate">{server.habit} • {server.totalJoined.toLocaleString()} joined</p>
-      </div>
+const ChatMessage = ({ user, msg, time, self = false }) => (
+  <div className={`flex flex-col ${self ? 'items-end' : 'items-start'} max-w-[90%] ${self ? 'ml-auto' : ''}`}>
+    <div className="flex items-center gap-2 mb-1">
+      {!self && <span className="text-[10px] font-black text-accent uppercase tracking-widest">{user}</span>}
+      <span className="text-[9px] font-mono text-text-secondary/40">{time}</span>
     </div>
-    <div className="flex items-center gap-4 shrink-0 justify-between sm:justify-end w-full sm:w-auto mt-2 sm:mt-0">
-      <div className="text-right hidden md:block">
-        <p className="text-[10px] uppercase font-black tracking-widest text-text-secondary mb-1">Ends In</p>
-        <p className="text-xs font-mono text-text-primary">24 Days</p>
-      </div>
-      <Button 
-        variant="primary" 
-        className="text-[10px] w-full sm:w-auto"
-        onClick={(e) => {
-          e.stopPropagation();
-          onToggleJoin(server.id);
-        }}
-      >
-        Join
-      </Button>
+    <div className={`px-4 py-2.5 rounded-2xl text-xs leading-relaxed ${self ? 'bg-accent text-bg-main rounded-tr-none' : 'bg-bg-sidebar border border-border-color/50 text-text-primary rounded-tl-noneShadow-sm'}`}>
+      {msg}
+    </div>
+  </div>
+);
+
+const MetricBox = ({ label, value, icon, color }) => (
+  <div className="bg-bg-main/40 border border-border-color/50 rounded-2xl p-4 transition-all hover:bg-bg-main/60">
+    <div className="flex items-center gap-2 mb-1.5">
+      <Icon name={icon} size={12} className="text-text-secondary/40" />
+      <span className="text-[9px] font-black uppercase tracking-[0.2em] text-text-secondary opacity-60">{label}</span>
+    </div>
+    <p className={`text-xl font-black font-mono tracking-tighter ${color}`}>{value}</p>
+  </div>
+);
+
+const ProtocolItem = ({ icon, title, desc }) => (
+  <div className="flex items-start gap-4">
+    <div className="w-8 h-8 rounded-lg bg-bg-sidebar border border-border-color flex items-center justify-center text-text-secondary shrink-0">
+      <Icon name={icon} size={14} />
+    </div>
+    <div className="min-w-0">
+      <p className="text-[11px] font-bold text-text-primary leading-tight">{title}</p>
+      <p className="text-[10px] text-text-secondary mt-0.5 truncate">{desc}</p>
     </div>
   </div>
 );
