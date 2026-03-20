@@ -762,6 +762,7 @@ function AppContent() {
         habits={displayHabits}
         userConfig={displayUserConfig}
         updateUserConfig={unifiedUpdateUserConfig}
+        dataLoading={dataLoading}
       />
       <Onboarding 
         onAddHabit={handleAddHabitRequest} 
@@ -887,7 +888,7 @@ function AppContent() {
         <div
           className="fixed inset-0 bg-black/60 backdrop-blur-md flex items-center justify-center z-[100] p-4 animate-in fade-in duration-300"
           onClick={(e) =>
-            e.target === e.currentTarget && setShowAddModal(false)
+            displayHabits.length > 0 && e.target === e.currentTarget && setShowAddModal(false)
           }
         >
           <div className="glass-card modal-enter w-full max-w-md rounded-[2rem] shadow-[0_32px_64px_-16px_rgba(0,0,0,0.5)] border-white/10 relative overflow-hidden flex flex-col transition-all duration-300">
@@ -908,12 +909,14 @@ function AppContent() {
                     ))}
                   </div>
                 </div>
-                <button
-                  onClick={() => setShowAddModal(false)}
-                  className="w-10 h-10 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center text-text-secondary hover:text-text-primary hover:bg-white/10 transition-all group"
-                >
-                  <Icon name="x" size={18} className="group-hover:rotate-90 transition-transform duration-300" />
-                </button>
+                {displayHabits.length > 0 && (
+                  <button
+                    onClick={() => setShowAddModal(false)}
+                    className="w-10 h-10 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center text-text-secondary hover:text-text-primary hover:bg-white/10 transition-all group"
+                  >
+                    <Icon name="x" size={18} className="group-hover:rotate-90 transition-transform duration-300" />
+                  </button>
+                )}
               </div>
 
               {addHabitStep === 1 && (

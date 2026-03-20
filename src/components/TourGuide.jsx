@@ -52,7 +52,7 @@ const MOBILE_STEPS = [
     }
 ];
 
-const TourGuide = ({ habits: propHabits, userConfig: propUserConfig, updateUserConfig: propUpdateUserConfig }) => {
+const TourGuide = ({ habits: propHabits, userConfig: propUserConfig, updateUserConfig: propUpdateUserConfig, dataLoading }) => {
     const { user, userConfig: authUserConfig, updateUserConfig: authUpdateUserConfig, habits: authHabits } = useAuth();
     
     // Use props if provided (from App layout for guest sync), otherwise use AuthContext
@@ -65,6 +65,14 @@ const TourGuide = ({ habits: propHabits, userConfig: propUserConfig, updateUserC
     const [hasSeenTour, setHasSeenTour] = useState(false);
     const location = useLocation();
     const isMobile = window.innerWidth <= 768;
+    const initialHabitsCountRef = useRef(null);
+
+    useEffect(() => {
+        // If we are not loading data and haven't recorded the initial count yet, do it.
+        if (initialHabitsCountRef.current === null && !dataLoading) {
+            initialHabitsCountRef.current = habits?.length || 0;
+        }
+    }, [dataLoading, habits?.length]);
 
     useEffect(() => {
         const isReturningOperator = localStorage.getItem('auris_returning_operator') === 'true';
@@ -86,14 +94,15 @@ const TourGuide = ({ habits: propHabits, userConfig: propUserConfig, updateUserC
         const onboardingFinished = userConfig?.settings?.onboardingComplete;
         const hasHabits = habits?.length > 0;
         
+        // Skip if habits existed when we first loaded the app this session (older account)
+        const existedInstantly = initialHabitsCountRef.current > 0;
+        if (existedInstantly) return;
+
         // Only start if not already active and conditions met
         if (activeStepIndex === -1 && (onboardingFinished || hasHabits)) {
-            const timer = setTimeout(() => {
-                setActiveStepIndex(0);
-            }, 300);
-            return () => clearTimeout(timer);
+            setActiveStepIndex(0);
         }
-    }, [location.pathname, userConfig?.settings?.hasSeenTour, userConfig?.settings?.onboardingComplete, user, habits?.length, activeStepIndex]);
+    }, [location.pathname, userConfig?.settings?.hasSeenTour, userConfig?.settings?.onboardingComplete, user, habits?.length, activeStepIndex, dataLoading]);
 
     const completeTour = () => {
         setActiveStepIndex(-1);
