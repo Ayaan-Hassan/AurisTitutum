@@ -126,9 +126,6 @@ const Settings = ({
               }
               placeholder="Enter your name"
             />
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
               <label className="block text-[10px] font-black text-text-secondary uppercase tracking-widest mb-2">
                 System Email
