@@ -98,8 +98,6 @@ const Onboarding = ({ onAddHabit, habits = [], userConfig: propUserConfig, updat
         avatar: profile.avatar,
       });
       setStep(2);
-      // Automatically prompt for habit creation after saving profile
-      handleStartHabit();
     } catch (err) {
       console.error("Failed to save profile:", err);
     } finally {

@@ -66,23 +66,23 @@ const TourGuide = () => {
 
         const seenLocally = localStorage.getItem('auris_tour_complete') === 'true';
         const seenInCloud = userConfig?.settings?.hasSeenTour;
+        
+        if (seenLocally || seenInCloud) {
+            setHasSeenTour(true);
+            return;
+        }
+
         const onboardingFinished = userConfig?.settings?.onboardingComplete;
         const hasHabits = habits?.length > 0;
         
-        // Need both user configuration ready AND haven't seen tour AND (onboarding complete OR a habit exists to imply user skipped/existing)
-        if (!seenLocally && !seenInCloud && (onboardingFinished || hasHabits)) {
+        // Only start if not already active and conditions met
+        if (activeStepIndex === -1 && (onboardingFinished || hasHabits)) {
             const timer = setTimeout(() => {
                 setActiveStepIndex(0);
-                localStorage.setItem('auris_tour_complete', 'true'); // Flag it as seen immediately
-                if (user) {
-                    updateUserConfig({ settings: { ...userConfig.settings, hasSeenTour: true } });
-                }
             }, 300);
             return () => clearTimeout(timer);
-        } else {
-            setHasSeenTour(seenLocally || seenInCloud);
         }
-    }, [location.pathname, userConfig?.settings?.hasSeenTour, userConfig?.settings?.onboardingComplete, user, habits?.length]);
+    }, [location.pathname, userConfig?.settings?.hasSeenTour, userConfig?.settings?.onboardingComplete, user, habits?.length, activeStepIndex]);
 
     const completeTour = () => {
         setActiveStepIndex(-1);
