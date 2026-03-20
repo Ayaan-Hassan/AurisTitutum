@@ -575,7 +575,7 @@ const Dashboard = ({ habits, logActivity, insights, dataLoading }) => {
             </Link>
           </div>
           <div className="space-y-2 overflow-y-auto custom-scrollbar pr-2 flex-1 min-h-0" style={{ maxHeight: habitListHeight }}>
-            {habits.map((h) => {
+            {habits.map((h, i) => {
               const checkedToday = (h.logs || []).some((l) => l.date === todayKey && l.count > 0);
               const isGood = h.type === "Good";
               
@@ -620,7 +620,7 @@ const Dashboard = ({ habits, logActivity, insights, dataLoading }) => {
                     </div>
                   </div>
                   <div className="flex items-center gap-1.5 shrink-0 ml-2 relative z-10">
-                    <Button onClick={() => setPerformanceTarget(h.id)} size="sm" variant="outline" icon="bar-chart-2" className="bg-bg-main rounded-lg w-8 h-8 p-0" title="Habit performance" />
+                    <Button id={i === 0 ? "tour-habit-performance" : undefined} onClick={() => setPerformanceTarget(h.id)} size="sm" variant="outline" icon="bar-chart-2" className="bg-bg-main rounded-lg w-8 h-8 p-0" title="Habit performance" />
 
                     {h.mode === "timer" ? (
                       <DashboardTimerControl habitId={h.id} logActivity={logActivity} />
@@ -750,7 +750,7 @@ const Dashboard = ({ habits, logActivity, insights, dataLoading }) => {
       </div>
 
       {/* Activity Calendar */}
-      <Card className="p-4 sm:p-6 overflow-hidden hover:translate-y-0 hover:shadow-none hover:border-border-color">
+      <Card id="tour-activity-calendar" className="p-4 sm:p-6 overflow-hidden hover:translate-y-0 hover:shadow-none hover:border-border-color">
         <div className="flex flex-col items-center sm:flex-row sm:items-center sm:justify-between gap-3 mb-4 text-center sm:text-left">
           <h4 className="text-[10px] sm:text-xs font-bold uppercase tracking-[0.2em] text-text-secondary">Activity Calendar</h4>
           <div className="flex items-center gap-2">
@@ -812,6 +812,7 @@ const Dashboard = ({ habits, logActivity, insights, dataLoading }) => {
             return (
               <div
                 key={i}
+                id={isToday ? "tour-today-cell" : undefined}
                 className={cellClass}
                 onClick={() => dateStr && hasAny && setSelectedDay(dateStr)}
                 title={dateStr && hasAny ? "Click to see logs" : undefined}

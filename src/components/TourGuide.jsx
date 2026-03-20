@@ -18,10 +18,34 @@ const DESKTOP_STEPS = [
         position: 'right'
     },
     {
+        targetId: 'tour-habit-performance',
+        title: 'Habit Performance',
+        text: 'Click this chart icon to see detailed analytics and history for your first habit.',
+        position: 'bottom'
+    },
+    {
         targetId: 'tour-nav-bell',
         title: 'System Alerts',
         text: 'Check this bell for reminders and check-ins if you haven\'t recorded anything lately.',
         position: 'bottom'
+    },
+    {
+        targetId: 'tour-activity-calendar',
+        title: 'Activity Calendar',
+        text: 'This calendar gives you a bird\'s eye view of your consistency across all habits.',
+        position: 'top'
+    },
+    {
+        targetId: 'tour-today-cell',
+        title: "Activity Log",
+        text: 'Point out today\'s date! Each box tracks your daily progress; click any day to see its detailed activity log.',
+        position: 'bottom'
+    },
+    {
+        targetId: 'tour-nav-analytics',
+        title: 'Analytics Console',
+        text: 'Access deep insights, patterns, and long-term progress metrics for all your habits right here.',
+        position: 'right'
     },
     {
         targetId: 'tour-nav-ai-desktop-sidebar',
@@ -48,6 +72,13 @@ const MOBILE_STEPS = [
         targetId: 'tour-add-habit-mobile',
         title: 'New Habit Button',
         text: 'Tap the floating + button here to create a new habit. You can set up counters or timers.',
+        position: 'top'
+    },
+    {
+        id: 'tour-activity-calendar',
+        targetId: 'tour-activity-calendar',
+        title: 'Activity Calendar',
+        text: 'Scroll down to see your consistency overview and daily activity logs.',
         position: 'top'
     }
 ];
@@ -114,6 +145,11 @@ const TourGuide = ({ habits: propHabits, userConfig: propUserConfig, updateUserC
             if (!step) {
                 completeTour();
                 return;
+            }
+
+            // Scroll back up if moving to a navigation step after a dashboard content step
+            if (['tour-nav-analytics', 'tour-nav-habits', 'tour-nav-ai-desktop-sidebar'].includes(step.targetId)) {
+                window.scrollTo({ top: 0, behavior: 'smooth' });
             }
 
             let retries = 0;
@@ -225,13 +261,15 @@ const TourGuide = ({ habits: propHabits, userConfig: propUserConfig, updateUserC
         <>
             {/* Dim Overlay - Closes or Advances when clicked everywhere */}
             <div
-                className="fixed inset-0 z-[9990] bg-black/40 transition-all duration-500 cursor-none"
+                className="fixed inset-0 z-[9990] bg-black/40 transition-all duration-500 cursor-default"
                 onClick={advanceTour}
             >
                 <div className="absolute inset-0 flex items-end justify-center pb-10 pointer-events-none">
-                    <p className="text-white/50 text-xs font-mono tracking-widest uppercase animate-pulse">
-                        Click anywhere to continue
-                    </p>
+                    <div className="bg-black/40 backdrop-blur-md px-4 py-2 rounded-full border border-white/10 shadow-xl">
+                        <p className="text-white text-[10px] font-bold font-mono tracking-[0.2em] uppercase animate-pulse">
+                            Click anywhere to continue
+                        </p>
+                    </div>
                 </div>
             </div>
 
