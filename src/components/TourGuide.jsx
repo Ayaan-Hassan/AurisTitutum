@@ -31,8 +31,8 @@ const DESKTOP_STEPS = [
     },
     {
         targetId: 'tour-today-cell',
-        title: "Activity Log",
-        text: 'Point out today\'s date! Each box tracks your daily progress; click any day to see its detailed activity log.',
+        title: "Activity Node",
+        text: "This is today's behavior node. Each cell tracks your daily consistency; you can click any day in the calendar to review its detailed activity history.",
         position: 'bottom'
     },
     {
@@ -124,7 +124,13 @@ const TourGuide = ({ habits: propHabits, userConfig: propUserConfig, updateUserC
         setActiveStepIndex(-1);
         setHasSeenTour(true);
         localStorage.setItem('auris_tour_complete', 'true');
+        // Force scroll to top when tour finishes
         window.scrollTo({ top: 0, behavior: 'smooth' });
+        // Secondary backup scroll for reliability
+        setTimeout(() => {
+            window.scrollTo(0, 0);
+        }, 800);
+        
         if (user) {
             updateUserConfig({ settings: { hasSeenTour: true } });
         }
@@ -152,12 +158,22 @@ const TourGuide = ({ habits: propHabits, userConfig: propUserConfig, updateUserC
                 const el = document.getElementById(step.targetId);
                 if (el) {
                     el.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'center' });
-                    setTimeout(() => {
+                    
+                    // Initial rect capture
+                    let captureRetries = 0;
+                    const captureRect = () => {
                         const currentEl = document.getElementById(step.targetId);
                         if (currentEl) {
-                            setTargetRect(currentEl.getBoundingClientRect());
+                            const rect = currentEl.getBoundingClientRect();
+                            setTargetRect(rect);
+                            // If it's still moving or being calculated, retry a few times
+                            if (captureRetries < 20) {
+                                captureRetries++;
+                                setTimeout(captureRect, 100);
+                            }
                         }
-                    }, 300); // give time for scroll
+                    };
+                    setTimeout(captureRect, 300);
                 } else {
                     retries++;
                     if (retries < 15) { // Try for 1.5s
@@ -270,7 +286,7 @@ const TourGuide = ({ habits: propHabits, userConfig: propUserConfig, updateUserC
 
             {/* Target Cutout (Highlights the actual element) */}
             <div
-                className="fixed z-[9991] pointer-events-none transition-all duration-500 ease-[cubic-bezier(0.34,1.56,0.64,1)] border-[3px] border-accent rounded-xl"
+                className="fixed z-[9991] pointer-events-none transition-all duration-500 ease-[cubic-bezier(0.34,1.56,0.64,1)] border-[3px] border-accent rounded-lg"
                 style={{
                     top: targetRect.top - 2,
                     left: targetRect.left - 2,
