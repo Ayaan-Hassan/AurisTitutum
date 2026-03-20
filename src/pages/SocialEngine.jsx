@@ -51,6 +51,8 @@ const MOCK_HISTORY = [
   { id: "h2", name: "Peak Performance", rank: 3, total: 450, status: "completed", date: "2026-01-10" },
 ];
 
+const TARGET_DATE = new Date("2026-03-23T13:14:08Z"); // 60 hours from 2026-03-21T01:14:08+05:30 (ISO 2026-03-20T19:44:08Z, so +60h = 2026-03-23T07:44:08Z UTC or 2026-03-23T13:14:08 IST)
+
 const SocialEngine = () => {
   const { user } = useAuth();
   const [activeTab, setActiveTab] = useState("public");
@@ -59,6 +61,69 @@ const SocialEngine = () => {
   const [filterMode, setFilterMode] = useState("all");
   const [servers, setServers] = useState(MOCK_PUBLIC_SERVERS);
   const [inviteUid, setInviteUid] = useState("");
+  const [timeLeft, setTimeLeft] = useState(TARGET_DATE - new Date());
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      const now = new Date();
+      setTimeLeft(TARGET_DATE - now);
+    }, 1000);
+    return () => clearInterval(timer);
+  }, []);
+
+  const formatTime = (ms) => {
+    if (ms <= 0) return "00:00:00";
+    const totalSeconds = Math.floor(ms / 1000);
+    const h = Math.floor(totalSeconds / 3600);
+    const m = Math.floor((totalSeconds % 3600) / 60);
+    const s = totalSeconds % 60;
+    return `${h.toString().padStart(2, "0")}:${m.toString().padStart(2, "0")}:${s.toString().padStart(2, "0")}`;
+  };
+
+  const isLive = timeLeft <= 0;
+
+  if (!isLive) {
+    const hours = Math.floor(timeLeft / (1000 * 60 * 60));
+    const minutes = Math.floor((timeLeft % (1000 * 60 * 60)) / (1000 * 60));
+
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[70vh] text-center space-y-8 animate-in fade-in zoom-in duration-700">
+        <div className="relative">
+          <div className="absolute inset-0 bg-accent/20 blur-[80px] rounded-full scale-150 animate-pulse" />
+          <div className="relative w-24 h-24 rounded-3xl bg-accent-dim border border-accent/30 flex items-center justify-center text-accent shadow-2xl">
+            <Icon name="lock" size={40} />
+          </div>
+        </div>
+
+        <div className="space-y-4 max-w-lg relative z-10">
+          <div className="inline-flex items-center gap-2 px-3 py-1 bg-accent/10 border border-accent/20 rounded-full">
+            <div className="w-1.5 h-1.5 rounded-full bg-accent animate-ping" />
+            <span className="text-[10px] font-black uppercase tracking-[0.3em] text-accent">Protocol Staging Underway</span>
+          </div>
+          
+          <h2 className="text-4xl font-black tracking-tighter text-text-primary">Social Engine Deployment</h2>
+          
+          <p className="text-sm text-text-secondary leading-relaxed px-6">
+            The Hub is currently undergoing final unit synchronization. This module will enable **Global Persistence Challenges**, **Private Squad Tactics**, and **Operator History Archives**.
+          </p>
+
+          <div className="pt-6">
+            <div className="text-[10px] font-black uppercase tracking-[0.2em] text-text-secondary mb-3 opacity-60">Synchronizing in</div>
+            <div className="flex items-center justify-center gap-4">
+              <div className="bg-bg-sidebar border border-border-color rounded-2xl p-5 min-w-[140px] shadow-xl">
+                 <div className="text-4xl font-black font-mono tracking-tighter text-accent">{formatTime(timeLeft)}</div>
+                 <div className="text-[9px] font-bold text-text-secondary uppercase mt-2 tracking-widest">Total Time Remaining</div>
+              </div>
+            </div>
+          </div>
+
+          <div className="pt-8 text-[11px] font-bold text-text-primary/70">
+            Node status: <span className="text-accent underline underline-offset-4">Live in {hours} hours and {minutes} minutes</span>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   const filteredServers = useMemo(() => {
     return servers.filter(s => {
