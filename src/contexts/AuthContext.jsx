@@ -145,14 +145,6 @@ const normalizeHabit = (habit = {}) => ({
   logs: Array.isArray(habit?.logs) ? habit.logs : [],
 });
 
-const normalizeSheetsState = (raw = {}) => ({
-  connected: !!raw?.connected,
-  sheetUrl: raw?.sheetUrl || null,
-  spreadsheetId: raw?.spreadsheetId || null,
-  connectedAt: raw?.connectedAt || null,
-  error: raw?.error || null,
-  loading: !!raw?.loading,
-});
 
 const isMobileDevice = () =>
   /Android|iPhone|iPad|iPod|Opera Mini|IEMobile|WPDesktop/i.test(
@@ -160,8 +152,6 @@ const isMobileDevice = () =>
   );
 
 const googleProvider = new GoogleAuthProvider();
-// Request offline access so we get a refresh_token for Google Sheets OAuth
-googleProvider.addScope('https://www.googleapis.com/auth/spreadsheets');
 googleProvider.addScope('email');
 googleProvider.addScope('profile');
 const facebookProvider = new FacebookAuthProvider();
@@ -250,10 +240,6 @@ export const AuthProvider = ({ children }) => {
     return mergeUserIdentityIntoConfig(normalizeUserConfig(profile), user);
   }, [settingsMap.profile, user]);
 
-  const sheetsConnection = useMemo(
-    () => normalizeSheetsState(settingsMap.sheets || {}),
-    [settingsMap.sheets],
-  );
 
   const replaceHabitsAndLogs = async (uid, nextHabitsArg) => {
     const currentHabits = habits; // From context scope
@@ -895,10 +881,6 @@ export const AuthProvider = ({ children }) => {
     return queueWrite(() => clearUserLogs(user.uid));
   };
 
-  const upsertSheetsConnectionState = async (payload) => {
-    if (!user?.uid) return;
-    await upsertUserSetting(user.uid, "sheets", normalizeSheetsState(payload), true);
-  };
 
   const loading = authLoading || dataLoading;
 
@@ -925,13 +907,11 @@ export const AuthProvider = ({ children }) => {
     notes,
     reminders,
     userConfig,
-    sheetsConnection,
 
     replaceHabitsState,
     replaceNotesState,
     replaceRemindersState,
     updateUserConfig,
-    upsertSheetsConnectionState,
 
     addHabit,
     updateHabit,

@@ -1,34 +1,6 @@
 {
   "rewrites": [
     {
-      "source": "/api/append-log",
-      "destination": "/api/logs?op=append"
-    },
-    {
-      "source": "/api/get-logs",
-      "destination": "/api/logs?op=get"
-    },
-    {
-      "source": "/api/sync-logs",
-      "destination": "/api/logs?op=sync"
-    },
-    {
-      "source": "/api/auth/status",
-      "destination": "/api/auth?op=status"
-    },
-    {
-      "source": "/api/auth/disconnect",
-      "destination": "/api/auth?op=disconnect"
-    },
-    {
-      "source": "/api/auth/google",
-      "destination": "/api/auth?op=google"
-    },
-    {
-      "source": "/api/auth/google/callback",
-      "destination": "/api/auth?op=callback"
-    },
-    {
       "source": "/api/state/get",
       "destination": "/api/state?op=get"
     },

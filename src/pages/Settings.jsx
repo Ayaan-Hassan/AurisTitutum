@@ -8,12 +8,6 @@ import { Input } from "../components/ui/Input";
 import Switch from "../components/ui/Switch";
 import { ConfirmModal } from "../components/Modals";
 import { getLocalDateKey } from "../utils/date";
-import {
-  connectGoogleSheets,
-  disconnectGoogleSheets,
-  syncAllLogs,
-  handleOAuthCallback,
-} from "../services/sheetsApi";
 
 const Settings = ({
   userConfig,
@@ -22,63 +16,11 @@ const Settings = ({
   fileInputRef,
   habits,
 }) => {
-  const { logout, user, upsertSheetsConnectionState, sheetsConnection } = useAuth();
+  const { logout, user } = useAuth();
   const navigate = useNavigate();
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
 
-  // Google Sheets state
-  const [sheetsStatus, setSheetsStatus] = useState({
-    connected: false,
-    loading: true,
-  });
-  const [syncingSheets, setSyncingSheets] = useState(false);
-  const [sheetsMessage, setSheetsMessage] = useState(null);
 
-  // Sync sheetsStatus from AuthContext cloud state (real-time)
-  useEffect(() => {
-    if (!user) {
-      setSheetsStatus({ connected: false, loading: false });
-      return;
-    }
-    // sheetsConnection comes from Firestore via AuthContext in real-time
-    setSheetsStatus({ ...sheetsConnection, loading: false });
-  }, [user, sheetsConnection]);
-
-  // Handle OAuth callback (from Google redirect after connect)
-  useEffect(() => {
-    const init = async () => {
-      const oauthResult = handleOAuthCallback();
-
-      if (oauthResult.error) {
-        setSheetsMessage({
-          type: "error",
-          text: `Connection failed: ${oauthResult.error}`,
-        });
-        return;
-      }
-
-      if (oauthResult.payload && user) {
-        await upsertSheetsConnectionState({
-          connected: true,
-          ...oauthResult.payload
-        });
-        setSheetsMessage({
-          type: "success",
-          text: "Google Sheets connected successfully!",
-        });
-      }
-    };
-
-    init();
-  }, [user]);
-
-  // Clear message after 5 seconds
-  useEffect(() => {
-    if (sheetsMessage) {
-      const timer = setTimeout(() => setSheetsMessage(null), 5000);
-      return () => clearTimeout(timer);
-    }
-  }, [sheetsMessage]);
 
   const handleLogout = async () => {
     setShowLogoutConfirm(true);
@@ -121,47 +63,6 @@ const Settings = ({
     URL.revokeObjectURL(url);
   };
 
-  const handleConnectSheets = () => {
-    // Passes user email so the backend sets login_hint â€” Google will
-    // auto-select the account the user is already signed in with,
-    // skipping the account-picker screen on repeat connections.
-    connectGoogleSheets(user);
-  };
-
-  const handleDisconnectSheets = async () => {
-    try {
-      await disconnectGoogleSheets(user);
-      setSheetsStatus({ connected: false, loading: false });
-      setSheetsMessage({ type: "success", text: "Google Sheets disconnected" });
-    } catch (err) {
-      setSheetsMessage({ type: "error", text: err.message });
-    }
-  };
-
-  const handleSyncToSheets = async () => {
-    if (!sheetsStatus.connected) {
-      setSheetsMessage({
-        type: "error",
-        text: "Not connected to Google Sheets. Please connect first.",
-      });
-      return;
-    }
-
-    setSyncingSheets(true);
-    setSheetsMessage(null);
-
-    try {
-      const result = await syncAllLogs(user, habits);
-      setSheetsMessage({
-        type: "success",
-        text: `${result.count} logs synced to Google Sheets.`,
-      });
-    } catch (err) {
-      setSheetsMessage({ type: "error", text: err.message });
-    } finally {
-      setSyncingSheets(false);
-    }
-  };
 
   return (
     <div className="page-fade max-w-7xl w-full space-y-12 pb-20">
@@ -361,123 +262,6 @@ const Settings = ({
             </Button>
           </div>
 
-          <div className="h-px bg-border-color"></div>
-
-          {/* Google Sheets Integration */}
-          <div className="space-y-4">
-            <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
-              <div className="min-w-0 flex-1">
-                <div className="flex items-center gap-2 flex-wrap">
-                  <p className="text-sm font-bold text-text-primary">
-                    Google Sheets Sync
-                  </p>
-                  {sheetsStatus.loading ? (
-                    <span className="text-[9px] uppercase tracking-wider text-text-secondary animate-pulse">
-                      Checkingâ€¦
-                    </span>
-                  ) : sheetsStatus.connected ? (
-                    <span className="inline-flex items-center gap-1 text-[9px] uppercase tracking-wider text-emerald-400 bg-emerald-400/10 border border-emerald-400/20 px-2 py-0.5 rounded-full">
-                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-                      Connected
-                    </span>
-                  ) : (
-                    <span className="text-[9px] uppercase tracking-wider text-text-secondary bg-text-secondary/10 px-2 py-0.5 rounded-full">
-                      Not connected
-                    </span>
-                  )}
-                </div>
-                <p className="text-xs text-text-secondary mt-1">
-                  {sheetsStatus.connected
-                    ? "Your habit logs sync to your personal Google Spreadsheet. Changes in the sheet reflect here automatically."
-                    : "Connect your Google account once â€” uses the same account you signed in with. No re-authentication needed."}
-                </p>
-              </div>
-              <div className="flex flex-col sm:flex-row gap-2 shrink-0">
-                {sheetsStatus.connected ? (
-                  <>
-                    <Button
-                      onClick={handleSyncToSheets}
-                      variant="primary"
-                      icon="cloud-sync"
-                      className="w-full sm:w-auto"
-                      disabled={syncingSheets || !user}
-                    >
-                      {syncingSheets ? "Syncingâ€¦" : "Sync Now"}
-                    </Button>
-                    <Button
-                      onClick={handleDisconnectSheets}
-                      variant="outline"
-                      className="bg-bg-main w-full sm:w-auto"
-                    >
-                      Disconnect
-                    </Button>
-                  </>
-                ) : (
-                  <Button
-                    onClick={handleConnectSheets}
-                    variant="outline"
-                    icon="file-spreadsheet"
-                    className="bg-bg-main w-full sm:w-auto"
-                    disabled={!user || sheetsStatus.loading}
-                  >
-                    Connect Google Sheets
-                  </Button>
-                )}
-              </div>
-            </div>
-
-            {/* Open Sheet button â€” shown once connected */}
-            {sheetsStatus.connected && sheetsStatus.sheetUrl && (
-              <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 rounded-xl border border-border-color bg-bg-main px-4 py-3">
-                <div className="flex-1 min-w-0">
-                  <p className="text-xs font-bold text-text-primary">
-                    Your Habit Spreadsheet
-                  </p>
-                  <p className="text-[10px] text-text-secondary mt-0.5 truncate max-w-[200px] sm:max-w-xs">
-                    {sheetsStatus.sheetUrl}
-                  </p>
-                </div>
-                <a
-                  href={sheetsStatus.sheetUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-border-color bg-bg-main text-[10px] font-bold uppercase tracking-widest text-text-secondary hover:text-text-primary hover:border-text-secondary transition-all shrink-0 w-full sm:w-auto justify-center"
-                >
-                  <Icon name="external-link" size={12} />
-                  Open My Google Sheet
-                </a>
-              </div>
-            )}
-
-            {/* Status / feedback message */}
-            {sheetsMessage && (
-              <div
-                className={`flex flex-col sm:flex-row sm:items-center gap-3 text-xs p-3 rounded-xl ${sheetsMessage.type === "success"
-                  ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20"
-                  : "bg-danger/10 text-danger border border-danger/20"
-                  }`}
-              >
-                <span className="flex-1">{sheetsMessage.text}</span>
-                {sheetsMessage.type === "success" && sheetsStatus.sheetUrl && (
-                  <a
-                    href={sheetsStatus.sheetUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-emerald-500/30 text-[10px] font-bold uppercase tracking-widest hover:bg-emerald-500/10 transition-all shrink-0"
-                  >
-                    <Icon name="external-link" size={11} />
-                    Open Sheet
-                  </a>
-                )}
-              </div>
-            )}
-
-            {!user && (
-              <p className="text-[10px] text-text-secondary">
-                Sign in to enable Google Sheets sync.
-              </p>
-            )}
-          </div>
         </Card>
 
         {/* Developer Settings */}

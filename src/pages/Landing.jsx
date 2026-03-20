@@ -61,7 +61,7 @@ const Landing = ({ habits, user, userConfig }) => {
     {
       icon: "file-spreadsheet",
       title: "Exports & Data Ownership",
-      desc: "Export structured logs and sync to Google Sheets so your data plugs into any external system you choose.",
+      desc: "Export your activity history as structured CSV logs for backup, external analysis, or deep-diving into your trends.",
     },
     {
       icon: "cloud-sync",

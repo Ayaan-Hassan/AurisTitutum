@@ -308,7 +308,4 @@ export const clearLegacyLocalCoreData = (uid) => {
     }
   }
   scopedKeys.forEach((key) => localStorage.removeItem(key));
-
-  localStorage.removeItem(`auristitutum_sheets_cache_${uid}`);
-  localStorage.removeItem("auristitutum_sheets_cache");
 };

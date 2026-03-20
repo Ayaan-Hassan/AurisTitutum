@@ -10,15 +10,10 @@ Browser
   └─→ Vercel  (one deployment)
         ├── /             React SPA (Vite build → dist/)
         ├── /api/*        Serverless functions (Node 20, /api folder)
-        │     ├── /api/auth/google          Start OAuth flow
-        │     ├── /api/auth/google/callback OAuth callback
-        │     ├── /api/auth/status          Check connection
-        │     ├── /api/auth/disconnect      Remove tokens
-        │     ├── /api/append-log           Append single row
-        │     ├── /api/sync-logs            Bulk sync
-        │     └── /api/get-logs             Read rows
+        │     ├── /api/state/get            Read app state snapshot
+        │     └── /api/state/set            Save app state snapshot
         └── Vercel KV (Upstash Redis)
-              └── Stores OAuth tokens + spreadsheet IDs
+              └── Stores app state snapshots
 ```
 
 ---
@@ -33,45 +28,7 @@ Browser
 
 ---
 
-## Step 1 — Google Cloud Console
-
-### 1a. Enable APIs
-
-1. Go to [console.cloud.google.com](https://console.cloud.google.com)
-2. Create a new project (or select an existing one)
-3. Go to **APIs & Services → Library** and enable:
-   - **Google Sheets API**
-   - **Google Drive API**
-
-### 1b. Create OAuth 2.0 Credentials
-
-1. Go to **APIs & Services → Credentials → Create Credentials → OAuth 2.0 Client ID**
-2. Application type: **Web application**
-3. Under **Authorized redirect URIs**, add **both** of these:
-
-   ```
-   http://localhost:3000/api/auth/google/callback
-   https://YOUR-APP.vercel.app/api/auth/google/callback
-   ```
-
-   > Replace `YOUR-APP` with your actual Vercel project subdomain.
-   > You can add the production URI after your first deployment — just come back here.
-
-4. Click **Create** and copy the **Client ID** and **Client Secret**.
-
-### 1c. Configure OAuth Consent Screen
-
-1. Go to **APIs & Services → OAuth consent screen**
-2. Choose **External** (unless your org has Workspace)
-3. Fill in App name, support email, and developer email
-4. Under **Scopes**, add:
-   - `https://www.googleapis.com/auth/spreadsheets`
-   - `https://www.googleapis.com/auth/drive.file`
-5. Add yourself as a **Test user** while the app is in Testing mode
-
----
-
-## Step 2 — Firebase
+## Step 1 — Firebase
 
 1. Go to [console.firebase.google.com](https://console.firebase.google.com)
 2. Create a project (or use an existing one)
@@ -88,9 +45,9 @@ Browser
 
 ---
 
-## Step 3 — Deploy to Vercel
+## Step 2 — Deploy to Vercel
 
-### 3a. Push to GitHub
+### 2a. Push to GitHub
 
 Make sure your project is in a GitHub (or GitLab / Bitbucket) repository.
 
@@ -100,7 +57,7 @@ git commit -m "chore: prepare for Vercel deployment"
 git push
 ```
 
-### 3b. Import the project in Vercel
+### 2b. Import the project in Vercel
 
 1. Go to [vercel.com/new](https://vercel.com/new)
 2. Click **Import** next to your repository
@@ -114,13 +71,13 @@ git push
    | Output Directory | `dist` |
    | Install Command | `npm install` |
 
-4. **Do not deploy yet** — add environment variables first (Step 4).
+4. **Do not deploy yet** — add environment variables first (Step 3).
 
 ---
 
-## Step 4 — Upstash Redis (persistent token store)
+## Step 3 — Upstash Redis (persistent state store)
 
-The API functions store OAuth tokens in Upstash Redis across serverless
+The API functions store app state snapshots in Upstash Redis across serverless
 invocations. Set it up before the first deploy.
 
 ### Option A — Vercel Marketplace (easiest)
@@ -148,7 +105,7 @@ invocations. Set it up before the first deploy.
 
 ---
 
-## Step 5 — Environment Variables
+## Step 4 — Environment Variables
 
 Go to your Vercel project → **Settings → Environment Variables** and add every
 variable in the table below. Make sure the **Environment** column includes both
@@ -171,21 +128,12 @@ variable in the table below. Make sure the **Environment** column includes both
 
 | Variable | Value | Notes |
 |---|---|---|
-| `GOOGLE_CLIENT_ID` | `123….apps.googleusercontent.com` | From Google Cloud Console |
-| `GOOGLE_CLIENT_SECRET` | `GOCSPX-…` | From Google Cloud Console |
-| `GOOGLE_REDIRECT_URI` | `https://YOUR-APP.vercel.app/api/auth/google/callback` | Must match Google Console exactly |
-| `FRONTEND_URL` | `https://YOUR-APP.vercel.app` | Optional — callback derives it from host if omitted |
 | `UPSTASH_REDIS_REST_URL` | *(auto-added by Upstash integration)* | Do not set manually |
 | `UPSTASH_REDIS_REST_TOKEN` | *(auto-added by Upstash integration)* | Do not set manually |
 
-> **Important:** `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `GOOGLE_REDIRECT_URI`,
-> `UPSTASH_REDIS_REST_URL`, and `UPSTASH_REDIS_REST_TOKEN` must **not** be
-> prefixed with `VITE_`. They are server-only secrets — never expose them to
-> the browser.
-
 ---
 
-## Step 6 — First Deploy
+## Step 5 — First Deploy
 
 After adding all environment variables, trigger a deployment:
 
@@ -207,26 +155,16 @@ Expected response:
 
 ---
 
-## Step 7 — Go-Live Checklist
-
-### Google Cloud Console
-
-- [ ] Add `https://YOUR-APP.vercel.app/api/auth/google/callback` to Authorized redirect URIs
-- [ ] Add `https://YOUR-APP.vercel.app` to Authorized JavaScript origins
+## Step 6 — Go-Live Checklist
 
 ### Firebase
 
 - [ ] Add `YOUR-APP.vercel.app` to Authorized domains
-- [ ] (When ready for public use) Publish the OAuth consent screen
 
 ### End-to-End Test
 
 - [ ] `/api/health` returns `{ "status": "ok" }`
 - [ ] Sign up / sign in with Firebase Auth works
-- [ ] Settings → Google Sheets → **Connect** launches the Google consent screen
-- [ ] After consent, redirected back to `/app/settings?sheets_connected=true`
-- [ ] **Sync to Sheets** populates the Google Spreadsheet correctly
-- [ ] **Get Logs** reads rows back from the spreadsheet
 - [ ] Reminder notifications fire in-app (toast) and as browser alerts
 
 ---
@@ -252,18 +190,13 @@ vercel dev
 
 Then open [http://localhost:3000](http://localhost:3000).
 
-> Make sure `GOOGLE_REDIRECT_URI` in your `.env.local` is set to:
-> `http://localhost:3000/api/auth/google/callback`
-> and that this URI is registered in Google Cloud Console.
-
 ### Option B — Vite only (frontend dev without API)
 
 ```bash
 npm run dev
 ```
 
-The app runs on [http://localhost:5173](http://localhost:5173). The Google
-Sheets features won't work without the API, but all frontend UI is accessible.
+The app runs on [http://localhost:5173](http://localhost:5173).
 
 ---
 
@@ -285,22 +218,12 @@ Sheets features won't work without the API, but all frontend UI is accessible.
 
 | Variable | Required | Description |
 |---|---|---|
-| `GOOGLE_CLIENT_ID` | ✅ Yes | Google OAuth 2.0 client ID |
-| `GOOGLE_CLIENT_SECRET` | ✅ Yes | Google OAuth 2.0 client secret |
-| `GOOGLE_REDIRECT_URI` | ✅ Yes | `https://YOUR-APP.vercel.app/api/auth/google/callback` |
-| `FRONTEND_URL` | ❌ Optional | Explicit frontend origin; auto-derived from host if absent |
 | `UPSTASH_REDIS_REST_URL` | ✅ Yes | From Upstash dashboard or Vercel integration |
 | `UPSTASH_REDIS_REST_TOKEN` | ✅ Yes | From Upstash dashboard or Vercel integration |
 
 ---
 
 ## Troubleshooting
-
-### `redirect_uri_mismatch` from Google
-
-`GOOGLE_REDIRECT_URI` in Vercel must **exactly** match a URI registered in
-Google Cloud Console — same scheme (`https`), same hostname, same path
-(`/api/auth/google/callback`). Check for trailing slashes.
 
 ### 404 on page refresh (e.g. `/app/habits`)
 
@@ -312,41 +235,14 @@ repository root. The critical line is:
 { "source": "/((?!api/).*)", "destination": "/index.html" }
 ```
 
-### Google Sheets "not connected" after deployment
-
-Tokens are stored in Upstash Redis. If Redis is not configured (missing
-`UPSTASH_REDIS_REST_URL` / `UPSTASH_REDIS_REST_TOKEN`), the store module
-falls back to an in-memory Map that is wiped on every cold start. Set up
-Upstash Redis (Step 4) and the user will only need to connect once.
-
-### Functions timeout on Hobby plan
-
-Vercel Hobby plan allows up to **10 seconds** per function invocation by
-default. Google Sheets API calls typically complete in 1–3 s. If you see
-timeout errors on large sync operations (`sync-logs`), reduce the number of
-rows or upgrade to Vercel Pro (60 s limit).
-
 ### `@upstash/redis` not found during build
 
-Run `npm install` in the project root — `@upstash/redis` and `googleapis`
-are listed as dependencies in the root `package.json` which Vercel uses when
-building the API functions.
-
-### CORS errors in local development
-
-Use `vercel dev` instead of `npm run dev`. `vercel dev` serves everything on
-one port so the browser never makes a cross-origin request. If you must use
-`npm run dev`, set `FRONTEND_URL=http://localhost:5173` in `.env.local`.
+Run `npm install` in the project root — `@upstash/redis` is listed as a dependency in the root `package.json` which Vercel uses when building the API functions.
 
 ---
 
 ## Security Checklist
 
-- [ ] No secrets in source code (`GOOGLE_CLIENT_SECRET`, `KV_REST_API_TOKEN`, etc.)
+- [ ] No secrets in source code (`UPSTASH_REDIS_REST_TOKEN`, etc.)
 - [ ] `.env.local` and `.env` are in `.gitignore` — never committed
-- [ ] `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` are NOT prefixed `VITE_`
-- [ ] OAuth tokens are stored server-side in Vercel KV — never sent to the browser
-- [ ] CORS is locked to `FRONTEND_URL` (or same-origin) — no wildcard in production
-- [ ] Google Cloud project has only Sheets + Drive APIs enabled (least privilege)
 - [ ] Firebase API key is restricted to your Vercel domain in Firebase Console
-- [ ] OAuth consent screen published before going live to real users
