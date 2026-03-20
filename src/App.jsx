@@ -4,6 +4,7 @@ import Layout from "./components/Layout";
 import Icon from "./components/Icon";
 import Dashboard from "./pages/Dashboard";
 import Analytics from "./pages/Analytics";
+import SocialEngine from "./pages/SocialEngine";
 import Habits from "./pages/Habits";
 import Logs from "./pages/Logs";
 import Settings from "./pages/Settings";
@@ -833,6 +834,10 @@ function AppContent() {
                         setSelectedHabitId={setSelectedHabitId}
                       />
                     }
+                  />
+                  <Route
+                    path="social"
+                    element={<SocialEngine habits={displayHabits} />}
                   />
                   <Route
                     path="habits"

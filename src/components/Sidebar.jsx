@@ -15,6 +15,7 @@ const Sidebar = ({ userConfig, onOpenAuris }) => {
     { id: "/app/logs", icon: "file-text", label: "Logs" },
     { id: "/app/notes", icon: "sticky-note", label: "Notes" },
     { id: "/app/analytics", icon: "bar-chart-3", label: "Analytics" },
+    { id: "/app/social", icon: "users", label: "Social Hub" },
     { id: "/app/reminders", icon: "bell", label: "Reminders" },
     { id: "/app/settings", icon: "settings-2", label: "Settings" },
   ];

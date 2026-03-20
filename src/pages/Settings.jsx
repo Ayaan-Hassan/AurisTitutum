@@ -117,15 +117,22 @@ const Settings = ({
           </div>
 
           {/* Profile Fields */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <Input
-              label="Profile Identifier"
-              value={userConfig.name || ""}
-              onChange={(e) =>
-                setUserConfig((prev) => ({ ...prev, name: e.target.value }))
-              }
-              placeholder="Enter your name"
-            />
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-end">
+            <div>
+              <Input
+                label="Profile Identifier"
+                value={userConfig.name || ""}
+                onChange={(e) =>
+                  setUserConfig((prev) => ({ ...prev, name: e.target.value }))
+                }
+                placeholder="Enter your name"
+              />
+              {user && (
+                <div className="mt-2 text-[10px] text-text-secondary uppercase tracking-widest font-mono">
+                  <strong>UID:</strong> {user.uid}
+                </div>
+              )}
+            </div>
             <div>
               <label className="block text-[10px] font-black text-text-secondary uppercase tracking-widest mb-2">
                 System Email

@@ -71,6 +71,7 @@ const Layout = ({
   else if (pathname.startsWith("/app/logs")) viewName = "logs";
   else if (pathname.startsWith("/app/notes")) viewName = "notes";
   else if (pathname.startsWith("/app/analytics")) viewName = "analytics";
+  else if (pathname.startsWith("/app/social")) viewName = "social hub";
   else if (pathname.startsWith("/app/settings")) viewName = "settings";
   else if (pathname.startsWith("/app/reminders")) viewName = "reminders";
   else if (pathname.startsWith("/app/contact")) viewName = "contact";
@@ -119,6 +120,7 @@ const Layout = ({
     { href: "/app/logs", icon: "file-text", label: "Logs" },
     { href: "/app/notes", icon: "sticky-note", label: "Notes" },
     { href: "/app/analytics", icon: "bar-chart-3", label: "Analytics" },
+    { href: "/app/social", icon: "users", label: "Social Hub" },
     { href: "/app/reminders", icon: "bell", label: "Reminders" },
     { href: "/app/settings", icon: "settings-2", label: "Settings" },
     { href: "/app/contact", icon: "mail", label: "Contact Us", special: true },
