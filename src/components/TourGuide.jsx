@@ -77,7 +77,7 @@ const TourGuide = () => {
                 if (user) {
                     updateUserConfig({ settings: { ...userConfig.settings, hasSeenTour: true } });
                 }
-            }, 1000);
+            }, 300);
             return () => clearTimeout(timer);
         } else {
             setHasSeenTour(seenLocally || seenInCloud);

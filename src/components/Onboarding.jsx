@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useLocation } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
 import { Card } from "./ui/Card";
@@ -43,15 +43,19 @@ const Onboarding = ({ onAddHabit, habits = [], userConfig: propUserConfig, updat
   const [isInitializing, setIsInitializing] = useState(false);
   const fileInputRef = useRef(null);
 
-  // Initial state checked only once on mount
-  const [isVisible, setIsVisible] = useState(() => {
-    const trigger = sessionStorage.getItem("triggerOnboarding") === "true";
+  const [isVisible, setIsVisible] = useState(false);
+  const trigger = sessionStorage.getItem("triggerOnboarding") === "true";
+
+  // Use a listener to set state so it persists during the current app session if needed, 
+  // but the immediate 'trigger' check handles the first render.
+  useEffect(() => {
     if (trigger) {
       sessionStorage.removeItem("triggerOnboarding");
-      return true;
+      setIsVisible(true);
     }
-    return false;
-  });
+  }, [trigger, location.pathname]);
+
+  const shouldShow = isVisible || trigger;
 
   // Use props if provided, otherwise fallback to context (though props are preferred here)
   const userConfig = propUserConfig;
@@ -70,7 +74,7 @@ const Onboarding = ({ onAddHabit, habits = [], userConfig: propUserConfig, updat
   
   // A user who already has habits should never get these pop-ups.
   // Strictly close if isInitializing is true
-  if (!isVisible || isComplete || !isDashboard || habits.length > 0 || isInitializing) return null;
+  if (!shouldShow || isComplete || !isDashboard || habits.length > 0 || isInitializing) return null;
 
   const handleAvatarUpload = (e) => {
     const file = e.target.files[0];
@@ -94,6 +98,8 @@ const Onboarding = ({ onAddHabit, habits = [], userConfig: propUserConfig, updat
         avatar: profile.avatar,
       });
       setStep(2);
+      // Automatically prompt for habit creation after saving profile
+      handleStartHabit();
     } catch (err) {
       console.error("Failed to save profile:", err);
     } finally {
