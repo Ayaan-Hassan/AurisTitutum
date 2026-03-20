@@ -118,6 +118,7 @@ const Onboarding = ({ onAddHabit, habits = [], userConfig: propUserConfig, updat
         // Since we are checking parent provided habits, it might take a moment to sync
         if (habits.length > 0) {
             updateUserConfig({ settings: { ...userConfig.settings, onboardingComplete: true } });
+            sessionStorage.setItem("auris_tour_permitted", "true");
             clearInterval(checkHabitAdded);
         }
     }, 1000);

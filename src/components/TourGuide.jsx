@@ -65,20 +65,15 @@ const TourGuide = ({ habits: propHabits, userConfig: propUserConfig, updateUserC
     const [hasSeenTour, setHasSeenTour] = useState(false);
     const location = useLocation();
     const isMobile = window.innerWidth <= 768;
-    const initialHabitsCountRef = useRef(null);
-
-    useEffect(() => {
-        // If we are not loading data and haven't recorded the initial count yet, do it.
-        if (initialHabitsCountRef.current === null && !dataLoading) {
-            initialHabitsCountRef.current = habits?.length || 0;
-        }
-    }, [dataLoading, habits?.length]);
 
     useEffect(() => {
         const isReturningOperator = localStorage.getItem('auris_returning_operator') === 'true';
         const isNewUserFlow = sessionStorage.getItem('auris_new_user_flow') === 'true';
+        const isTourPermitted = sessionStorage.getItem('auris_tour_permitted') === 'true';
         
-        if (isReturningOperator && !isNewUserFlow) return;
+        // Strictly only allow the tour if it was permitted in this session (just finished onboarding)
+        // or if it's a first-time guest who hasn't seen it yet.
+        if (!isTourPermitted && (isReturningOperator || !isNewUserFlow)) return;
 
         // Only start tour if on /app dashboard
         if (location.pathname !== '/app' && location.pathname !== '/app/') return;
@@ -94,10 +89,6 @@ const TourGuide = ({ habits: propHabits, userConfig: propUserConfig, updateUserC
         const onboardingFinished = userConfig?.settings?.onboardingComplete;
         const hasHabits = habits?.length > 0;
         
-        // Skip if habits existed when we first loaded the app this session (older account)
-        const existedInstantly = initialHabitsCountRef.current > 0;
-        if (existedInstantly) return;
-
         // Only start if not already active and conditions met
         if (activeStepIndex === -1 && (onboardingFinished || hasHabits)) {
             setActiveStepIndex(0);
