@@ -106,8 +106,8 @@ const TourGuide = ({ habits: propHabits, userConfig: propUserConfig, updateUserC
         // or if it's a first-time guest who hasn't seen it yet.
         if (!isTourPermitted && (isReturningOperator || !isNewUserFlow)) return;
 
-        // Only start tour if on /app dashboard
-        if (location.pathname !== '/app' && location.pathname !== '/app/') return;
+        // Only start tour if on /app paths
+        if (!location.pathname.startsWith('/app')) return;
 
         const seenLocally = localStorage.getItem('auris_tour_complete') === 'true';
         const seenInCloud = userConfig?.settings?.hasSeenTour;

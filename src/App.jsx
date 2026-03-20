@@ -1094,10 +1094,17 @@ function AppContent() {
                             logs: [],
                           };
 
+                          const isFirstHabit = displayHabits.length === 0;
+
                           if (user) {
                              await authContext.addHabit(habitPayload);
                           } else {
                             setHabits([...habits, habitPayload]);
+                          }
+
+                          if (isFirstHabit) {
+                            sessionStorage.setItem("auris_tour_permitted", "true");
+                            unifiedUpdateUserConfig({ settings: { onboardingComplete: true } });
                           }
 
                           setNewHabit({ name: "", type: "Good", mode: "quick", unit: "", emoji: "" });
