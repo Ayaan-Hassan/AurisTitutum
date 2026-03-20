@@ -872,7 +872,7 @@ function AppContent() {
                 <div>
                   <h3 className="text-xl font-black tracking-widest text-text-primary uppercase flex items-center gap-2">
                     <div className="w-1.5 h-6 bg-accent rounded-full" />
-                    Add Node
+                    Add Habit
                   </h3>
                   <div className="flex gap-2 mt-4">
                     {[1, 2, 3, 4].map(s => (
@@ -920,7 +920,7 @@ function AppContent() {
                 <div className="animate-in slide-in-from-right fade-in duration-300 space-y-8">
                   <div className="flex items-center ml-1">
                     <label className="text-[10px] font-black text-text-secondary uppercase tracking-[0.3em]">
-                        Habit Identifier
+                        Habit Name
                     </label>
                     <div className="relative group inline-flex items-center ml-2">
                       <Icon name="info" size={14} className="text-text-secondary cursor-pointer hover:text-text-primary transition-colors" />
@@ -1075,7 +1075,7 @@ function AppContent() {
                         }}
                         className="px-10 py-3.5 bg-accent text-bg-main rounded-2xl text-[10px] font-black uppercase tracking-[0.3em] hover:scale-[1.03] active:scale-[0.97] transition-all shadow-2xl shadow-accent/30 border-t border-white/20"
                     >
-                        Create Node
+                        Create Habit
                     </button>
                   </div>
                 </div>

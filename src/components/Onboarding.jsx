@@ -53,13 +53,15 @@ const Onboarding = ({ onAddHabit, habits = [], userConfig: propUserConfig, updat
     gender: userConfig?.gender || "",
     avatar: userConfig?.avatar || null,
   });
+  const [isGenderOpen, setIsGenderOpen] = useState(false);
 
   const isComplete = userConfig?.settings?.onboardingComplete;
   const isDashboard = location.pathname === "/app" || location.pathname === "/app/" || location.pathname === "/app/dashboard";
   
   // A user who is already signed in earlier (has habits) should never get these pop-ups.
   // Unless onboardingComplete is explicitly false (which it is by default, so we check habits length)
-  if (isComplete || !isDashboard || (user && habits.length > 0)) return null;
+  // Strictly close if isInitializing is true
+  if (isComplete || !isDashboard || (user && habits.length > 0) || isInitializing) return null;
 
   const handleAvatarUpload = (e) => {
     const file = e.target.files[0];
@@ -107,7 +109,7 @@ const Onboarding = ({ onAddHabit, habits = [], userConfig: propUserConfig, updat
   };
 
    return (
-    <div className={`fixed inset-0 z-[80] flex items-center justify-center p-4 bg-black/60 backdrop-blur-md animate-in fade-in duration-300 ${isInitializing ? 'pointer-events-none opacity-0' : ''}`}>
+    <div className={`fixed inset-0 z-[80] flex items-center justify-center p-4 bg-black/60 backdrop-blur-md animate-in fade-in duration-300`}>
       <Card className="w-full max-w-lg p-8 space-y-8 bg-bg-main border border-border-color shadow-[0_32px_64px_-16px_rgba(0,0,0,0.6)] overflow-hidden relative">
         {/* Decorative Background */}
         <div className="absolute top-[-100px] right-[-100px] w-64 h-64 bg-accent/5 rounded-full blur-[100px] pointer-events-none" />
@@ -172,22 +174,44 @@ const Onboarding = ({ onAddHabit, habits = [], userConfig: propUserConfig, updat
                     }
                   }}
                 />
-                <div className="space-y-2 relative group-select">
+                <div className="space-y-2 relative">
                   <label className="text-[10px] font-black text-text-secondary uppercase tracking-widest block px-1">Gender</label>
                   <div className="relative">
-                    <select 
-                      value={profile.gender}
-                      onChange={(e) => setProfile(prev => ({ ...prev, gender: e.target.value }))}
-                      className="w-full h-[46px] rounded-xl border border-border-color bg-bg-main/50 backdrop-blur-md px-4 pr-10 text-xs text-text-primary outline-none focus:border-accent transition-all appearance-none cursor-pointer hover:border-accent hover:bg-bg-sidebar/40 shadow-inner"
+                    <button
+                      type="button"
+                      onClick={() => setIsGenderOpen(!isGenderOpen)}
+                      className="w-full h-[46px] rounded-xl border border-border-color bg-bg-main/50 backdrop-blur-md px-4 text-left text-xs text-text-primary outline-none focus:border-accent transition-all cursor-pointer hover:border-accent hover:bg-bg-sidebar/40 shadow-inner flex items-center justify-between group"
                     >
-                      <option value="" disabled className="text-text-secondary/50">Select</option>
-                      <option value="male" className="bg-bg-sidebar py-3">Male</option>
-                      <option value="female" className="bg-bg-sidebar py-3">Female</option>
-                      <option value="private" className="bg-bg-sidebar py-3">Prefer not to say</option>
-                    </select>
-                    <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-text-secondary">
-                        <Icon name="chevron-down" size={14} />
-                    </div>
+                      <span className={!profile.gender ? "text-text-secondary/50" : ""}>
+                        {profile.gender ? profile.gender.charAt(0).toUpperCase() + profile.gender.slice(1) : "Select"}
+                      </span>
+                      <Icon name="chevron-down" size={14} className={`text-text-secondary transition-transform duration-300 ${isGenderOpen ? 'rotate-180' : ''}`} />
+                    </button>
+
+                    {isGenderOpen && (
+                      <>
+                        <div className="fixed inset-0 z-[90]" onClick={() => setIsGenderOpen(false)} />
+                        <div className="absolute top-full left-0 right-0 mt-2 bg-bg-sidebar border border-border-color rounded-xl overflow-hidden shadow-2xl z-[100] animate-in fade-in zoom-in-95 duration-200">
+                          {[
+                            { value: "male", label: "Male" },
+                            { value: "female", label: "Female" },
+                            { value: "private", label: "Prefer not to say" }
+                          ].map((opt) => (
+                            <button
+                              key={opt.value}
+                              type="button"
+                              onClick={() => {
+                                setProfile(prev => ({ ...prev, gender: opt.value }));
+                                setIsGenderOpen(false);
+                              }}
+                              className={`w-full px-4 py-3 text-left text-xs transition-colors hover:bg-accent/10 hover:text-accent ${profile.gender === opt.value ? 'bg-accent/5 text-accent font-bold' : 'text-text-primary'}`}
+                            >
+                              {opt.label}
+                            </button>
+                          ))}
+                        </div>
+                      </>
+                    )}
                   </div>
                 </div>
               </div>
@@ -218,7 +242,7 @@ const Onboarding = ({ onAddHabit, habits = [], userConfig: propUserConfig, updat
 
              <div className="p-6 rounded-2xl bg-accent-dim border border-accent/20 space-y-3">
                 <p className="text-[11px] font-medium text-text-primary">
-                   Creating your first stream will activate the full dashboard tracking capabilities and initialize your momentum matrix.
+                   Creating your first Habit will activate the full dashboard tracking capabilities and initialize your momentum matrix.
                 </p>
              </div>
 
@@ -227,7 +251,7 @@ const Onboarding = ({ onAddHabit, habits = [], userConfig: propUserConfig, updat
                 variant="primary" 
                 className="w-full h-14 rounded-2xl text-[12px] font-black uppercase tracking-[0.1em] shadow-xl shadow-accent/30 hover:scale-[1.02] active:scale-[0.98] transition-all"
              >
-                Initialize First Habit
+                Create First Habit
              </Button>
           </div>
         )}
