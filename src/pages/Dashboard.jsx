@@ -417,6 +417,7 @@ const DayDetailPopup = ({ dateStr, habits, onClose }) => {
 const Dashboard = ({ habits, logActivity, insights, dataLoading }) => {
   useEffect(() => {
     localStorage.setItem("auris_visited_dashboard", "true");
+    localStorage.setItem("auris_returning_operator", "true");
   }, []);
 
   const [calendarMonth, setCalendarMonth] = useState(() => new Date());

@@ -30,12 +30,14 @@ const Landing = ({ habits, user, userConfig }) => {
   const handleGetStarted = () => {
     if (!userConfig?.settings?.onboardingComplete) {
       sessionStorage.setItem("triggerOnboarding", "true");
+      sessionStorage.setItem("auris_new_user_flow", "true");
     }
     navigate("/app");
   };
   const handleSignIn = () => {
     if (!userConfig?.settings?.onboardingComplete) {
       sessionStorage.setItem("triggerOnboarding", "true");
+      sessionStorage.setItem("auris_new_user_flow", "true");
     }
     navigate("/login");
   };

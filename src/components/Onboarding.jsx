@@ -72,9 +72,14 @@ const Onboarding = ({ onAddHabit, habits = [], userConfig: propUserConfig, updat
   const isComplete = userConfig?.settings?.onboardingComplete;
   const isDashboard = location.pathname === "/app" || location.pathname === "/app/" || location.pathname === "/app/dashboard";
   
-  // A user who already has habits should never get these pop-ups.
-  // Strictly close if isInitializing is true
-  if (!shouldShow || isComplete || !isDashboard || habits.length > 0 || isInitializing) return null;
+  const isReturningOperator = localStorage.getItem("auris_returning_operator") === "true";
+  const isNewUserFlow = sessionStorage.getItem("auris_new_user_flow") === "true";
+  
+  // A first-time user who explicitly triggered onboarding should see it.
+  // A returning operator who didn't trigger it should skip it.
+  const shouldSkip = isReturningOperator && !isNewUserFlow;
+
+  if (shouldSkip || !shouldShow || isComplete || !isDashboard || habits.length > 0 || isInitializing) return null;
 
   const handleAvatarUpload = (e) => {
     const file = e.target.files[0];

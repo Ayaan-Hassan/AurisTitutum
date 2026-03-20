@@ -67,6 +67,11 @@ const TourGuide = ({ habits: propHabits, userConfig: propUserConfig, updateUserC
     const isMobile = window.innerWidth <= 768;
 
     useEffect(() => {
+        const isReturningOperator = localStorage.getItem('auris_returning_operator') === 'true';
+        const isNewUserFlow = sessionStorage.getItem('auris_new_user_flow') === 'true';
+        
+        if (isReturningOperator && !isNewUserFlow) return;
+
         // Only start tour if on /app dashboard
         if (location.pathname !== '/app' && location.pathname !== '/app/') return;
 

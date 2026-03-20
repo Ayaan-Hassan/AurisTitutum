@@ -325,7 +325,7 @@ const compressImage = (base64Str) => {
 
 function AppContent() {
   const authContext = useAuth();
-  const { user, replaceHabitsState, replaceNotesState, replaceRemindersState, updateUserConfig } = authContext;
+  const { user, authLoading, replaceHabitsState, replaceNotesState, replaceRemindersState, updateUserConfig } = authContext;
 
   const userKey = getUserKey(user);
   const activeScope = getStorageScope(user);
@@ -739,6 +739,23 @@ function AppContent() {
     "🧬",
   ];
 
+  const isReturningOperator = localStorage.getItem("auris_returning_operator") === "true";
+
+  if (authLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-bg-main">
+        <div className="flex flex-col items-center gap-6">
+          <div className="w-16 h-16 bg-accent rounded-2xl flex items-center justify-center animate-spin">
+            <div className="w-4 h-4 bg-bg-main rotate-45" />
+          </div>
+          <div className="text-text-secondary text-[10px] font-black uppercase tracking-[0.4em] animate-pulse">
+            Initalizing Console...
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <>
       <TourGuide 
@@ -754,7 +771,14 @@ function AppContent() {
       />
       <Routes>
         {/* Public Landing */}
-        <Route path="/" element={<Landing habits={displayHabits} user={user} userConfig={displayUserConfig} />} />
+        <Route 
+          path="/" 
+          element={
+            (user || isReturningOperator) 
+              ? <Navigate to="/app" replace /> 
+              : <Landing habits={displayHabits} user={user} userConfig={displayUserConfig} />
+          } 
+        />
 
         {/* Auth Pages */}
         <Route path="/login" element={<Login />} />
