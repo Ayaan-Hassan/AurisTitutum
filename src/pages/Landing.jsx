@@ -33,7 +33,12 @@ const Landing = ({ habits, user, userConfig }) => {
     }
     navigate("/app");
   };
-  const handleSignIn = () => navigate("/login");
+  const handleSignIn = () => {
+    if (!userConfig?.settings?.onboardingComplete) {
+      sessionStorage.setItem("triggerOnboarding", "true");
+    }
+    navigate("/login");
+  };
 
   const features = [
     {
