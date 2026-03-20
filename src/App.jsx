@@ -750,7 +750,7 @@ function AppContent() {
       />
       <Routes>
         {/* Public Landing */}
-        <Route path="/" element={<Landing habits={displayHabits} user={user} />} />
+        <Route path="/" element={<Landing habits={displayHabits} user={user} userConfig={displayUserConfig} />} />
 
         {/* Auth Pages */}
         <Route path="/login" element={<Login />} />

@@ -4,7 +4,7 @@ import { Card } from "../components/ui/Card";
 import { Button } from "../components/ui/Button";
 import Icon from "../components/Icon";
 
-const Landing = ({ habits, user }) => {
+const Landing = ({ habits, user, userConfig }) => {
   const navigate = useNavigate();
   const [scrolled, setScrolled] = useState(false);
 
@@ -27,7 +27,12 @@ const Landing = ({ habits, user }) => {
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
-  const handleGetStarted = () => navigate("/app");
+  const handleGetStarted = () => {
+    if (!userConfig?.settings?.onboardingComplete) {
+      sessionStorage.setItem("triggerOnboarding", "true");
+    }
+    navigate("/app");
+  };
   const handleSignIn = () => navigate("/login");
 
   const features = [

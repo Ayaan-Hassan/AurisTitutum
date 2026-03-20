@@ -80,7 +80,7 @@ const TourGuide = () => {
             }, 1000);
             return () => clearTimeout(timer);
         } else {
-            setHasSeenTour(seenLocally || seenInCloud || !onboardingFinished);
+            setHasSeenTour(seenLocally || seenInCloud);
         }
     }, [location.pathname, userConfig?.settings?.hasSeenTour, userConfig?.settings?.onboardingComplete, user, habits?.length]);
 

@@ -43,6 +43,16 @@ const Onboarding = ({ onAddHabit, habits = [], userConfig: propUserConfig, updat
   const [isInitializing, setIsInitializing] = useState(false);
   const fileInputRef = useRef(null);
 
+  // Initial state checked only once on mount
+  const [isVisible, setIsVisible] = useState(() => {
+    const trigger = sessionStorage.getItem("triggerOnboarding") === "true";
+    if (trigger) {
+      sessionStorage.removeItem("triggerOnboarding");
+      return true;
+    }
+    return false;
+  });
+
   // Use props if provided, otherwise fallback to context (though props are preferred here)
   const userConfig = propUserConfig;
   const updateUserConfig = propUpdateUserConfig;
@@ -58,10 +68,9 @@ const Onboarding = ({ onAddHabit, habits = [], userConfig: propUserConfig, updat
   const isComplete = userConfig?.settings?.onboardingComplete;
   const isDashboard = location.pathname === "/app" || location.pathname === "/app/" || location.pathname === "/app/dashboard";
   
-  // A user who is already signed in earlier (has habits) should never get these pop-ups.
-  // Unless onboardingComplete is explicitly false (which it is by default, so we check habits length)
+  // A user who already has habits should never get these pop-ups.
   // Strictly close if isInitializing is true
-  if (isComplete || !isDashboard || (user && habits.length > 0) || isInitializing) return null;
+  if (!isVisible || isComplete || !isDashboard || habits.length > 0 || isInitializing) return null;
 
   const handleAvatarUpload = (e) => {
     const file = e.target.files[0];
@@ -110,7 +119,7 @@ const Onboarding = ({ onAddHabit, habits = [], userConfig: propUserConfig, updat
 
    return (
     <div className={`fixed inset-0 z-[80] flex items-center justify-center p-4 bg-black/60 backdrop-blur-md animate-in fade-in duration-300`}>
-      <Card className="w-full max-w-lg p-8 space-y-8 bg-bg-main border border-border-color shadow-[0_32px_64px_-16px_rgba(0,0,0,0.6)] overflow-hidden relative">
+      <Card className="w-full max-w-lg p-8 space-y-8 bg-bg-main border border-border-color shadow-[0_32px_64px_-16px_rgba(0,0,0,0.6)] relative">
         {/* Decorative Background */}
         <div className="absolute top-[-100px] right-[-100px] w-64 h-64 bg-accent/5 rounded-full blur-[100px] pointer-events-none" />
         <div className="absolute bottom-[-100px] left-[-100px] w-64 h-64 bg-accent/5 rounded-full blur-[100px] pointer-events-none" />
@@ -219,7 +228,7 @@ const Onboarding = ({ onAddHabit, habits = [], userConfig: propUserConfig, updat
 
             <Button 
                 onClick={saveProfile} 
-                disabled={loading || !profile.name.trim()}
+                disabled={loading || !profile.name.trim() || !profile.age || !profile.gender}
                 variant="primary" 
                 className="w-full h-12 rounded-2xl text-[11px] font-black uppercase tracking-widest shadow-lg shadow-accent/20"
             >
