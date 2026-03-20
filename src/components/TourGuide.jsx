@@ -30,12 +30,6 @@ const DESKTOP_STEPS = [
         position: 'bottom'
     },
     {
-        targetId: 'tour-activity-calendar',
-        title: 'Activity Calendar',
-        text: 'This calendar gives you a bird\'s eye view of your consistency across all habits.',
-        position: 'top'
-    },
-    {
         targetId: 'tour-today-cell',
         title: "Activity Log",
         text: 'Point out today\'s date! Each box tracks your daily progress; click any day to see its detailed activity log.',
@@ -130,6 +124,7 @@ const TourGuide = ({ habits: propHabits, userConfig: propUserConfig, updateUserC
         setActiveStepIndex(-1);
         setHasSeenTour(true);
         localStorage.setItem('auris_tour_complete', 'true');
+        window.scrollTo({ top: 0, behavior: 'smooth' });
         if (user) {
             updateUserConfig({ settings: { hasSeenTour: true } });
         }
