@@ -741,7 +741,11 @@ function AppContent() {
 
   return (
     <>
-      <TourGuide />
+      <TourGuide 
+        habits={displayHabits}
+        userConfig={displayUserConfig}
+        updateUserConfig={unifiedUpdateUserConfig}
+      />
       <Onboarding 
         onAddHabit={handleAddHabitRequest} 
         habits={displayHabits} 

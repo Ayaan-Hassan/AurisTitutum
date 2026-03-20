@@ -52,8 +52,14 @@ const MOBILE_STEPS = [
     }
 ];
 
-const TourGuide = () => {
-    const { user, userConfig, updateUserConfig, habits } = useAuth();
+const TourGuide = ({ habits: propHabits, userConfig: propUserConfig, updateUserConfig: propUpdateUserConfig }) => {
+    const { user, userConfig: authUserConfig, updateUserConfig: authUpdateUserConfig, habits: authHabits } = useAuth();
+    
+    // Use props if provided (from App layout for guest sync), otherwise use AuthContext
+    const habits = propHabits !== undefined ? propHabits : authHabits;
+    const userConfig = propUserConfig !== undefined ? propUserConfig : authUserConfig;
+    const updateUserConfig = propUpdateUserConfig !== undefined ? propUpdateUserConfig : authUpdateUserConfig;
+
     const [activeStepIndex, setActiveStepIndex] = useState(-1);
     const [targetRect, setTargetRect] = useState(null);
     const [hasSeenTour, setHasSeenTour] = useState(false);
