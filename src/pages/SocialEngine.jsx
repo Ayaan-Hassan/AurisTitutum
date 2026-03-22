@@ -122,12 +122,15 @@ const SocialEngine = () => {
   
   const handleCreateServerSubmit = (e) => {
     e.preventDefault();
-    if (!newServerForm.name || !newServerForm.habit) {
+    const { name, habit, mode, visibility, startDate, endDate, rules } = newServerForm;
+    
+    if (!name || !habit || !mode || !visibility || !startDate || !endDate || !rules) {
       document.dispatchEvent(new CustomEvent("showToast", { 
-        detail: { message: "Initialization protocol requires Name and Habit identification.", type: "error" } 
+        detail: { message: "Please fill in all the details before creating your server!", type: "error" } 
       }));
       return;
     }
+
     const newServer = {
       id: `server-${Date.now()}`,
       ...newServerForm,
@@ -148,7 +151,7 @@ const SocialEngine = () => {
       habitType: "Good"
     });
     document.dispatchEvent(new CustomEvent("showToast", { 
-      detail: { message: "Challenge Node initialized and synchronized successfully.", type: "success" } 
+      detail: { message: "Server created successfully!", type: "success" } 
     }));
   };
 
@@ -387,19 +390,19 @@ const SocialEngine = () => {
 
           {/* Create Server Modal */}
           {isCreateModalOpen && (
-            <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+            <div className="fixed inset-0 z-[100] flex items-start justify-center p-4 overflow-y-auto custom-scrollbar bg-black/80 backdrop-blur-md">
               <div 
-                className="absolute inset-0 bg-black/80 backdrop-blur-md animate-in fade-in duration-300"
+                className="fixed inset-0 z-0"
                 onClick={() => setIsCreateModalOpen(false)}
               />
-              <Card className="relative w-full max-w-2xl bg-gradient-to-br from-bg-sidebar to-bg-main border-border-color/50 overflow-hidden animate-in zoom-in-95 duration-300 shadow-2xl">
+              <Card className="relative my-4 w-full max-w-2xl bg-gradient-to-br from-bg-sidebar to-bg-main border-border-color/50 overflow-hidden animate-in zoom-in-95 duration-300 shadow-2xl z-10">
                 <div className="absolute top-0 right-0 w-64 h-64 bg-accent/5 rounded-full blur-[100px] pointer-events-none" />
                 
                 <form onSubmit={handleCreateServerSubmit} className="p-8 space-y-8">
                   <div className="flex justify-between items-center pb-4 border-b border-border-color/50">
                     <div>
-                      <h3 className="text-2xl font-black tracking-tighter text-text-primary">Initialize Node</h3>
-                      <p className="text-[10px] font-black uppercase tracking-[0.2em] text-accent mt-1">Configure Global Challenge Protocol</p>
+                      <h3 className="text-2xl font-black tracking-tighter text-text-primary uppercase">Create New Server</h3>
+                      <p className="text-[10px] font-black uppercase tracking-[0.2em] text-accent mt-1">Fill in the details for your new server</p>
                     </div>
                     <button 
                       type="button"
@@ -414,28 +417,26 @@ const SocialEngine = () => {
                     <div className="space-y-4">
                       <Input 
                         label="Server Name"
-                        placeholder="e.g., Focus Intensive"
+                        placeholder="e.g. Focus Squad"
                         value={newServerForm.name}
                         onChange={(e) => setNewServerForm({...newServerForm, name: e.target.value})}
-                        required
                       />
                       <Input 
-                        label="Habit to Track"
-                        placeholder="e.g., Programming"
+                        label="What habit to track?"
+                        placeholder="e.g. Reading"
                         value={newServerForm.habit}
                         onChange={(e) => setNewServerForm({...newServerForm, habit: e.target.value})}
-                        required
                       />
                       <div className="grid grid-cols-2 gap-4">
                         <Select 
-                          label="Habit Mode"
+                          label="Tracking Method"
                           value={newServerForm.mode}
                           containerClassName="space-y-2"
                           onChange={(e) => setNewServerForm({...newServerForm, mode: e.target.value})}
                           options={[
                             { value: "check", label: "Check-in" },
-                            { value: "count", label: "Numeric" },
-                            { value: "timer", label: "Timer" },
+                            { value: "count", label: "Number Count" },
+                            { value: "timer", label: "Stopwatch/Timer" },
                           ]}
                         />
                         <Select 
@@ -467,22 +468,22 @@ const SocialEngine = () => {
                         />
                       </div>
                       <Select 
-                        label="Visibility Status"
+                        label="Who can join?"
                         value={newServerForm.visibility}
                         containerClassName="space-y-2"
                         onChange={(e) => setNewServerForm({...newServerForm, visibility: e.target.value})}
                         options={[
-                          { value: "public", label: "Public Hub" },
-                          { value: "private", label: "Private Unit" },
+                          { value: "public", label: "Public (Global)" },
+                          { value: "private", label: "Private (Invite Only)" },
                         ]}
                       />
                       <div className="space-y-2">
                         <label className="text-[10px] font-black text-text-secondary uppercase tracking-widest ml-1">
-                          Node Rules & Description
+                          Server Rules
                         </label>
                         <textarea 
-                          className="w-full h-24 bg-accent-dim border border-border-color p-3 rounded-lg text-sm text-text-primary focus:border-text-secondary outline-none transition-all placeholder:text-text-secondary/30 resize-none"
-                          placeholder="Define the challenge parameters..."
+                          className="w-full h-24 bg-accent-dim border border-border-color p-3 rounded-xl text-xs font-bold text-text-primary focus:border-text-secondary outline-none transition-all placeholder:text-text-secondary/30 resize-none hover:bg-white/[0.02]"
+                          placeholder="What are the rules for this server?"
                           value={newServerForm.rules}
                           onChange={(e) => setNewServerForm({...newServerForm, rules: e.target.value})}
                         />
@@ -492,20 +493,12 @@ const SocialEngine = () => {
 
                   <div className="flex gap-4 pt-4">
                     <Button 
-                      type="button" 
-                      variant="outline" 
-                      className="flex-1 h-12"
-                      onClick={() => setIsCreateModalOpen(false)}
-                    >
-                      Abort
-                    </Button>
-                    <Button 
                       type="submit" 
                       variant="primary" 
-                      className="flex-[2] h-12 shadow-lg shadow-accent/20"
-                      icon="activity"
+                      className="w-full h-12 shadow-lg shadow-accent/20"
+                      icon="plus"
                     >
-                      Initialize Challenge Node
+                      Create Server
                     </Button>
                   </div>
                 </form>
