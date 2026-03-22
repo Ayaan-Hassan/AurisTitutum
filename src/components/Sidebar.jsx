@@ -57,7 +57,7 @@ const Sidebar = ({ userConfig, onOpenAuris }) => {
                 key={item.id}
                 id={item.id === "/app/habits" ? "tour-nav-habits" : item.id === "/app/analytics" ? "tour-nav-analytics" : undefined}
                 to={item.id}
-                className={`sidebar-item w-full flex items-center gap-3 px-4 py-2 rounded-lg text-xs font-medium transition-all ${isActive(item.id)
+                className={`sidebar-item w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium transition-all ${isActive(item.id)
                   ? "active text-text-primary"
                   : "text-text-secondary hover:text-text-primary hover:bg-accent-dim"
                   }`}
@@ -71,7 +71,7 @@ const Sidebar = ({ userConfig, onOpenAuris }) => {
               type="button"
               id="tour-nav-ai-desktop-sidebar"
               onClick={() => onOpenAuris?.()}
-              className="sidebar-item w-full flex items-center gap-3 px-4 py-2 rounded-lg text-xs font-medium transition-all text-text-secondary hover:text-text-primary hover:bg-accent-dim"
+              className="sidebar-item w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium transition-all text-text-secondary hover:text-text-primary hover:bg-accent-dim"
             >
               <Icon name="brain" size={16} />
               Auris AI
@@ -81,7 +81,7 @@ const Sidebar = ({ userConfig, onOpenAuris }) => {
             <div className="pt-3 mt-3 border-t border-border-color">
               <Link
                 to="/app/contact"
-                className={`w-full flex items-center gap-3 px-4 py-2 rounded-lg text-xs font-medium transition-all border ${isContactActive
+                className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium transition-all border ${isContactActive
                   ? "active text-text-primary border-border-color bg-accent-dim"
                   : "text-text-secondary hover:text-text-primary hover:bg-accent-dim border-border-color"
                   }`}
