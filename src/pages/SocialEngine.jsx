@@ -561,12 +561,15 @@ const SocialEngine = () => {
 
           {/* Create Server Modal */}
           {isCreateModalOpen && (
-            <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-[150] flex flex-col items-center overflow-y-auto pt-24 pb-24" onClick={() => setIsCreateModalOpen(false)}>
+            <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-[150] flex flex-col items-center overflow-y-auto pt-12 pb-12" onClick={() => setIsCreateModalOpen(false)}>
             <div className="w-full max-w-xl px-4 pointer-events-none">
-              <Card className="p-8 sm:p-10 pointer-events-auto shadow-[0_32px_120px_-20px_rgba(0,0,0,0.8)] border-white/5 bg-bg-sidebar/95 backdrop-blur-xl relative overflow-hidden animate-in zoom-in-95 duration-300">
+              <Card 
+                className="p-8 pointer-events-auto shadow-[0_32px_120px_-20px_rgba(0,0,0,0.8)] border-white/5 bg-bg-sidebar/95 backdrop-blur-xl relative overflow-hidden animate-in zoom-in-95 duration-300"
+                onClick={(e) => e.stopPropagation()}
+              >
                 <div className="absolute -top-24 -right-24 w-64 h-64 bg-accent/10 rounded-full blur-[100px] pointer-events-none" />
                 
-                <form onSubmit={handleCreateServerSubmit} className="space-y-8 relative z-10">
+                <form onSubmit={handleCreateServerSubmit} className="space-y-6 relative z-10">
                   <div className="flex justify-between items-center mb-2">
                     <h3 className="text-2xl font-black tracking-widest text-text-primary uppercase flex items-center gap-3">
                       <div className="w-1.5 h-6 bg-accent rounded-full" />
