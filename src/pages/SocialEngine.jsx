@@ -7,49 +7,8 @@ import { Select } from "../components/ui/Select";
 import { useAuth } from "../contexts/AuthContext";
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
 
-const MOCK_PUBLIC_SERVERS = [
-  {
-    id: "pub1",
-    name: "Focus Intensive",
-    habit: "Study/Work",
-    mode: "timer",
-    totalJoined: 15420,
-    onlineCount: 1205,
-    startDate: "2026-04-01",
-    endDate: "2026-06-15",
-    habitType: "Good",
-    joined: false,
-  },
-  {
-    id: "pub2",
-    name: "Step Master",
-    habit: "Walking",
-    mode: "count",
-    totalJoined: 8321,
-    onlineCount: 402,
-    startDate: "2026-03-01",
-    endDate: "2026-04-01",
-    habitType: "Good",
-    joined: true,
-  },
-  {
-    id: "pub3",
-    name: "Code Zero",
-    habit: "Programming",
-    mode: "check",
-    totalJoined: 5102,
-    onlineCount: 890,
-    startDate: "2026-01-01",
-    endDate: "2026-12-31",
-    habitType: "Good",
-    joined: false,
-  }
-];
-
-const MOCK_HISTORY = [
-  { id: "h1", name: "Winter Sprint", rank: 12, total: 1500, status: "completed", date: "2026-02-15" },
-  { id: "h2", name: "Peak Performance", rank: 3, total: 450, status: "completed", date: "2026-01-10" },
-];
+const MOCK_PUBLIC_SERVERS = [];
+const MOCK_HISTORY = [];
 
 const TARGET_DATE = new Date("2026-03-23T13:14:08Z"); // 60 hours from 2026-03-21T01:14:08+05:30 (ISO 2026-03-20T19:44:08Z, so +60h = 2026-03-23T07:44:08Z UTC or 2026-03-23T13:14:08 IST)
 
@@ -228,9 +187,6 @@ const SocialEngine = () => {
                 </h4>
                 <div className="space-y-2">
                   {[
-                    { rank: 1, name: "Operator_992", val: "244d", color: "text-accent" },
-                    { rank: 2, name: "System_X", val: "210d", color: "text-text-primary" },
-                    { rank: 3, name: "Auris_User", val: "188d", color: "text-text-primary" },
                     { rank: 42, name: "You", val: "14d", color: "text-success", active: true },
                   ].map((p) => (
                     <div key={p.rank} className={`flex items-center justify-between p-3 rounded-xl border transition-all ${p.active ? 'bg-accent/10 border-accent/30' : 'bg-bg-main/50 border-border-color/50 hover:border-text-secondary/30'}`}>
@@ -242,8 +198,18 @@ const SocialEngine = () => {
                       <span className={`text-xs font-mono font-bold ${p.color}`}>{p.val}</span>
                     </div>
                   ))}
+                  <div className="text-center py-4">
+                    <p className="text-[10px] text-text-secondary italic">Consolidating operator data...</p>
+                  </div>
                 </div>
-                <Button variant="ghost" size="sm" className="w-full text-[9px]">View Complete Rankings</Button>
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  className="w-full text-[9px]"
+                  onClick={() => document.dispatchEvent(new CustomEvent("showToast", { detail: { message: "Global rankings will be available after deployment.", type: "info" } }))}
+                >
+                  View Complete Rankings
+                </Button>
               </Card>
 
               <Card className="p-6 flex flex-col h-[400px]">
@@ -252,14 +218,17 @@ const SocialEngine = () => {
                   <span className="text-[9px] font-mono text-success uppercase tracking-widest">{activeServer.onlineCount} Online</span>
                 </h4>
                 <div className="flex-1 overflow-y-auto custom-scrollbar space-y-4 mb-4 pr-1">
-                  <ChatMessage user="Auris_Bot" msg="New member identified. Protocol initiated." time="12:01" />
-                  <ChatMessage user="Operator_992" msg="The streak consistency is the only metric that matters." time="12:03" />
-                  <ChatMessage user="System_X" msg="Agreed. Logged my session early today." time="12:05" />
-                  <ChatMessage user="You" msg="On my way to top 10." time="12:08" self />
+                  <div className="flex flex-col items-center justify-center h-full text-center space-y-2 opacity-40">
+                    <Icon name="message-square" size={24} className="text-text-secondary" />
+                    <p className="text-[10px] font-bold text-text-secondary uppercase tracking-widest">No Transmissions Logged</p>
+                  </div>
                 </div>
                 <div className="relative">
                   <Input placeholder="Compose transmission..." className="pr-12" />
-                  <button className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-lg bg-accent text-bg-main flex items-center justify-center hover:opacity-90 active:scale-90 transition-all">
+                  <button 
+                    onClick={() => document.dispatchEvent(new CustomEvent("showToast", { detail: { message: "Global server transmission is currently in read-only mode.", type: "warning" } }))}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-lg bg-accent text-bg-main flex items-center justify-center hover:opacity-90 active:scale-90 transition-all"
+                  >
                     <Icon name="send" size={14} />
                   </button>
                 </div>
@@ -277,7 +246,15 @@ const SocialEngine = () => {
                   <ProtocolItem icon="user" title="Admin" desc="@SystemRootV1" />
                 </div>
                 <div className="h-px bg-border-color my-6" />
-                <Button variant="primary" className="w-full" size="lg" icon="activity">Log Node Action</Button>
+                <Button 
+                  variant="primary" 
+                  className="w-full" 
+                  size="lg" 
+                  icon="activity"
+                  onClick={() => document.dispatchEvent(new CustomEvent("showToast", { detail: { message: "Node action logging will be enabled shortly.", type: "info" } }))}
+                >
+                  Log Node Action
+                </Button>
              </Card>
 
              <Card className="p-6 bg-accent-dim/20 border-accent/20">
@@ -302,10 +279,6 @@ const SocialEngine = () => {
     <div className="page-fade space-y-10 animate-in fade-in duration-500 pb-20">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6">
         <div className="space-y-2">
-          <div className="flex items-center gap-2">
-            <div className="w-2 h-2 rounded-full bg-accent animate-pulse" />
-            <span className="text-[10px] font-black uppercase tracking-[0.4em] text-accent">Node Connectivity Active</span>
-          </div>
           <h2 className="text-4xl font-black tracking-tighter text-text-primary">Social Engine</h2>
           <p className="text-xs text-text-secondary max-w-md font-medium">Coordinate with global operators, initiate private challenges, and track your competitive trajectory.</p>
         </div>
@@ -357,7 +330,15 @@ const SocialEngine = () => {
               containerClassName="space-y-0"
               className="h-11"
             />
-            <Button variant="primary" className="h-11" icon="plus" size="md">Create Server</Button>
+            <Button 
+              variant="primary" 
+              className="h-11" 
+              icon="plus" 
+              size="md"
+              onClick={() => document.dispatchEvent(new CustomEvent("showToast", { detail: { message: "Server creation requires Admin Level 2 authorization.", type: "warning" } }))}
+            >
+              Create Server
+            </Button>
           </div>
 
           {joinedServers.length > 0 && (
@@ -403,7 +384,17 @@ const SocialEngine = () => {
                     onChange={(e) => setInviteUid(e.target.value)} 
                     className="flex-1 bg-white/[0.02]"
                    />
-                   <Button variant="primary" disabled={!inviteUid} className="h-11">Transmit</Button>
+                   <Button 
+                    variant="primary" 
+                    disabled={!inviteUid} 
+                    className="h-11"
+                    onClick={() => {
+                      document.dispatchEvent(new CustomEvent("showToast", { detail: { message: `Linking request transmitted to UID: ${inviteUid}`, type: "success" } }));
+                      setInviteUid("");
+                    }}
+                   >
+                    Transmit
+                   </Button>
                  </div>
                  <div className="flex items-center gap-2 px-3 py-2 bg-accent-dim/30 rounded-lg border border-border-color/50">
                     <Icon name="info" size={12} className="text-text-secondary" />
@@ -412,27 +403,18 @@ const SocialEngine = () => {
               </div>
            </Card>
 
-           <div className="space-y-6">
+            <div className="space-y-6">
               <h3 className="text-[11px] font-black uppercase tracking-[0.3em] text-text-secondary">Pending Identifiers</h3>
               <div className="space-y-4">
-                 <Card className="p-6 border-none bg-accent/5">
-                    <div className="flex items-center justify-between">
-                       <div className="flex items-center gap-4">
-                         <div className="w-10 h-10 rounded-xl bg-bg-sidebar border border-border-color flex items-center justify-center font-bold text-xs">J</div>
-                         <div>
-                           <p className="text-sm font-bold text-text-primary">Jordan_Vault</p>
-                           <p className="text-[10px] text-text-secondary font-mono">UID: ux842...k2</p>
-                         </div>
-                       </div>
-                       <div className="flex gap-2">
-                         <Button variant="ghost" size="sm" className="text-danger hover:bg-danger/10 hover:border-danger/20">Reject</Button>
-                         <Button variant="primary" size="sm">Accept</Button>
-                       </div>
+                 <div className="flex flex-col items-center justify-center py-12 bg-bg-sidebar/30 rounded-[2rem] border border-border-color border-dashed text-center space-y-3">
+                    <div className="w-12 h-12 rounded-2xl bg-border-color/20 flex items-center justify-center text-text-secondary/40">
+                      <Icon name="user-check" size={24} />
                     </div>
-                 </Card>
-                 <p className="text-[10px] text-center text-text-secondary/40 font-mono italic">Searching for secure neighbor nodes...</p>
+                    <p className="text-[10px] font-bold text-text-secondary uppercase tracking-[0.2em]">No Incoming Connection Requests</p>
+                 </div>
+                 <p className="text-[10px] text-center text-text-secondary/40 font-mono italic">Continuously scanning for neighbor nodes...</p>
               </div>
-           </div>
+            </div>
         </div>
       )}
 
@@ -444,7 +426,7 @@ const SocialEngine = () => {
            </div>
            
            <div className="space-y-4">
-             {MOCK_HISTORY.map(h => (
+             {MOCK_HISTORY.length > 0 ? MOCK_HISTORY.map(h => (
                 <Card key={h.id} className="p-6 group flex items-center justify-between hover:bg-white/[0.02]">
                    <div className="flex items-center gap-6">
                       <div className="w-12 h-12 rounded-2xl bg-bg-main border border-border-color flex items-center justify-center text-text-secondary group-hover:text-accent transition-colors">
@@ -460,7 +442,17 @@ const SocialEngine = () => {
                       <p className="text-[10px] text-text-secondary font-mono mt-1">Out of {h.total} Operators</p>
                    </div>
                 </Card>
-             ))}
+             )) : (
+              <div className="flex flex-col items-center justify-center py-20 bg-bg-sidebar/20 rounded-[3rem] border border-border-color border-dashed space-y-4 opacity-60">
+                <div className="w-16 h-16 rounded-3xl bg-bg-main border border-border-color flex items-center justify-center">
+                  <Icon name="scroll" size={32} className="text-text-secondary/40" />
+                </div>
+                <div className="text-center">
+                  <p className="text-[11px] font-black uppercase tracking-[0.3em] text-text-secondary">Archive Empty</p>
+                  <p className="text-[10px] text-text-secondary mt-1">No completed challenges recorded for this operator.</p>
+                </div>
+              </div>
+             )}
            </div>
         </div>
       )}
@@ -544,7 +536,6 @@ const ProtocolItem = ({ icon, title, desc }) => (
     <div className="min-w-0">
       <p className="text-[11px] font-bold text-text-primary leading-tight">{title}</p>
       <p className="text-[10px] text-text-secondary mt-0.5 truncate">{desc}</p>
-git add .
     </div>
   </div>
 );
