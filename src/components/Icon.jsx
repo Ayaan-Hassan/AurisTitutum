@@ -69,7 +69,8 @@ import {
     ArrowDownRight,
     Loader2,
     Hash,
-    Maximize2
+    Maximize2,
+    Users
 } from 'lucide-react';
 
 
@@ -86,6 +87,7 @@ const Icon = ({ name, size = 18, className = "" }) => {
         'minus': Minus,
         'x': X,
         'user': User,
+        'users': Users,
         'info': Info,
         'brain': Brain,
         'sparkles': Sparkles,
