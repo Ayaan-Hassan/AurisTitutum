@@ -561,7 +561,7 @@ const SocialEngine = () => {
 
           {/* Create Server Modal */}
           {isCreateModalOpen && (
-            <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-[150] flex flex-col items-center overflow-y-auto pt-24 pb-24" onClick={() => setIsCreateModalOpen(false)}>
+            <div className="fixed inset-0 bg-black/85 backdrop-blur-2xl z-[150] flex flex-col items-center overflow-y-auto pt-24 pb-24" onClick={() => setIsCreateModalOpen(false)}>
             <div className="w-full max-w-xl px-4 pointer-events-none">
               <Card 
                 className="p-8 pointer-events-auto shadow-[0_32px_120px_-20px_rgba(0,0,0,0.8)] border-white/5 bg-bg-sidebar/95 backdrop-blur-xl relative overflow-hidden animate-in zoom-in-95 duration-300"
