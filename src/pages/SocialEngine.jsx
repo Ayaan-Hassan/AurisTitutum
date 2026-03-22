@@ -24,6 +24,18 @@ const SocialEngine = () => {
   const [servers, setServers] = useState(MOCK_PUBLIC_SERVERS);
   const [inviteUid, setInviteUid] = useState("");
   const [timeLeft, setTimeLeft] = useState(TARGET_DATE - new Date());
+  
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [newServerForm, setNewServerForm] = useState({
+    name: "",
+    habit: "",
+    mode: "check",
+    visibility: "public",
+    startDate: new Date().toISOString().split('T')[0],
+    endDate: "",
+    rules: "",
+    habitType: "Good"
+  });
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -106,6 +118,38 @@ const SocialEngine = () => {
   const handleLeave = (id) => {
     setServers(prev => prev.map(s => s.id === id ? { ...s, joined: false } : s));
     setActiveServer(null);
+  };
+  
+  const handleCreateServerSubmit = (e) => {
+    e.preventDefault();
+    if (!newServerForm.name || !newServerForm.habit) {
+      document.dispatchEvent(new CustomEvent("showToast", { 
+        detail: { message: "Initialization protocol requires Name and Habit identification.", type: "error" } 
+      }));
+      return;
+    }
+    const newServer = {
+      id: `server-${Date.now()}`,
+      ...newServerForm,
+      totalJoined: 1,
+      onlineCount: 1,
+      joined: true,
+    };
+    setServers(prev => [...prev, newServer]);
+    setIsCreateModalOpen(false);
+    setNewServerForm({
+      name: "",
+      habit: "",
+      mode: "check",
+      visibility: "public",
+      startDate: new Date().toISOString().split('T')[0],
+      endDate: "",
+      rules: "",
+      habitType: "Good"
+    });
+    document.dispatchEvent(new CustomEvent("showToast", { 
+      detail: { message: "Challenge Node initialized and synchronized successfully.", type: "success" } 
+    }));
   };
 
   if (activeServer) {
@@ -275,25 +319,6 @@ const SocialEngine = () => {
     );
   }
 
-  const handleCreateServer = () => {
-    const newServer = {
-      id: `server-${Date.now()}`,
-      name: "New Challenge Node",
-      habit: "General Protocol",
-      mode: "check",
-      totalJoined: 1,
-      onlineCount: 1,
-      startDate: new Date().toISOString().split('T')[0],
-      endDate: "2026-12-31",
-      habitType: "Good",
-      joined: true,
-    };
-    setServers(prev => [...prev, newServer]);
-    document.dispatchEvent(new CustomEvent("showToast", { 
-      detail: { message: "New server initialized and joined successfully.", type: "success" } 
-    }));
-  };
-
   return (
     <div className="page-fade space-y-10 animate-in fade-in duration-500 pb-20">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6">
@@ -354,11 +379,139 @@ const SocialEngine = () => {
               className="h-11" 
               icon="plus" 
               size="md"
-              onClick={handleCreateServer}
+              onClick={() => setIsCreateModalOpen(true)}
             >
               Create Server
             </Button>
           </div>
+
+          {/* Create Server Modal */}
+          {isCreateModalOpen && (
+            <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+              <div 
+                className="absolute inset-0 bg-black/80 backdrop-blur-md animate-in fade-in duration-300"
+                onClick={() => setIsCreateModalOpen(false)}
+              />
+              <Card className="relative w-full max-w-2xl bg-gradient-to-br from-bg-sidebar to-bg-main border-border-color/50 overflow-hidden animate-in zoom-in-95 duration-300 shadow-2xl">
+                <div className="absolute top-0 right-0 w-64 h-64 bg-accent/5 rounded-full blur-[100px] pointer-events-none" />
+                
+                <form onSubmit={handleCreateServerSubmit} className="p-8 space-y-8">
+                  <div className="flex justify-between items-center pb-4 border-b border-border-color/50">
+                    <div>
+                      <h3 className="text-2xl font-black tracking-tighter text-text-primary">Initialize Node</h3>
+                      <p className="text-[10px] font-black uppercase tracking-[0.2em] text-accent mt-1">Configure Global Challenge Protocol</p>
+                    </div>
+                    <button 
+                      type="button"
+                      onClick={() => setIsCreateModalOpen(false)}
+                      className="w-10 h-10 rounded-xl bg-bg-main border border-border-color flex items-center justify-center text-text-secondary hover:text-danger transition-colors hover:border-danger/30"
+                    >
+                      <Icon name="x" size={20} />
+                    </button>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="space-y-4">
+                      <Input 
+                        label="Server Name"
+                        placeholder="e.g., Focus Intensive"
+                        value={newServerForm.name}
+                        onChange={(e) => setNewServerForm({...newServerForm, name: e.target.value})}
+                        required
+                      />
+                      <Input 
+                        label="Habit to Track"
+                        placeholder="e.g., Programming"
+                        value={newServerForm.habit}
+                        onChange={(e) => setNewServerForm({...newServerForm, habit: e.target.value})}
+                        required
+                      />
+                      <div className="grid grid-cols-2 gap-4">
+                        <Select 
+                          label="Habit Mode"
+                          value={newServerForm.mode}
+                          containerClassName="space-y-2"
+                          onChange={(e) => setNewServerForm({...newServerForm, mode: e.target.value})}
+                          options={[
+                            { value: "check", label: "Check-in" },
+                            { value: "count", label: "Numeric" },
+                            { value: "timer", label: "Timer" },
+                          ]}
+                        />
+                        <Select 
+                          label="Habit Type"
+                          value={newServerForm.habitType}
+                          containerClassName="space-y-2"
+                          onChange={(e) => setNewServerForm({...newServerForm, habitType: e.target.value})}
+                          options={[
+                            { value: "Good", label: "Good Habit" },
+                            { value: "Bad", label: "Bad Habit" },
+                          ]}
+                        />
+                      </div>
+                    </div>
+
+                    <div className="space-y-4">
+                      <div className="grid grid-cols-2 gap-4">
+                        <Input 
+                          label="Start Date"
+                          type="date"
+                          value={newServerForm.startDate}
+                          onChange={(e) => setNewServerForm({...newServerForm, startDate: e.target.value})}
+                        />
+                        <Input 
+                          label="End Date"
+                          type="date"
+                          value={newServerForm.endDate}
+                          onChange={(e) => setNewServerForm({...newServerForm, endDate: e.target.value})}
+                        />
+                      </div>
+                      <Select 
+                        label="Visibility Status"
+                        value={newServerForm.visibility}
+                        containerClassName="space-y-2"
+                        onChange={(e) => setNewServerForm({...newServerForm, visibility: e.target.value})}
+                        options={[
+                          { value: "public", label: "Public Hub" },
+                          { value: "private", label: "Private Unit" },
+                        ]}
+                      />
+                      <div className="space-y-2">
+                        <label className="text-[10px] font-black text-text-secondary uppercase tracking-widest ml-1">
+                          Node Rules & Description
+                        </label>
+                        <textarea 
+                          className="w-full h-24 bg-accent-dim border border-border-color p-3 rounded-lg text-sm text-text-primary focus:border-text-secondary outline-none transition-all placeholder:text-text-secondary/30 resize-none"
+                          placeholder="Define the challenge parameters..."
+                          value={newServerForm.rules}
+                          onChange={(e) => setNewServerForm({...newServerForm, rules: e.target.value})}
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex gap-4 pt-4">
+                    <Button 
+                      type="button" 
+                      variant="outline" 
+                      className="flex-1 h-12"
+                      onClick={() => setIsCreateModalOpen(false)}
+                    >
+                      Abort
+                    </Button>
+                    <Button 
+                      type="submit" 
+                      variant="primary" 
+                      className="flex-[2] h-12 shadow-lg shadow-accent/20"
+                      icon="activity"
+                    >
+                      Initialize Challenge Node
+                    </Button>
+                  </div>
+                </form>
+              </Card>
+            </div>
+          )}
 
           {joinedServers.length > 0 && (
             <div className="space-y-6">
