@@ -265,6 +265,16 @@ const SocialEngine = () => {
         document.dispatchEvent(new CustomEvent("showToast", { 
           detail: { message: "Please sign in to create a server!", type: "error" } 
         }));
+        return;
+      }
+      
+      const { startDate, endDate } = newServerForm;
+      const today = new Date().toISOString().split('T')[0];
+      if (startDate < today || endDate <= today || endDate <= startDate) {
+        document.dispatchEvent(new CustomEvent("showToast", { 
+          detail: { message: "Invalid timeline. Start must be today+ and End must be in future.", type: "error" } 
+        }));
+        return;
       }
       return;
     }
@@ -529,16 +539,16 @@ const SocialEngine = () => {
           <div className="flex justify-end">
             <Button 
               variant="primary" 
-              className="px-8 py-6 shadow-xl shadow-accent/20 rounded-[1.5rem]" 
+              className="shadow-xl shadow-accent/20 rounded-xl" 
               icon="plus" 
-              size="lg"
+              size="md"
               onClick={() => setIsCreateModalOpen(true)}
             >
-              Initialize New Server
+              Start New Server
             </Button>
           </div>
 
-          )}
+
 
           {joinedServers.length > 0 && (
             <div className="space-y-6">
@@ -800,16 +810,20 @@ const SocialEngine = () => {
                 </div>
               </div>
 
-              <div className="flex gap-4 pt-4">
                 <Button 
                   type="submit" 
                   variant="primary" 
-                  className="w-full h-12 shadow-lg shadow-accent/20"
+                  className={`w-full h-12 shadow-lg shadow-accent/20 ${!isFormValid ? 'opacity-50' : 'opacity-100 hover:scale-[1.02]'}`}
                   icon="plus"
                   disabled={!isFormValid}
                 >
-                  Initialize Server
+                  Create Master Server
                 </Button>
+                {!isFormValid && (
+                  <p className="text-[9px] text-center text-danger/60 font-black uppercase tracking-widest mt-2 animate-pulse">
+                    Fill all entries & ensure dates are in the future
+                  </p>
+                )}
               </div>
             </form>
           </Card>
@@ -819,6 +833,21 @@ const SocialEngine = () => {
     </div>
   );
 };
+
+// --- Sub-components (Restored & Fixed) ---
+
+const CustomSelect = ({ label, value, onChange, options, containerClassName = "" }) => (
+  <div className={`space-y-1.5 ${containerClassName}`}>
+    {label && <label className="text-[10px] font-black text-text-secondary uppercase tracking-[0.2em] ml-1">{label}</label>}
+    <select 
+      value={value} 
+      onChange={(e) => onChange(e.target.value)}
+      className="w-full h-full min-h-[44px] bg-bg-main/50 border border-border-color/50 rounded-xl px-3 text-xs font-bold text-text-primary outline-none focus:border-accent transition-all cursor-pointer hover:bg-white/[0.03]"
+    >
+      {options.map(opt => <option key={opt.value} value={opt.value} className="bg-bg-sidebar">{opt.label}</option>)}
+    </select>
+  </div>
+);
 
 const ServerCard = ({ server, onOpen, onJoin, active = false }) => (
   <Card 
