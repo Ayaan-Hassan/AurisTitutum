@@ -121,8 +121,18 @@ const SocialEngine = () => {
   };
   
   const isFormValid = useMemo(() => {
-    const { name, habit, mode, visibility, startDate, endDate, rules } = newServerForm;
-    return name && habit && mode && visibility && startDate && endDate && rules;
+    const { name, habit, mode, visibility, startDate, endDate } = newServerForm;
+    const today = new Date().toISOString().split('T')[0];
+    
+    // Validations:
+    // 1. All required fields filled
+    if (!name || !habit || !mode || !visibility || !startDate || !endDate) return false;
+    // 2. Start date must be greater than today
+    if (startDate <= today) return false;
+    // 3. End date must be greater than start date
+    if (endDate <= startDate) return false;
+    
+    return true;
   }, [newServerForm]);
 
   const handleCreateServerSubmit = (e) => {
@@ -387,20 +397,17 @@ const SocialEngine = () => {
 
           {/* Create Server Modal */}
           {isCreateModalOpen && (
-            <div className="fixed inset-0 z-[100] flex items-start justify-center p-4 overflow-y-auto custom-scrollbar bg-black/80 backdrop-blur-md">
-              <div 
-                className="fixed inset-0 z-0"
-                onClick={() => setIsCreateModalOpen(false)}
-              />
-              <Card className="relative my-4 w-full max-w-2xl bg-gradient-to-br from-bg-sidebar to-bg-main border-border-color/50 overflow-hidden animate-in zoom-in-95 duration-300 shadow-2xl z-10">
-                <div className="absolute top-0 right-0 w-64 h-64 bg-accent/5 rounded-full blur-[100px] pointer-events-none" />
+            <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-[150] flex flex-col items-center overflow-y-auto pt-24 pb-24" onClick={() => setIsCreateModalOpen(false)}>
+            <div className="w-full max-w-xl px-4 pointer-events-none">
+              <Card className="p-8 sm:p-10 pointer-events-auto shadow-[0_32px_120px_-20px_rgba(0,0,0,0.8)] border-white/5 bg-bg-sidebar/95 backdrop-blur-xl relative overflow-hidden animate-in zoom-in-95 duration-300">
+                <div className="absolute -top-24 -right-24 w-64 h-64 bg-accent/10 rounded-full blur-[100px] pointer-events-none" />
                 
-                <form onSubmit={handleCreateServerSubmit} className="p-8 space-y-8">
-                  <div className="flex justify-between items-center pb-4 border-b border-border-color/50">
-                    <div>
-                      <h3 className="text-2xl font-black tracking-tighter text-text-primary uppercase">Create New Server</h3>
-                      <p className="text-[10px] font-black uppercase tracking-[0.2em] text-accent mt-1">Fill in the details for your new server</p>
-                    </div>
+                <form onSubmit={handleCreateServerSubmit} className="space-y-8 relative z-10">
+                  <div className="flex justify-between items-center mb-2">
+                    <h3 className="text-2xl font-black tracking-widest text-text-primary uppercase flex items-center gap-3">
+                      <div className="w-1.5 h-6 bg-accent rounded-full" />
+                      New Server
+                    </h3>
                     <button 
                       type="button"
                       onClick={() => setIsCreateModalOpen(false)}
@@ -410,17 +417,17 @@ const SocialEngine = () => {
                     </button>
                   </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="space-y-6">
                     <div className="space-y-4">
                       <Input 
                         label="Server Name"
-                        placeholder="e.g. Focus Squad"
+                        placeholder="e.g. Morning Runners"
                         value={newServerForm.name}
                         onChange={(e) => setNewServerForm({...newServerForm, name: e.target.value})}
                       />
                       <Input 
-                        label="What habit to track?"
-                        placeholder="e.g. Reading"
+                        label="What habit will we track?"
+                        placeholder="e.g. Running, Reading, Coding"
                         value={newServerForm.habit}
                         onChange={(e) => setNewServerForm({...newServerForm, habit: e.target.value})}
                       />
@@ -430,9 +437,12 @@ const SocialEngine = () => {
                           value={newServerForm.mode}
                           onChange={(val) => setNewServerForm({...newServerForm, mode: val})}
                           options={[
-                            { value: "check", label: "Check-in" },
+                            { value: "quick", label: "Tap / Quick" },
                             { value: "count", label: "Number Count" },
+                            { value: "check", label: "Simple Check" },
                             { value: "timer", label: "Stopwatch/Timer" },
+                            { value: "rating", label: "Rating (Stars)" },
+                            { value: "upload", label: "Photo Upload" },
                           ]}
                         />
                         <CustomSelect 
@@ -452,13 +462,17 @@ const SocialEngine = () => {
                         <Input 
                           label="Start Date"
                           type="date"
+                          min={new Date(Date.now() + 86400000).toISOString().split('T')[0]}
                           value={newServerForm.startDate}
+                          style={{ colorScheme: 'dark' }}
                           onChange={(e) => setNewServerForm({...newServerForm, startDate: e.target.value})}
                         />
                         <Input 
                           label="End Date"
                           type="date"
+                          min={newServerForm.startDate ? new Date(new Date(newServerForm.startDate).getTime() + 86400000).toISOString().split('T')[0] : ""}
                           value={newServerForm.endDate}
+                          style={{ colorScheme: 'dark' }}
                           onChange={(e) => setNewServerForm({...newServerForm, endDate: e.target.value})}
                         />
                       </div>
@@ -473,11 +487,11 @@ const SocialEngine = () => {
                       />
                       <div className="space-y-2">
                         <label className="text-[10px] font-black text-text-secondary uppercase tracking-widest ml-1">
-                          Server Rules
+                          Server Rules (Optional)
                         </label>
                         <textarea 
                           className="w-full h-24 bg-accent-dim border border-border-color p-3 rounded-xl text-xs font-bold text-text-primary focus:border-text-secondary outline-none transition-all placeholder:text-text-secondary/30 resize-none hover:bg-white/[0.02]"
-                          placeholder="What are the rules for this server?"
+                          placeholder="e.g. No cheating, Be respectful..."
                           value={newServerForm.rules}
                           onChange={(e) => setNewServerForm({...newServerForm, rules: e.target.value})}
                         />
