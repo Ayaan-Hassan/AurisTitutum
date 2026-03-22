@@ -559,128 +559,6 @@ const SocialEngine = () => {
             </Button>
           </div>
 
-          {/* Create Server Modal */}
-          {isCreateModalOpen && (
-            <div className="fixed inset-0 w-screen h-screen bg-black/85 backdrop-blur-2xl z-[999] flex flex-col items-center overflow-y-auto pt-24 pb-24" onClick={() => setIsCreateModalOpen(false)}>
-            <div className="w-full max-w-xl px-4 pointer-events-none">
-              <Card 
-                className="p-8 pointer-events-auto shadow-[0_32px_120px_-20px_rgba(0,0,0,0.8)] border-white/5 bg-bg-sidebar/95 backdrop-blur-xl relative overflow-hidden animate-in zoom-in-95 duration-300"
-                onClick={(e) => e.stopPropagation()}
-              >
-                <div className="absolute -top-24 -right-24 w-64 h-64 bg-accent/10 rounded-full blur-[100px] pointer-events-none" />
-                
-                <form onSubmit={handleCreateServerSubmit} className="space-y-6 relative z-10">
-                  <div className="flex justify-between items-center mb-2">
-                    <h3 className="text-2xl font-black tracking-widest text-text-primary uppercase flex items-center gap-3">
-                      <div className="w-1.5 h-6 bg-accent rounded-full" />
-                      New Server
-                    </h3>
-                    <button 
-                      type="button"
-                      onClick={() => setIsCreateModalOpen(false)}
-                      className="w-10 h-10 rounded-xl bg-bg-main border border-border-color flex items-center justify-center text-text-secondary hover:text-danger transition-colors hover:border-danger/30"
-                    >
-                      <Icon name="x" size={20} />
-                    </button>
-                  </div>
-
-                  <div className="space-y-6">
-                    <div className="space-y-4">
-                      <Input 
-                        label="Server Name"
-                        placeholder="e.g. Morning Runners"
-                        value={newServerForm.name}
-                        onChange={(e) => setNewServerForm({...newServerForm, name: e.target.value})}
-                      />
-                      <Input 
-                        label="What habit will we track?"
-                        placeholder="e.g. Running, Reading, Coding"
-                        value={newServerForm.habit}
-                        onChange={(e) => setNewServerForm({...newServerForm, habit: e.target.value})}
-                      />
-                      <div className="grid grid-cols-2 gap-4">
-                        <CustomSelect 
-                          label="Tracking Method"
-                          value={newServerForm.mode}
-                          onChange={(val) => setNewServerForm({...newServerForm, mode: val})}
-                          options={[
-                            { value: "quick", label: "Tap / Quick" },
-                            { value: "count", label: "Number Count" },
-                            { value: "check", label: "Simple Check" },
-                            { value: "timer", label: "Stopwatch/Timer" },
-                            { value: "rating", label: "Rating (Stars)" },
-                            { value: "upload", label: "Photo Upload" },
-                          ]}
-                        />
-                        <CustomSelect 
-                          label="Habit Type"
-                          value={newServerForm.habitType}
-                          onChange={(val) => setNewServerForm({...newServerForm, habitType: val})}
-                          options={[
-                            { value: "Good", label: "Good Habit" },
-                            { value: "Bad", label: "Bad Habit" },
-                          ]}
-                        />
-                      </div>
-                    </div>
-
-                    <div className="space-y-4">
-                      <div className="grid grid-cols-2 gap-4">
-                        <Input 
-                          label="Start Date"
-                          type="date"
-                          min={new Date(Date.now() + 86400000).toISOString().split('T')[0]}
-                          value={newServerForm.startDate}
-                          style={{ colorScheme: 'dark' }}
-                          onChange={(e) => setNewServerForm({...newServerForm, startDate: e.target.value})}
-                        />
-                        <Input 
-                          label="End Date"
-                          type="date"
-                          min={newServerForm.startDate ? new Date(new Date(newServerForm.startDate).getTime() + 86400000).toISOString().split('T')[0] : ""}
-                          value={newServerForm.endDate}
-                          style={{ colorScheme: 'dark' }}
-                          onChange={(e) => setNewServerForm({...newServerForm, endDate: e.target.value})}
-                        />
-                      </div>
-                      <CustomSelect 
-                        label="Who can join?"
-                        value={newServerForm.visibility}
-                        onChange={(val) => setNewServerForm({...newServerForm, visibility: val})}
-                        options={[
-                          { value: "public", label: "Public (Global)" },
-                          { value: "private", label: "Private (Friends Only)" },
-                        ]}
-                      />
-                      <div className="space-y-2">
-                        <label className="text-[10px] font-black text-text-secondary uppercase tracking-widest ml-1">
-                          Server Rules (Optional)
-                        </label>
-                        <textarea 
-                          className="w-full h-24 bg-accent-dim border border-border-color p-3 rounded-xl text-xs font-bold text-text-primary focus:border-text-secondary outline-none transition-all placeholder:text-text-secondary/30 resize-none hover:bg-white/[0.02]"
-                          placeholder="e.g. No cheating, Be respectful..."
-                          value={newServerForm.rules}
-                          onChange={(e) => setNewServerForm({...newServerForm, rules: e.target.value})}
-                        />
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="flex gap-4 pt-4">
-                    <Button 
-                      type="submit" 
-                      variant="primary" 
-                      className="w-full h-12 shadow-lg shadow-accent/20"
-                      icon="plus"
-                      disabled={!isFormValid}
-                    >
-                      Initialize Server
-                    </Button>
-                  </div>
-                </form>
-              </Card>
-            </div>
-          </div>
           )}
 
           {joinedServers.length > 0 && (
@@ -808,6 +686,130 @@ const SocialEngine = () => {
              )}
            </div>
         </div>
+      )}
+
+      {/* Create Server Modal (Root Level for Portal-like layering) */}
+      {isCreateModalOpen && (
+        <div className="fixed inset-0 w-screen h-screen bg-black/85 backdrop-blur-2xl z-[9999] flex flex-col items-center overflow-y-auto pt-24 pb-24" onClick={() => setIsCreateModalOpen(false)}>
+        <div className="w-full max-w-xl px-4 pointer-events-none">
+          <Card 
+            className="p-8 pointer-events-auto shadow-[0_32px_120px_-20px_rgba(0,0,0,0.8)] border-white/5 bg-bg-sidebar/95 backdrop-blur-xl relative overflow-hidden animate-in zoom-in-95 duration-300"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="absolute -top-24 -right-24 w-64 h-64 bg-accent/10 rounded-full blur-[100px] pointer-events-none" />
+            
+            <form onSubmit={handleCreateServerSubmit} className="space-y-6 relative z-10">
+              <div className="flex justify-between items-center mb-2">
+                <h3 className="text-2xl font-black tracking-widest text-text-primary uppercase flex items-center gap-3">
+                  <div className="w-1.5 h-6 bg-accent rounded-full" />
+                  New Server
+                </h3>
+                <button 
+                  type="button"
+                  onClick={() => setIsCreateModalOpen(false)}
+                  className="w-10 h-10 rounded-xl bg-bg-main border border-border-color flex items-center justify-center text-text-secondary hover:text-danger transition-colors hover:border-danger/30"
+                >
+                  <Icon name="x" size={20} />
+                </button>
+              </div>
+
+              <div className="space-y-6">
+                <div className="space-y-4">
+                  <Input 
+                    label="Server Name"
+                    placeholder="e.g. Morning Runners"
+                    value={newServerForm.name}
+                    onChange={(e) => setNewServerForm({...newServerForm, name: e.target.value})}
+                  />
+                  <Input 
+                    label="What habit will we track?"
+                    placeholder="e.g. Running, Reading, Coding"
+                    value={newServerForm.habit}
+                    onChange={(e) => setNewServerForm({...newServerForm, habit: e.target.value})}
+                  />
+                  <div className="grid grid-cols-2 gap-4">
+                    <CustomSelect 
+                      label="Tracking Method"
+                      value={newServerForm.mode}
+                      onChange={(val) => setNewServerForm({...newServerForm, mode: val})}
+                      options={[
+                        { value: "quick", label: "Tap / Quick" },
+                        { value: "count", label: "Number Count" },
+                        { value: "check", label: "Simple Check" },
+                        { value: "timer", label: "Stopwatch/Timer" },
+                        { value: "rating", label: "Rating (Stars)" },
+                        { value: "upload", label: "Photo Upload" },
+                      ]}
+                    />
+                    <CustomSelect 
+                      label="Habit Type"
+                      value={newServerForm.habitType}
+                      onChange={(val) => setNewServerForm({...newServerForm, habitType: val})}
+                      options={[
+                        { value: "Good", label: "Good Habit" },
+                        { value: "Bad", label: "Bad Habit" },
+                      ]}
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <Input 
+                      label="Start Date"
+                      type="date"
+                      min={new Date(Date.now() + 86400000).toISOString().split('T')[0]}
+                      value={newServerForm.startDate}
+                      style={{ colorScheme: 'dark' }}
+                      onChange={(e) => setNewServerForm({...newServerForm, startDate: e.target.value})}
+                    />
+                    <Input 
+                      label="End Date"
+                      type="date"
+                      min={newServerForm.startDate ? new Date(new Date(newServerForm.startDate).getTime() + 86400000).toISOString().split('T')[0] : ""}
+                      value={newServerForm.endDate}
+                      style={{ colorScheme: 'dark' }}
+                      onChange={(e) => setNewServerForm({...newServerForm, endDate: e.target.value})}
+                    />
+                  </div>
+                  <CustomSelect 
+                    label="Who can join?"
+                    value={newServerForm.visibility}
+                    onChange={(val) => setNewServerForm({...newServerForm, visibility: val})}
+                    options={[
+                      { value: "public", label: "Public (Global)" },
+                      { value: "private", label: "Private (Friends Only)" },
+                    ]}
+                  />
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black text-text-secondary uppercase tracking-widest ml-1">
+                      Server Rules (Optional)
+                    </label>
+                    <textarea 
+                      className="w-full h-24 bg-accent-dim border border-border-color p-3 rounded-xl text-xs font-bold text-text-primary focus:border-text-secondary outline-none transition-all placeholder:text-text-secondary/30 resize-none hover:bg-white/[0.02]"
+                      placeholder="e.g. No cheating, Be respectful..."
+                      value={newServerForm.rules}
+                      onChange={(e) => setNewServerForm({...newServerForm, rules: e.target.value})}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex gap-4 pt-4">
+                <Button 
+                  type="submit" 
+                  variant="primary" 
+                  className="w-full h-12 shadow-lg shadow-accent/20"
+                  icon="plus"
+                  disabled={!isFormValid}
+                >
+                  Initialize Server
+                </Button>
+              </div>
+            </form>
+          </Card>
+        </div>
+      </div>
       )}
     </div>
   );
