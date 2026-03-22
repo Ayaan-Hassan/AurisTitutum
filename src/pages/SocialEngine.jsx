@@ -275,6 +275,25 @@ const SocialEngine = () => {
     );
   }
 
+  const handleCreateServer = () => {
+    const newServer = {
+      id: `server-${Date.now()}`,
+      name: "New Challenge Node",
+      habit: "General Protocol",
+      mode: "check",
+      totalJoined: 1,
+      onlineCount: 1,
+      startDate: new Date().toISOString().split('T')[0],
+      endDate: "2026-12-31",
+      habitType: "Good",
+      joined: true,
+    };
+    setServers(prev => [...prev, newServer]);
+    document.dispatchEvent(new CustomEvent("showToast", { 
+      detail: { message: "New server initialized and joined successfully.", type: "success" } 
+    }));
+  };
+
   return (
     <div className="page-fade space-y-10 animate-in fade-in duration-500 pb-20">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6">
@@ -335,7 +354,7 @@ const SocialEngine = () => {
               className="h-11" 
               icon="plus" 
               size="md"
-              onClick={() => document.dispatchEvent(new CustomEvent("showToast", { detail: { message: "Server creation requires Admin Level 2 authorization.", type: "warning" } }))}
+              onClick={handleCreateServer}
             >
               Create Server
             </Button>
