@@ -12,12 +12,11 @@ const Sidebar = ({ userConfig, onOpenAuris }) => {
   const navItems = [
     { id: "/app", icon: "layout-dashboard", label: "Main Console" },
     { id: "/app/habits", icon: "activity", label: "Habit Registry" },
+    { id: "/app/social", icon: "users", label: "Social Hub" },
     { id: "/app/logs", icon: "file-text", label: "Logs" },
     { id: "/app/notes", icon: "sticky-note", label: "Notes" },
     { id: "/app/analytics", icon: "bar-chart-3", label: "Analytics" },
-    { id: "/app/social", icon: "users", label: "Social Hub" },
     { id: "/app/reminders", icon: "bell", label: "Reminders" },
-    { id: "/app/settings", icon: "settings-2", label: "Settings" },
   ];
 
   const adminUid = (import.meta.env.VITE_ADMIN_UID || "").replace(/['"]/g, '').trim();
@@ -76,6 +75,17 @@ const Sidebar = ({ userConfig, onOpenAuris }) => {
               <Icon name="brain" size={16} />
               Auris AI
             </button>
+
+            <Link
+              to="/app/settings"
+              className={`sidebar-item w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium transition-all ${isActive("/app/settings")
+                ? "active text-text-primary"
+                : "text-text-secondary hover:text-text-primary hover:bg-accent-dim"
+                }`}
+            >
+              <Icon name="settings-2" size={16} />
+              Settings
+            </Link>
 
             {/* ── Contact Us — same size as other items, with separator + border ── */}
             <div className="pt-3 mt-3 border-t border-border-color">
