@@ -824,7 +824,6 @@ const SocialEngine = () => {
                     Fill all entries & ensure dates are in the future
                   </p>
                 )}
-              </div>
             </form>
           </Card>
         </div>
@@ -836,18 +835,6 @@ const SocialEngine = () => {
 
 // --- Sub-components (Restored & Fixed) ---
 
-const CustomSelect = ({ label, value, onChange, options, containerClassName = "" }) => (
-  <div className={`space-y-1.5 ${containerClassName}`}>
-    {label && <label className="text-[10px] font-black text-text-secondary uppercase tracking-[0.2em] ml-1">{label}</label>}
-    <select 
-      value={value} 
-      onChange={(e) => onChange(e.target.value)}
-      className="w-full h-full min-h-[44px] bg-bg-main/50 border border-border-color/50 rounded-xl px-3 text-xs font-bold text-text-primary outline-none focus:border-accent transition-all cursor-pointer hover:bg-white/[0.03]"
-    >
-      {options.map(opt => <option key={opt.value} value={opt.value} className="bg-bg-sidebar">{opt.label}</option>)}
-    </select>
-  </div>
-);
 
 const ServerCard = ({ server, onOpen, onJoin, active = false }) => (
   <Card 
