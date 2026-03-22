@@ -770,22 +770,32 @@ const SocialEngine = () => {
 
                 <div className="space-y-4">
                   <div className="grid grid-cols-2 gap-4">
-                    <Input 
-                      label="Start Date"
-                      type="date"
-                      min={new Date().toISOString().split('T')[0]}
-                      value={newServerForm.startDate}
-                      style={{ colorScheme: 'dark' }}
-                      onChange={(e) => setNewServerForm({...newServerForm, startDate: e.target.value})}
-                    />
-                    <Input 
-                      label="End Date"
-                      type="date"
-                      min={newServerForm.startDate ? new Date(new Date(newServerForm.startDate).getTime() + 86400000).toISOString().split('T')[0] : new Date(Date.now() + 86400000).toISOString().split('T')[0]}
-                      value={newServerForm.endDate}
-                      style={{ colorScheme: 'dark' }}
-                      onChange={(e) => setNewServerForm({...newServerForm, endDate: e.target.value})}
-                    />
+                    <div className="space-y-1">
+                      <Input 
+                        label="Start Date"
+                        type="date"
+                        min={new Date().toISOString().split('T')[0]}
+                        value={newServerForm.startDate}
+                        style={{ colorScheme: 'dark' }}
+                        onChange={(e) => setNewServerForm({...newServerForm, startDate: e.target.value})}
+                      />
+                      {newServerForm.startDate && newServerForm.startDate < new Date().toISOString().split('T')[0] && (
+                        <p className="text-[9px] text-danger font-bold ml-1">Error: Backdating is not permitted</p>
+                      )}
+                    </div>
+                    <div className="space-y-1">
+                      <Input 
+                        label="End Date"
+                        type="date"
+                        min={newServerForm.startDate ? new Date(new Date(newServerForm.startDate).getTime() + 86400000).toISOString().split('T')[0] : new Date(Date.now() + 86400000).toISOString().split('T')[0]}
+                        value={newServerForm.endDate}
+                        style={{ colorScheme: 'dark' }}
+                        onChange={(e) => setNewServerForm({...newServerForm, endDate: e.target.value})}
+                      />
+                      {newServerForm.endDate && (newServerForm.endDate <= new Date().toISOString().split('T')[0] || (newServerForm.startDate && newServerForm.endDate <= newServerForm.startDate)) && (
+                        <p className="text-[9px] text-danger font-bold ml-1">Error: End date must be in future & after start</p>
+                      )}
+                    </div>
                   </div>
                   <CustomSelect 
                     label="Who can join?"
@@ -819,11 +829,6 @@ const SocialEngine = () => {
                 >
                   Create Master Server
                 </Button>
-                {!isFormValid && (
-                  <p className="text-[9px] text-center text-danger/60 font-black uppercase tracking-widest mt-2 animate-pulse">
-                    Fill all entries & ensure dates are in the future
-                  </p>
-                )}
             </form>
           </Card>
         </div>
