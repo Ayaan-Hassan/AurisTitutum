@@ -250,10 +250,10 @@ const SocialEngine = () => {
     // Validations:
     // 1. All required fields filled
     if (!name || !habit || !mode || !visibility || !startDate || !endDate) return false;
-    // 2. Start date must be greater than today
-    if (startDate <= today) return false;
-    // 3. End date must be greater than start date
-    if (endDate <= startDate) return false;
+    // 2. Start date must be today or in the future
+    if (startDate < today) return false;
+    // 3. End date must be greater than today AND greater than start date
+    if (endDate <= today || endDate <= startDate) return false;
     
     return true;
   }, [newServerForm]);
@@ -526,36 +526,15 @@ const SocialEngine = () => {
 
       {activeTab === "public" && (
         <div className="space-y-10">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 bg-bg-sidebar/50 p-6 rounded-[2rem] border border-border-color backdrop-blur-md">
-            <div className="relative lg:col-span-2">
-              <Icon name="search" size={14} className="absolute left-4 top-1/2 -translate-y-1/2 text-text-secondary" />
-              <input 
-                type="text" 
-                placeholder="Search for servers..." 
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full h-11 bg-bg-main/50 border border-border-color/50 rounded-xl pl-11 pr-4 text-xs font-bold text-text-primary outline-none focus:border-accent transition-all placeholder:text-text-secondary/30"
-              />
-            </div>
-            <CustomSelect 
-              value={filterMode} 
-              onChange={setFilterMode}
-              options={[
-                { value: "all", label: "All Modes" },
-                { value: "check", label: "Check-in" },
-                { value: "count", label: "Number Count" },
-                { value: "timer", label: "Stopwatch/Timer" },
-              ]}
-              containerClassName="h-11"
-            />
+          <div className="flex justify-end">
             <Button 
               variant="primary" 
-              className="h-11" 
+              className="px-8 py-6 shadow-xl shadow-accent/20 rounded-[1.5rem]" 
               icon="plus" 
-              size="md"
+              size="lg"
               onClick={() => setIsCreateModalOpen(true)}
             >
-              Create Server
+              Initialize New Server
             </Button>
           </div>
 
@@ -575,9 +554,35 @@ const SocialEngine = () => {
           )}
 
           <div className="space-y-6">
-            <h3 className="text-[11px] font-black uppercase tracking-[0.3em] text-text-secondary flex items-center gap-3">
-              <Icon name="layout" size={14} /> Global Servers
-            </h3>
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+              <h3 className="text-[11px] font-black uppercase tracking-[0.3em] text-text-secondary flex items-center gap-3">
+                <Icon name="layout" size={14} /> Global Servers
+              </h3>
+              
+              <div className="flex flex-col sm:flex-row gap-3 items-center bg-bg-sidebar/30 p-2 rounded-2xl border border-border-color/50 backdrop-blur-sm">
+                <div className="relative w-full sm:w-64">
+                  <Icon name="search" size={12} className="absolute left-3 top-1/2 -translate-y-1/2 text-text-secondary/50" />
+                  <input 
+                    type="text" 
+                    placeholder="Search servers..." 
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="w-full h-9 bg-bg-main/40 border border-border-color/30 rounded-xl pl-9 pr-4 text-[11px] font-bold text-text-primary outline-none focus:border-accent/50 transition-all placeholder:text-text-secondary/20"
+                  />
+                </div>
+                <CustomSelect 
+                  value={filterMode} 
+                  onChange={setFilterMode}
+                  options={[
+                    { value: "all", label: "All Modes" },
+                    { value: "check", label: "Check-in" },
+                    { value: "count", label: "Number Count" },
+                    { value: "timer", label: "Stopwatch/Timer" },
+                  ]}
+                  containerClassName="h-9 w-full sm:w-40"
+                />
+              </div>
+            </div>
             {loading ? (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 opacity-50">
                 {[1, 2, 3].map(i => <div key={i} className="h-48 rounded-[2.5rem] bg-bg-sidebar/50 animate-pulse border border-border-color" />)}
@@ -758,7 +763,7 @@ const SocialEngine = () => {
                     <Input 
                       label="Start Date"
                       type="date"
-                      min={new Date(Date.now() + 86400000).toISOString().split('T')[0]}
+                      min={new Date().toISOString().split('T')[0]}
                       value={newServerForm.startDate}
                       style={{ colorScheme: 'dark' }}
                       onChange={(e) => setNewServerForm({...newServerForm, startDate: e.target.value})}
@@ -766,7 +771,7 @@ const SocialEngine = () => {
                     <Input 
                       label="End Date"
                       type="date"
-                      min={newServerForm.startDate ? new Date(new Date(newServerForm.startDate).getTime() + 86400000).toISOString().split('T')[0] : ""}
+                      min={newServerForm.startDate ? new Date(new Date(newServerForm.startDate).getTime() + 86400000).toISOString().split('T')[0] : new Date(Date.now() + 86400000).toISOString().split('T')[0]}
                       value={newServerForm.endDate}
                       style={{ colorScheme: 'dark' }}
                       onChange={(e) => setNewServerForm({...newServerForm, endDate: e.target.value})}
