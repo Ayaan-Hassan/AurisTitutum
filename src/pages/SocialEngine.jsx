@@ -6,9 +6,20 @@ import { Input } from "../components/ui/Input";
 import { Select } from "../components/ui/Select";
 import { useAuth } from "../contexts/AuthContext";
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
-
-const MOCK_PUBLIC_SERVERS = [];
-const MOCK_HISTORY = [];
+import { db } from "../firebase.config";
+import { 
+  collection, 
+  addDoc, 
+  onSnapshot, 
+  updateDoc, 
+  doc, 
+  arrayUnion, 
+  arrayRemove, 
+  query, 
+  where,
+  serverTimestamp,
+  orderBy
+} from "firebase/firestore";
 
 const TARGET_DATE = new Date("2026-03-23T13:14:08Z"); // 60 hours from 2026-03-21T01:14:08+05:30 (ISO 2026-03-20T19:44:08Z, so +60h = 2026-03-23T07:44:08Z UTC or 2026-03-23T13:14:08 IST)
 
@@ -21,9 +32,14 @@ const SocialEngine = () => {
   const [activeServer, setActiveServer] = useState(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [filterMode, setFilterMode] = useState("all");
-  const [servers, setServers] = useState(MOCK_PUBLIC_SERVERS);
+  const [servers, setServers] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [inviteUid, setInviteUid] = useState("");
   const [timeLeft, setTimeLeft] = useState(TARGET_DATE - new Date());
+  
+  const [messages, setMessages] = useState([]);
+  const [messageInput, setMessageInput] = useState("");
+  const chatEndRef = React.useRef(null);
   
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [newServerForm, setNewServerForm] = useState({
@@ -42,8 +58,74 @@ const SocialEngine = () => {
       const now = new Date();
       setTimeLeft(TARGET_DATE - now);
     }, 1000);
-    return () => clearInterval(timer);
+
+    // Live sync servers from Firestore
+    setLoading(true);
+    const q = query(collection(db, "social_servers"), orderBy("createdAt", "desc"));
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const serverList = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      }));
+      setServers(serverList);
+      setLoading(false);
+    }, (error) => {
+      console.error("Servers sync error:", error);
+      setLoading(false);
+    });
+
+    return () => {
+      clearInterval(timer);
+      unsubscribe();
+    };
   }, []);
+
+  // Live Sync Messages for active server
+  useEffect(() => {
+    if (!activeServer?.id) {
+      setMessages([]);
+      return;
+    }
+
+    const q = query(
+      collection(db, "social_servers", activeServer.id, "messages"),
+      orderBy("createdAt", "asc")
+    );
+
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const msgList = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      }));
+      setMessages(msgList);
+      
+      // Better scroll to bottom
+      setTimeout(() => {
+        chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
+      }, 100);
+    });
+
+    return () => unsubscribe();
+  }, [activeServer?.id]);
+
+  const handleSendMessage = async (e) => {
+    e?.preventDefault();
+    if (!messageInput.trim() || !user || !activeServer) return;
+
+    try {
+      const text = messageInput;
+      setMessageInput(""); // Clear early for better UX
+
+      await addDoc(collection(db, "social_servers", activeServer.id, "messages"), {
+        text,
+        senderId: user.uid,
+        senderName: user.displayName || user.email?.split('@')[0] || "Operator",
+        createdAt: serverTimestamp(),
+      });
+    } catch (err) {
+      console.error("Error sending message:", err);
+    }
+  };
 
   const formatTime = (ms) => {
     if (ms <= 0) return "00:00:00";
@@ -101,23 +183,64 @@ const SocialEngine = () => {
 
   const filteredServers = useMemo(() => {
     return servers.filter(s => {
-      const matchesSearch = s.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
-                          s.habit.toLowerCase().includes(searchQuery.toLowerCase());
+      const matchesSearch = s.name?.toLowerCase().includes(searchQuery.toLowerCase()) || 
+                          s.habit?.toLowerCase().includes(searchQuery.toLowerCase());
       const matchesMode = filterMode === "all" || s.mode === filterMode;
       return matchesSearch && matchesMode;
     });
   }, [servers, searchQuery, filterMode]);
 
-  const joinedServers = useMemo(() => filteredServers.filter(s => s.joined), [filteredServers]);
-  const publicServers = useMemo(() => filteredServers.filter(s => !s.joined).sort((a, b) => b.totalJoined - a.totalJoined), [filteredServers]);
+  const joinedServers = useMemo(() => {
+    if (!user) return [];
+    return filteredServers.filter(s => s.members?.includes(user.uid));
+  }, [filteredServers, user]);
 
-  const handleJoin = (id) => {
-    setServers(prev => prev.map(s => s.id === id ? { ...s, joined: true } : s));
+  const publicServers = useMemo(() => {
+    if (!user) return filteredServers;
+    return filteredServers.filter(s => !s.members?.includes(user.uid) && s.visibility === "public");
+  }, [filteredServers, user]);
+
+  const handleJoin = async (serverId) => {
+    if (!user) {
+      document.dispatchEvent(new CustomEvent("showToast", { 
+        detail: { message: "Please sign in to join a server!", type: "error" } 
+      }));
+      return;
+    }
+    
+    try {
+      const serverRef = doc(db, "social_servers", serverId);
+      await updateDoc(serverRef, {
+        members: arrayUnion(user.uid),
+        totalJoined: (servers.find(s => s.id === serverId)?.totalJoined || 0) + 1
+      });
+      document.dispatchEvent(new CustomEvent("showToast", { 
+        detail: { message: "Successfully joined server!", type: "success" } 
+      }));
+    } catch (err) {
+      console.error("Error joining server:", err);
+      document.dispatchEvent(new CustomEvent("showToast", { 
+        detail: { message: "Failed to join server.", type: "error" } 
+      }));
+    }
   };
 
-  const handleLeave = (id) => {
-    setServers(prev => prev.map(s => s.id === id ? { ...s, joined: false } : s));
-    setActiveServer(null);
+  const handleLeave = async (serverId) => {
+    if (!user) return;
+    
+    try {
+      const serverRef = doc(db, "social_servers", serverId);
+      await updateDoc(serverRef, {
+        members: arrayRemove(user.uid),
+        totalJoined: Math.max(0, (servers.find(s => s.id === serverId)?.totalJoined || 1) - 1)
+      });
+      setActiveServer(null);
+      document.dispatchEvent(new CustomEvent("showToast", { 
+        detail: { message: "You left the server.", type: "info" } 
+      }));
+    } catch (err) {
+      console.error("Error leaving server:", err);
+    }
   };
   
   const isFormValid = useMemo(() => {
@@ -135,32 +258,49 @@ const SocialEngine = () => {
     return true;
   }, [newServerForm]);
 
-  const handleCreateServerSubmit = (e) => {
+  const handleCreateServerSubmit = async (e) => {
     e.preventDefault();
-    if (!isFormValid) return;
+    if (!isFormValid || !user) {
+      if (!user) {
+        document.dispatchEvent(new CustomEvent("showToast", { 
+          detail: { message: "Please sign in to create a server!", type: "error" } 
+        }));
+      }
+      return;
+    }
 
-    const newServer = {
-      id: `server-${Date.now()}`,
-      ...newServerForm,
-      totalJoined: 1,
-      onlineCount: 1,
-      joined: true,
-    };
-    setServers(prev => [...prev, newServer]);
-    setIsCreateModalOpen(false);
-    setNewServerForm({
-      name: "",
-      habit: "",
-      mode: "check",
-      visibility: "public",
-      startDate: new Date().toISOString().split('T')[0],
-      endDate: "",
-      rules: "",
-      habitType: "Good"
-    });
-    document.dispatchEvent(new CustomEvent("showToast", { 
-      detail: { message: "Server created successfully!", type: "success" } 
-    }));
+    try {
+      const serverData = {
+        ...newServerForm,
+        totalJoined: 1,
+        onlineCount: 1,
+        createdBy: user.uid,
+        createdAt: serverTimestamp(),
+        members: [user.uid]
+      };
+      
+      await addDoc(collection(db, "social_servers"), serverData);
+      
+      setIsCreateModalOpen(false);
+      setNewServerForm({
+        name: "",
+        habit: "",
+        mode: "check",
+        visibility: "public",
+        startDate: new Date().toISOString().split('T')[0],
+        endDate: "",
+        rules: "",
+        habitType: "Good"
+      });
+      document.dispatchEvent(new CustomEvent("showToast", { 
+        detail: { message: "Server created successfully and saved to Database!", type: "success" } 
+      }));
+    } catch (err) {
+      console.error("Error creating server:", err);
+      document.dispatchEvent(new CustomEvent("showToast", { 
+        detail: { message: "Failed to create server.", type: "error" } 
+      }));
+    }
   };
 
   if (activeServer) {
@@ -269,24 +409,43 @@ const SocialEngine = () => {
 
               <Card className="p-6 flex flex-col h-[400px]">
                 <h4 className="text-sm font-bold tracking-tight text-text-primary flex items-center justify-between mb-4">
-                  <div className="flex items-center gap-2"><Icon name="mail" size={16} className="text-accent" /> Server Transmission</div>
+                  <div className="flex items-center gap-2"><Icon name="mail" size={16} className="text-accent" /> Server Transmissions</div>
                   <span className="text-[9px] font-mono text-success uppercase tracking-widest">{activeServer.onlineCount} Online</span>
                 </h4>
                 <div className="flex-1 overflow-y-auto custom-scrollbar space-y-4 mb-4 pr-1">
-                  <div className="flex flex-col items-center justify-center h-full text-center space-y-2 opacity-40">
-                    <Icon name="message-square" size={24} className="text-text-secondary" />
-                    <p className="text-[10px] font-bold text-text-secondary uppercase tracking-widest">No Transmissions Logged</p>
-                  </div>
+                  {messages.length > 0 ? (
+                    messages.map((m) => (
+                      <ChatMessage 
+                        key={m.id}
+                        user={m.senderName}
+                        msg={m.text}
+                        time={m.createdAt?.toDate ? m.createdAt.toDate().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : "Just now"}
+                        self={m.senderId === user?.uid}
+                      />
+                    ))
+                  ) : (
+                    <div className="flex flex-col items-center justify-center h-full text-center space-y-2 opacity-40">
+                      <Icon name="message-square" size={24} className="text-text-secondary" />
+                      <p className="text-[10px] font-bold text-text-secondary uppercase tracking-widest">No Messages Yet</p>
+                    </div>
+                  )}
+                  <div ref={chatEndRef} />
                 </div>
-                <div className="relative">
-                  <Input placeholder="Compose transmission..." className="pr-12" />
+                <form onSubmit={handleSendMessage} className="relative">
+                  <Input 
+                    placeholder="Type a message..." 
+                    className="pr-12" 
+                    value={messageInput}
+                    onChange={(e) => setMessageInput(e.target.value)}
+                  />
                   <button 
-                    onClick={() => document.dispatchEvent(new CustomEvent("showToast", { detail: { message: "Global server transmission is currently in read-only mode.", type: "warning" } }))}
-                    className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-lg bg-accent text-bg-main flex items-center justify-center hover:opacity-90 active:scale-90 transition-all"
+                    type="submit"
+                    className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-lg bg-accent text-bg-main flex items-center justify-center hover:opacity-90 active:scale-90 transition-all disabled:opacity-30"
+                    disabled={!messageInput.trim()}
                   >
                     <Icon name="send" size={14} />
                   </button>
-                </div>
+                </form>
               </Card>
             </div>
           </div>
@@ -295,10 +454,15 @@ const SocialEngine = () => {
              <Card className="p-6">
                 <h4 className="text-sm font-bold text-text-primary mb-4">Server Rules</h4>
                 <div className="space-y-4">
-                  <ProtocolItem icon="shield-check" title="Verification" desc="Anti-cheat audit active" />
+                  {activeServer.rules ? (
+                    <div className="p-4 rounded-xl bg-bg-main/50 border border-border-color/30 text-[11px] text-text-secondary leading-relaxed font-bold italic">
+                      "{activeServer.rules}"
+                    </div>
+                  ) : null}
+                  <ProtocolItem icon="shield-check" title="Verification" desc="Anti-cheat always active" />
                   <ProtocolItem icon="clock" title="Reset Time" desc="Day resets at midnight (UTC)" />
                   <ProtocolItem icon="zap" title="Boosts" desc="Streak bonuses enabled" />
-                  <ProtocolItem icon="user" title="Admin" desc="System Managed" />
+                  <ProtocolItem icon="user" title="Status" desc="System Verified" />
                 </div>
                 <div className="h-px bg-border-color my-6" />
                 <Button 
@@ -513,6 +677,7 @@ const SocialEngine = () => {
                 </form>
               </Card>
             </div>
+          </div>
           )}
 
           {joinedServers.length > 0 && (
@@ -532,11 +697,22 @@ const SocialEngine = () => {
             <h3 className="text-[11px] font-black uppercase tracking-[0.3em] text-text-secondary flex items-center gap-3">
               <Icon name="layout" size={14} /> Global Servers
             </h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-              {publicServers.map(server => (
-                <ServerCard key={server.id} server={server} onOpen={setActiveServer} onJoin={handleJoin} />
-              ))}
-            </div>
+            {loading ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 opacity-50">
+                {[1, 2, 3].map(i => <div key={i} className="h-48 rounded-[2.5rem] bg-bg-sidebar/50 animate-pulse border border-border-color" />)}
+              </div>
+            ) : publicServers.length > 0 ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                {publicServers.map(server => (
+                  <ServerCard key={server.id} server={server} onOpen={setActiveServer} onJoin={handleJoin} />
+                ))}
+              </div>
+            ) : (
+              <div className="flex flex-col items-center justify-center py-20 bg-bg-sidebar/20 rounded-[3rem] border border-border-color border-dashed space-y-4 opacity-40">
+                <Icon name="globe" size={32} className="text-text-secondary" />
+                <p className="text-[10px] font-bold text-text-secondary uppercase tracking-widest text-center">No public servers found</p>
+              </div>
+            )}
           </div>
         </div>
       )}
@@ -600,7 +776,7 @@ const SocialEngine = () => {
            </div>
            
            <div className="space-y-4">
-             {MOCK_HISTORY.length > 0 ? MOCK_HISTORY.map(h => (
+             {[].length > 0 ? [].map(h => (
                 <Card key={h.id} className="p-6 group flex items-center justify-between hover:bg-white/[0.02]">
                    <div className="flex items-center gap-6">
                       <div className="w-12 h-12 rounded-2xl bg-bg-main border border-border-color flex items-center justify-center text-text-secondary group-hover:text-accent transition-colors">
@@ -686,7 +862,7 @@ const ChatMessage = ({ user, msg, time, self = false }) => (
       {!self && <span className="text-[10px] font-black text-accent uppercase tracking-widest">{user}</span>}
       <span className="text-[9px] font-mono text-text-secondary/40">{time}</span>
     </div>
-    <div className={`px-4 py-2.5 rounded-2xl text-xs leading-relaxed ${self ? 'bg-accent text-bg-main rounded-tr-none' : 'bg-bg-sidebar border border-border-color/50 text-text-primary rounded-tl-noneShadow-sm'}`}>
+    <div className={`px-4 py-2.5 rounded-2xl text-xs leading-relaxed ${self ? 'bg-accent text-bg-main rounded-tr-none' : 'bg-bg-sidebar border border-border-color/50 text-text-primary rounded-tl-none shadow-sm'}`}>
       {msg}
     </div>
   </div>
