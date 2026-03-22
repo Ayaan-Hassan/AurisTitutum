@@ -72,27 +72,27 @@ const SocialEngine = () => {
         <div className="space-y-4 max-w-lg relative z-10">
           <div className="inline-flex items-center gap-2 px-3 py-1 bg-accent/10 border border-accent/20 rounded-full">
             <div className="w-1.5 h-1.5 rounded-full bg-accent animate-ping" />
-            <span className="text-[10px] font-black uppercase tracking-[0.3em] text-accent">Protocol Staging Underway</span>
+            <span className="text-[10px] font-black uppercase tracking-[0.3em] text-accent">Launching Soon</span>
           </div>
           
-          <h2 className="text-4xl font-black tracking-tighter text-text-primary">Social Engine Deployment</h2>
+          <h2 className="text-4xl font-black tracking-tighter text-text-primary">Social Hub Opening</h2>
           
           <p className="text-sm text-text-secondary leading-relaxed px-6">
-            The Hub is currently undergoing final unit synchronization. This module will enable **Global Persistence Challenges**, **Private Squad Tactics**, and **Operator History Archives**.
+            The Hub is currently getting ready for release. Soon you'll be able to join **Global Challenges**, create **Private Groups**, and view your **History**.
           </p>
 
           <div className="pt-6">
-            <div className="text-[10px] font-black uppercase tracking-[0.2em] text-text-secondary mb-3 opacity-60">Synchronizing in</div>
+            <div className="text-[10px] font-black uppercase tracking-[0.2em] text-text-secondary mb-3 opacity-60">Releasing in</div>
             <div className="flex items-center justify-center gap-4">
               <div className="bg-bg-sidebar border border-border-color rounded-2xl p-5 min-w-[140px] shadow-xl">
                  <div className="text-4xl font-black font-mono tracking-tighter text-accent">{formatTime(timeLeft)}</div>
-                 <div className="text-[9px] font-bold text-text-secondary uppercase mt-2 tracking-widest">Total Time Remaining</div>
+                 <div className="text-[9px] font-bold text-text-secondary uppercase mt-2 tracking-widest">Time Remaining</div>
               </div>
             </div>
           </div>
 
           <div className="pt-8 text-[11px] font-bold text-text-primary/70">
-            Node status: <span className="text-accent underline underline-offset-4">Live in {hours} hours and {minutes} minutes</span>
+            Current status: <span className="text-accent underline underline-offset-4">Live in {hours} hours and {minutes} minutes</span>
           </div>
         </div>
       </div>
@@ -120,16 +120,14 @@ const SocialEngine = () => {
     setActiveServer(null);
   };
   
+  const isFormValid = useMemo(() => {
+    const { name, habit, mode, visibility, startDate, endDate, rules } = newServerForm;
+    return name && habit && mode && visibility && startDate && endDate && rules;
+  }, [newServerForm]);
+
   const handleCreateServerSubmit = (e) => {
     e.preventDefault();
-    const { name, habit, mode, visibility, startDate, endDate, rules } = newServerForm;
-    
-    if (!name || !habit || !mode || !visibility || !startDate || !endDate || !rules) {
-      document.dispatchEvent(new CustomEvent("showToast", { 
-        detail: { message: "Please fill in all the details before creating your server!", type: "error" } 
-      }));
-      return;
-    }
+    if (!isFormValid) return;
 
     const newServer = {
       id: `server-${Date.now()}`,
@@ -171,7 +169,7 @@ const SocialEngine = () => {
             <Card className="p-8 relative overflow-hidden group border-none bg-gradient-to-br from-bg-sidebar to-bg-main">
               <div className="absolute top-0 right-0 w-64 h-64 bg-accent/5 rounded-full blur-[100px] pointer-events-none" />
               
-              <div className="flex justify-between items-start mb-8 relative z-10">
+                  <div className="flex justify-between items-start mb-8 relative z-10">
                 <div>
                   <div className="flex items-center gap-2 mb-2">
                     <span className="text-[10px] font-black uppercase tracking-[0.2em] text-accent">{activeServer.habitType} Challenge</span>
@@ -179,7 +177,7 @@ const SocialEngine = () => {
                     <span className="text-[10px] font-mono font-bold text-text-secondary uppercase">{activeServer.mode}</span>
                   </div>
                   <h3 className="text-3xl font-black tracking-tighter text-text-primary mb-2">{activeServer.name}</h3>
-                  <p className="text-sm text-text-secondary max-w-lg">Master your {activeServer.habit} consistency alongside {activeServer.totalJoined.toLocaleString()} operators globally.</p>
+                  <p className="text-sm text-text-secondary max-w-lg">Master your {activeServer.habit} consistency alongside {activeServer.totalJoined.toLocaleString()} users globally.</p>
                 </div>
                 <Button variant="danger" size="sm" icon="log-out" onClick={() => handleLeave(activeServer.id)}>Leave Server</Button>
               </div>
@@ -285,12 +283,12 @@ const SocialEngine = () => {
 
           <div className="space-y-6">
              <Card className="p-6">
-                <h4 className="text-sm font-bold text-text-primary mb-4">Server Protocols</h4>
+                <h4 className="text-sm font-bold text-text-primary mb-4">Server Rules</h4>
                 <div className="space-y-4">
-                  <ProtocolItem icon="shield-check" title="Verification" desc="Active log audit enabled" />
-                  <ProtocolItem icon="clock" title="Reset Period" desc="Daily cycle ends at 00:00 UTC" />
-                  <ProtocolItem icon="zap" title="Boosts" desc="Streak multipliers active" />
-                  <ProtocolItem icon="user" title="Admin" desc="@SystemRootV1" />
+                  <ProtocolItem icon="shield-check" title="Verification" desc="Anti-cheat audit active" />
+                  <ProtocolItem icon="clock" title="Reset Time" desc="Day resets at midnight (UTC)" />
+                  <ProtocolItem icon="zap" title="Boosts" desc="Streak bonuses enabled" />
+                  <ProtocolItem icon="user" title="Admin" desc="System Managed" />
                 </div>
                 <div className="h-px bg-border-color my-6" />
                 <Button 
@@ -298,9 +296,9 @@ const SocialEngine = () => {
                   className="w-full" 
                   size="lg" 
                   icon="activity"
-                  onClick={() => document.dispatchEvent(new CustomEvent("showToast", { detail: { message: "Node action logging will be enabled shortly.", type: "info" } }))}
+                  onClick={() => document.dispatchEvent(new CustomEvent("showToast", { detail: { message: "Logging will be enabled shortly.", type: "info" } }))}
                 >
-                  Log Node Action
+                  Log Habit Progress
                 </Button>
              </Card>
 
@@ -310,11 +308,11 @@ const SocialEngine = () => {
                     <Icon name="sparkles" size={20} />
                   </div>
                   <div>
-                    <h4 className="text-xs font-black uppercase tracking-widest text-text-primary">Social Insight</h4>
-                    <p className="text-[10px] text-accent font-bold">Auris AI Analysis</p>
+                    <h4 className="text-xs font-black uppercase tracking-widest text-text-primary">Personal Insight</h4>
+                    <p className="text-[10px] text-accent font-bold">AI Analysis</p>
                   </div>
                 </div>
-                <p className="text-xs text-text-secondary leading-relaxed">Based on your recent trajectory in this server, you are outperforming 65% of operators in the <span className="text-accent font-bold">Wednesday window</span>. Maintain current momentum to break the top 20 by weekend.</p>
+                <p className="text-xs text-text-secondary leading-relaxed">Based on your recent progress, you are doing better than 65% of users on <span className="text-accent font-bold">Wednesdays</span>. Keep it up to reach the top 20!</p>
              </Card>
           </div>
         </div>
@@ -359,23 +357,22 @@ const SocialEngine = () => {
               <Icon name="search" size={14} className="absolute left-4 top-1/2 -translate-y-1/2 text-text-secondary" />
               <input 
                 type="text" 
-                placeholder="Locate public challenges..." 
+                placeholder="Search for servers..." 
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="w-full h-11 bg-bg-main/50 border border-border-color/50 rounded-xl pl-11 pr-4 text-xs font-bold text-text-primary outline-none focus:border-accent transition-all placeholder:text-text-secondary/30"
               />
             </div>
-            <Select 
+            <CustomSelect 
               value={filterMode} 
-              onChange={(e) => setFilterMode(e.target.value)}
+              onChange={setFilterMode}
               options={[
-                { value: "all", label: "All Modalities" },
+                { value: "all", label: "All Modes" },
                 { value: "check", label: "Check-in" },
-                { value: "count", label: "Numeric Count" },
-                { value: "timer", label: "Precision Timer" },
+                { value: "count", label: "Number Count" },
+                { value: "timer", label: "Stopwatch/Timer" },
               ]}
-              containerClassName="space-y-0"
-              className="h-11"
+              containerClassName="h-11"
             />
             <Button 
               variant="primary" 
@@ -428,22 +425,20 @@ const SocialEngine = () => {
                         onChange={(e) => setNewServerForm({...newServerForm, habit: e.target.value})}
                       />
                       <div className="grid grid-cols-2 gap-4">
-                        <Select 
+                        <CustomSelect 
                           label="Tracking Method"
                           value={newServerForm.mode}
-                          containerClassName="space-y-2"
-                          onChange={(e) => setNewServerForm({...newServerForm, mode: e.target.value})}
+                          onChange={(val) => setNewServerForm({...newServerForm, mode: val})}
                           options={[
                             { value: "check", label: "Check-in" },
                             { value: "count", label: "Number Count" },
                             { value: "timer", label: "Stopwatch/Timer" },
                           ]}
                         />
-                        <Select 
+                        <CustomSelect 
                           label="Habit Type"
                           value={newServerForm.habitType}
-                          containerClassName="space-y-2"
-                          onChange={(e) => setNewServerForm({...newServerForm, habitType: e.target.value})}
+                          onChange={(val) => setNewServerForm({...newServerForm, habitType: val})}
                           options={[
                             { value: "Good", label: "Good Habit" },
                             { value: "Bad", label: "Bad Habit" },
@@ -467,14 +462,13 @@ const SocialEngine = () => {
                           onChange={(e) => setNewServerForm({...newServerForm, endDate: e.target.value})}
                         />
                       </div>
-                      <Select 
+                      <CustomSelect 
                         label="Who can join?"
                         value={newServerForm.visibility}
-                        containerClassName="space-y-2"
-                        onChange={(e) => setNewServerForm({...newServerForm, visibility: e.target.value})}
+                        onChange={(val) => setNewServerForm({...newServerForm, visibility: val})}
                         options={[
                           { value: "public", label: "Public (Global)" },
-                          { value: "private", label: "Private (Invite Only)" },
+                          { value: "private", label: "Private (Friends Only)" },
                         ]}
                       />
                       <div className="space-y-2">
@@ -497,8 +491,9 @@ const SocialEngine = () => {
                       variant="primary" 
                       className="w-full h-12 shadow-lg shadow-accent/20"
                       icon="plus"
+                      disabled={!isFormValid}
                     >
-                      Create Server
+                      Initialize Server
                     </Button>
                   </div>
                 </form>
@@ -509,7 +504,7 @@ const SocialEngine = () => {
           {joinedServers.length > 0 && (
             <div className="space-y-6">
               <h3 className="text-[11px] font-black uppercase tracking-[0.3em] text-text-secondary flex items-center gap-3">
-                <div className="w-1.5 h-1.5 rounded-full bg-success shadow-[0_0_8px_rgba(74,222,128,0.5)]" /> Active Sessions
+                <div className="w-1.5 h-1.5 rounded-full bg-success shadow-[0_0_8px_rgba(74,222,128,0.5)]" /> My Joined Servers
               </h3>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                 {joinedServers.map(server => (
@@ -521,7 +516,7 @@ const SocialEngine = () => {
 
           <div className="space-y-6">
             <h3 className="text-[11px] font-black uppercase tracking-[0.3em] text-text-secondary flex items-center gap-3">
-              <Icon name="layout" size={14} /> Discovery Matrix
+              <Icon name="layout" size={14} /> Global Servers
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
               {publicServers.map(server => (
@@ -538,13 +533,13 @@ const SocialEngine = () => {
               <div className="w-20 h-20 rounded-3xl bg-accent/10 border border-accent/20 flex items-center justify-center text-accent mb-4 shadow-2xl shadow-accent/5">
                 <Icon name="user-plus" size={32} />
               </div>
-              <h3 className="text-3xl font-black tracking-tighter text-text-primary">Initiate Private Unit</h3>
-              <p className="text-sm text-text-secondary max-w-sm leading-relaxed">Establish a secure node for your inner circle. Requires targeted UID linkage for connection invitation.</p>
+              <h3 className="text-3xl font-black tracking-tighter text-text-primary">Create Private Server</h3>
+              <p className="text-sm text-text-secondary max-w-sm leading-relaxed">Start a private server for your friends by entering their ID below.</p>
               
               <div className="w-full max-w-md space-y-4 pt-4">
                  <div className="flex gap-3">
                    <Input 
-                    placeholder="Enter Target Operator UID" 
+                    placeholder="Enter Friend's ID" 
                     value={inviteUid} 
                     onChange={(e) => setInviteUid(e.target.value)} 
                     className="flex-1 bg-white/[0.02]"
@@ -554,30 +549,30 @@ const SocialEngine = () => {
                     disabled={!inviteUid} 
                     className="h-11"
                     onClick={() => {
-                      document.dispatchEvent(new CustomEvent("showToast", { detail: { message: `Linking request transmitted to UID: ${inviteUid}`, type: "success" } }));
+                      document.dispatchEvent(new CustomEvent("showToast", { detail: { message: `Invite sent to ID: ${inviteUid}`, type: "success" } }));
                       setInviteUid("");
                     }}
                    >
-                    Transmit
+                    Send Invite
                    </Button>
                  </div>
                  <div className="flex items-center gap-2 px-3 py-2 bg-accent-dim/30 rounded-lg border border-border-color/50">
                     <Icon name="info" size={12} className="text-text-secondary" />
-                    <p className="text-[9px] font-mono font-bold text-text-secondary uppercase">Invitations are immutable until response received.</p>
+                    <p className="text-[9px] font-mono font-bold text-text-secondary uppercase">Invites cannot be changed once they are sent.</p>
                  </div>
               </div>
            </Card>
 
             <div className="space-y-6">
-              <h3 className="text-[11px] font-black uppercase tracking-[0.3em] text-text-secondary">Pending Identifiers</h3>
+              <h3 className="text-[11px] font-black uppercase tracking-[0.3em] text-text-secondary">Pending Invites</h3>
               <div className="space-y-4">
                  <div className="flex flex-col items-center justify-center py-12 bg-bg-sidebar/30 rounded-[2rem] border border-border-color border-dashed text-center space-y-3">
                     <div className="w-12 h-12 rounded-2xl bg-border-color/20 flex items-center justify-center text-text-secondary/40">
                       <Icon name="user-check" size={24} />
                     </div>
-                    <p className="text-[10px] font-bold text-text-secondary uppercase tracking-[0.2em]">No Incoming Connection Requests</p>
+                    <p className="text-[10px] font-bold text-text-secondary uppercase tracking-[0.2em]">No Incoming Invites</p>
                  </div>
-                 <p className="text-[10px] text-center text-text-secondary/40 font-mono italic">Continuously scanning for neighbor nodes...</p>
+                 <p className="text-[10px] text-center text-text-secondary/40 font-mono italic">Waiting for new invites...</p>
               </div>
             </div>
         </div>
@@ -586,8 +581,8 @@ const SocialEngine = () => {
       {activeTab === "history" && (
         <div className="space-y-8 animate-in fade-in duration-500 max-w-4xl mx-auto">
            <div className="flex items-center justify-between border-b border-border-color pb-4">
-              <h3 className="text-sm font-black uppercase tracking-widest text-text-secondary">Operator Social History</h3>
-              <Select containerClassName="space-y-0" className="h-9 py-0 text-[10px]" value="all" onChange={()=>{}} options={[{label: "All Records", value: "all"}]} />
+              <h3 className="text-sm font-black uppercase tracking-widest text-text-secondary">My Past Challenges</h3>
+              <CustomSelect containerClassName="w-48" value="all" onChange={()=>{}} options={[{label: "All Records", value: "all"}]} />
            </div>
            
            <div className="space-y-4">
@@ -599,12 +594,12 @@ const SocialEngine = () => {
                       </div>
                       <div>
                         <h4 className="font-bold text-text-primary">{h.name}</h4>
-                        <p className="text-[11px] font-mono text-text-secondary mt-1 uppercase tracking-tighter opacity-60">Session Terminal: {h.date}</p>
+                        <p className="text-[11px] font-mono text-text-secondary mt-1 uppercase tracking-tighter opacity-60">End Date: {h.date}</p>
                       </div>
                    </div>
                    <div className="text-right">
                       <p className="text-sm font-black text-text-primary">Rank #{h.rank}</p>
-                      <p className="text-[10px] text-text-secondary font-mono mt-1">Out of {h.total} Operators</p>
+                      <p className="text-[10px] text-text-secondary font-mono mt-1">Out of {h.total} Users</p>
                    </div>
                 </Card>
              )) : (
@@ -613,8 +608,8 @@ const SocialEngine = () => {
                   <Icon name="scroll" size={32} className="text-text-secondary/40" />
                 </div>
                 <div className="text-center">
-                  <p className="text-[11px] font-black uppercase tracking-[0.3em] text-text-secondary">Archive Empty</p>
-                  <p className="text-[10px] text-text-secondary mt-1">No completed challenges recorded for this operator.</p>
+                  <p className="text-[11px] font-black uppercase tracking-[0.3em] text-text-secondary">History Empty</p>
+                  <p className="text-[10px] text-text-secondary mt-1">No completed challenges yet.</p>
                 </div>
               </div>
              )}
@@ -653,7 +648,7 @@ const ServerCard = ({ server, onOpen, onJoin, active = false }) => (
 
       <div className="space-y-2 relative z-10 pt-2">
         <div className="flex justify-between text-[10px] font-mono font-black uppercase tracking-widest text-text-secondary/50">
-          <span>{server.totalJoined.toLocaleString()} Operators</span>
+          <span>{server.totalJoined.toLocaleString()} Users</span>
           <span>95% Active</span>
         </div>
         <div className="w-full bg-black/20 rounded-full h-1 overflow-hidden">
@@ -663,9 +658,9 @@ const ServerCard = ({ server, onOpen, onJoin, active = false }) => (
     </div>
     <div className="mt-auto border-t border-border-color/30 p-5 flex items-center justify-between bg-white/[0.01]">
         {active ? (
-          <Button variant="ghost" size="sm" className="w-full text-accent hover:bg-accent/10" onClick={(e) => { e.stopPropagation(); onOpen(server); }}>Enter Terminal</Button>
+          <Button variant="ghost" size="sm" className="w-full text-accent hover:bg-accent/10" onClick={(e) => { e.stopPropagation(); onOpen(server); }}>Open Server</Button>
         ) : (
-          <Button variant="primary" size="md" className="w-full shadow-lg shadow-accent/10" onClick={(e) => { e.stopPropagation(); onJoin?.(server.id); }}>Join Challenge</Button>
+          <Button variant="primary" size="md" className="w-full shadow-lg shadow-accent/10" onClick={(e) => { e.stopPropagation(); onJoin?.(server.id); }}>Join Now</Button>
         )}
     </div>
   </Card>
@@ -704,5 +699,51 @@ const ProtocolItem = ({ icon, title, desc }) => (
     </div>
   </div>
 );
+
+const CustomSelect = ({ label, options, value, onChange, containerClassName }) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const selectedOption = options.find(o => o.value === value) || options[0];
+
+  return (
+    <div className={`space-y-2 relative ${containerClassName}`}>
+      {label && (
+        <label className="text-[10px] font-black text-text-secondary uppercase tracking-widest ml-1">
+          {label}
+        </label>
+      )}
+      <div className="relative">
+        <button
+          type="button"
+          onClick={() => setIsOpen(!isOpen)}
+          className="w-full bg-accent-dim border border-border-color px-4 py-3 rounded-xl text-xs font-bold text-text-primary flex items-center justify-between hover:bg-white/[0.03] transition-all outline-none focus:border-accent"
+        >
+          {selectedOption.label}
+          <Icon name="chevron-down" size={14} className={`transition-transform duration-300 ${isOpen ? 'rotate-180' : ''}`} />
+        </button>
+        
+        {isOpen && (
+          <>
+            <div className="fixed inset-0 z-[110]" onClick={() => setIsOpen(false)} />
+            <div className="absolute top-[calc(100%+8px)] left-0 w-full bg-bg-sidebar border border-border-color rounded-xl shadow-2xl z-[120] py-2 animate-in zoom-in-95 duration-200">
+              {options.map((opt) => (
+                <button
+                  key={opt.value}
+                  type="button"
+                  onClick={() => {
+                    onChange(opt.value);
+                    setIsOpen(false);
+                  }}
+                  className={`w-full px-4 py-2.5 text-left text-xs font-bold transition-colors hover:bg-accent hover:text-bg-main ${value === opt.value ? 'text-accent' : 'text-text-primary'}`}
+                >
+                  {opt.label}
+                </button>
+              ))}
+            </div>
+          </>
+        )}
+      </div>
+    </div>
+  );
+};
 
 export default SocialEngine;
