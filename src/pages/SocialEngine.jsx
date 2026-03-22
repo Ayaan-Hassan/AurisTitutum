@@ -55,6 +55,9 @@ const TARGET_DATE = new Date("2026-03-23T13:14:08Z"); // 60 hours from 2026-03-2
 
 const SocialEngine = () => {
   const { user } = useAuth();
+  const adminUid = (import.meta.env.VITE_ADMIN_UID || "").replace(/['"]/g, '').trim();
+  const isAdmin = user && adminUid && user.uid?.trim() === adminUid;
+
   const [activeTab, setActiveTab] = useState("public");
   const [activeServer, setActiveServer] = useState(null);
   const [searchQuery, setSearchQuery] = useState("");
@@ -80,7 +83,7 @@ const SocialEngine = () => {
     return `${h.toString().padStart(2, "0")}:${m.toString().padStart(2, "0")}:${s.toString().padStart(2, "0")}`;
   };
 
-  const isLive = timeLeft <= 0;
+  const isLive = timeLeft <= 0 || isAdmin;
 
   if (!isLive) {
     const hours = Math.floor(timeLeft / (1000 * 60 * 60));
@@ -541,6 +544,7 @@ const ProtocolItem = ({ icon, title, desc }) => (
     <div className="min-w-0">
       <p className="text-[11px] font-bold text-text-primary leading-tight">{title}</p>
       <p className="text-[10px] text-text-secondary mt-0.5 truncate">{desc}</p>
+git add .
     </div>
   </div>
 );
