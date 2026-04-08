@@ -481,7 +481,7 @@ function AppContent() {
 
   const logInProgressRef = useRef(false);
 
-  const logActivity = useCallback(async (id, increment = true, amount = 1, unit = "", photoData = null) => {
+  const logActivity = useCallback(async (id, increment = true, amount = 1, unit = "", photoData = null, customDate = null, customTime = null) => {
     if (id === "example-habit") {
         const toastEvent = new CustomEvent("showToast", {
             detail: { message: "Create your own habit to start tracking!", type: "info", id: Date.now() },
@@ -496,8 +496,8 @@ function AppContent() {
 
     const amt = Math.max(1, Math.floor(Number(amount) || 1));
     const now = new Date();
-    const todayKey = getLocalDateKey(now);
-    const timestamp = now.toLocaleTimeString([], { hour12: false });
+    const todayKey = customDate || getLocalDateKey(now);
+    const timestamp = customTime || now.toLocaleTimeString([], { hour12: false });
 
     // Handle User Sync Mode
     if (user) {

@@ -886,6 +886,7 @@ export const AuthProvider = ({ children }) => {
 
   const value = {
     user,
+    isAdmin: isAdminUid(user?.uid),
     loading,
     authLoading,
     dataLoading,

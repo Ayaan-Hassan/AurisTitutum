@@ -612,6 +612,57 @@ const CompareView = ({ firstLog, latestLog, habit, onClose }) => {
   );
 };
 
+// --- Admin Log Modal ---
+const AdminLogModal = ({ open, habit, onConfirm, onClose }) => {
+  const [date, setDate] = useState(getLocalDateKey());
+  const [time, setTime] = useState("");
+  const [value, setValue] = useState(1);
+
+  useEffect(() => {
+    if (open) {
+      setDate(getLocalDateKey());
+      const now = new Date();
+      setTime(now.toLocaleTimeString('en-US', { hour12: false }));
+      setValue(1);
+    }
+  }, [open]);
+
+  if (!open || !habit) return null;
+
+  return (
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[150] flex items-center justify-center p-4 animate-in fade-in" onClick={onClose}>
+      <div className="bg-bg-main border border-border-color rounded-2xl w-full max-w-sm p-6 shadow-2xl relative overflow-hidden" onClick={e => e.stopPropagation()}>
+        <div className="mb-6">
+          <h3 className="text-xl font-bold flex items-center gap-2 text-accent">
+            <Icon name="shield" size={18} /> Admin Override
+          </h3>
+          <p className="text-sm text-text-secondary mt-1">Insert custom log for {habit.name}</p>
+        </div>
+        <div className="space-y-4">
+          <div>
+            <label className="text-xs font-bold text-text-secondary uppercase tracking-widest mb-1.5 block">Date</label>
+            <input type="date" value={date} onChange={(e) => setDate(e.target.value)} className="w-full bg-bg-sidebar border border-border-color rounded-xl px-4 py-2.5 outline-none text-text-primary" />
+          </div>
+          <div>
+            <label className="text-xs font-bold text-text-secondary uppercase tracking-widest mb-1.5 block">Time (HH:MM:SS)</label>
+            <input type="time" step="1" value={time} onChange={(e) => setTime(e.target.value)} className="w-full bg-bg-sidebar border border-border-color rounded-xl px-4 py-2.5 outline-none text-text-primary" />
+          </div>
+          {habit.mode !== "check" && habit.mode !== "upload" && (
+            <div>
+              <label className="text-xs font-bold text-text-secondary uppercase tracking-widest mb-1.5 block">Value / Amount</label>
+              <input type="number" value={value} onChange={(e) => setValue(Number(e.target.value))} className="w-full bg-bg-sidebar border border-border-color rounded-xl px-4 py-2.5 outline-none text-text-primary" />
+            </div>
+          )}
+        </div>
+        <div className="flex justify-end gap-3 mt-6">
+          <Button variant="ghost" onClick={onClose} className="rounded-xl">Cancel</Button>
+          <Button variant="primary" onClick={() => onConfirm(date, time, value)} className="rounded-xl">Force Log</Button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 const SlideshowView = ({ photos, onClose }) => {
   const [index, setIndex] = useState(0);
   const [speed, setSpeed] = useState(2500);
@@ -850,9 +901,11 @@ const Habits = ({ habits, setHabits, logActivity }) => {
   const [renameTarget, setRenameTarget] = useState(null);
   const [performanceTarget, setPerformanceTarget] = useState(null);
   const [galleryTarget, setGalleryTarget] = useState(null);
+  const [adminLogTarget, setAdminLogTarget] = useState(null);
   const performanceHabit = habits.find((h) => h.id === performanceTarget) || null;
   const galleryHabit = habits.find((h) => h.id === galleryTarget) || null;
-  const { user, deleteHabit, updateHabit } = useAuth();
+  const adminLogHabit = habits.find((h) => h.id === adminLogTarget) || null;
+  const { user, deleteHabit, updateHabit, isAdmin } = useAuth();
   
   const togglePin = async (habitId, currentPinned) => {
     if (user) {
@@ -912,6 +965,17 @@ const Habits = ({ habits, setHabits, logActivity }) => {
               </div>
               {/* Action buttons */}
               <div className="absolute top-0 right-0 p-6 flex gap-2 z-[30]">
+                {isAdmin && (
+                  <Button
+                    onClick={(e) => { e.stopPropagation(); setAdminLogTarget(h.id); }}
+                    variant="outline"
+                    size="sm"
+                    className="w-8 h-8 p-0 rounded-lg flex items-center justify-center border border-border-color bg-bg-main hover:border-accent hover:text-accent transition-all"
+                    title="Admin Overide Log"
+                  >
+                    <Icon name="shield" size={13} />
+                  </Button>
+                )}
                 <Button
                   onClick={(e) => { e.stopPropagation(); togglePin(h.id, h.isPinned); }}
                   variant="outline"
@@ -1281,6 +1345,21 @@ const Habits = ({ habits, setHabits, logActivity }) => {
         habit={galleryHabit}
         onClose={() => setGalleryTarget(null)}
         setHabits={setHabits}
+      />
+      <AdminLogModal
+        open={!!adminLogTarget}
+        habit={adminLogHabit}
+        onClose={() => setAdminLogTarget(null)}
+        onConfirm={(date, time, value) => {
+          if (adminLogHabit) {
+            logActivity(adminLogHabit.id, true, value, adminLogHabit.unit, null, date, time);
+            const toastEvent = new CustomEvent("showToast", {
+              detail: { message: `Admin override: Logged under ${adminLogHabit.name}`, type: "success", id: Date.now() },
+            });
+            document.dispatchEvent(toastEvent);
+          }
+          setAdminLogTarget(null);
+        }}
       />
     </div>
   );
