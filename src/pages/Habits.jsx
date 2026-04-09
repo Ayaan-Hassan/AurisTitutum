@@ -612,51 +612,174 @@ const CompareView = ({ firstLog, latestLog, habit, onClose }) => {
   );
 };
 
-// --- Admin Log Modal ---
+// --- Custom Override Log Modal ---
 const AdminLogModal = ({ open, habit, onConfirm, onClose }) => {
   const [date, setDate] = useState(getLocalDateKey());
   const [time, setTime] = useState("");
   const [value, setValue] = useState(1);
+  const [photoData, setPhotoData] = useState(null);
+  const [timerValues, setTimerValues] = useState({ h: 0, m: 0, s: 0 });
+  const fileInputRef = useRef(null);
 
   useEffect(() => {
     if (open) {
       setDate(getLocalDateKey());
       const now = new Date();
       setTime(now.toLocaleTimeString('en-US', { hour12: false }));
-      setValue(1);
+      setValue(habit?.mode === "rating" ? 5 : 1);
+      setPhotoData(null);
+      setTimerValues({ h: 0, m: 0, s: 0 });
     }
-  }, [open]);
+  }, [open, habit]);
 
   if (!open || !habit) return null;
+
+  const handleFileChange = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = async (ev) => {
+      const compressed = await compressPhoto(ev.target.result);
+      setPhotoData(compressed);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const renderValueInput = () => {
+    switch (habit.mode) {
+      case "check":
+        return (
+          <div className="flex items-center gap-3 bg-bg-sidebar border border-border-color rounded-xl px-4 py-3 cursor-pointer" onClick={() => setValue(value ? 0 : 1)}>
+            <div className={`w-6 h-6 rounded-lg border-2 flex items-center justify-center transition-all ${value ? 'bg-accent border-accent text-bg-main' : 'border-border-color'}`}>
+              {value > 0 && <Icon name="check" size={14} />}
+            </div>
+            <span className="text-sm font-medium text-text-primary">Condition Met / Completed</span>
+          </div>
+        );
+      case "rating":
+        return (
+          <div className="flex justify-center gap-2 py-2">
+            {[1, 2, 3, 4, 5].map((v) => (
+              <button
+                key={v}
+                onClick={() => setValue(v)}
+                className="transition-transform hover:scale-110 active:scale-95"
+              >
+                <svg viewBox="0 0 24 24" className="w-8 h-8" fill={v <= value ? "currentColor" : "none"} stroke="currentColor" strokeWidth={1.5}>
+                  <polygon points="12,2 15.09,8.26 22,9.27 17,14.14 18.18,21.02 12,17.77 5.82,21.02 7,14.14 2,9.27 8.91,8.26"
+                    className={v <= value ? "text-amber-400" : "text-border-color"} />
+                </svg>
+              </button>
+            ))}
+          </div>
+        );
+      case "timer":
+        return (
+          <div className="grid grid-cols-3 gap-2">
+            {['h', 'm', 's'].map((unit) => (
+              <div key={unit}>
+                <label className="text-[10px] text-text-secondary uppercase mb-1 block text-center">{unit === 'h' ? 'Hrs' : unit === 'm' ? 'Min' : 'Sec'}</label>
+                <input
+                  type="number"
+                  min="0"
+                  max={unit === 'h' ? 99 : 59}
+                  value={timerValues[unit]}
+                  onChange={(e) => setTimerValues(prev => ({ ...prev, [unit]: parseInt(e.target.value) || 0 }))}
+                  className="w-full bg-bg-sidebar border border-border-color rounded-xl px-2 py-2.5 text-center text-sm font-mono text-text-primary"
+                />
+              </div>
+            ))}
+          </div>
+        );
+      case "upload":
+        return (
+          <div className="space-y-3">
+            {photoData ? (
+              <div className="relative aspect-square w-full rounded-2xl overflow-hidden border-2 border-accent">
+                <img src={photoData} className="w-full h-full object-cover" alt="Preview" />
+                <button onClick={() => setPhotoData(null)} className="absolute top-2 right-2 w-8 h-8 rounded-full bg-black/60 text-white flex items-center justify-center backdrop-blur-md">
+                  <Icon name="x" size={14} />
+                </button>
+              </div>
+            ) : (
+              <button
+                onClick={() => fileInputRef.current?.click()}
+                className="w-full aspect-square rounded-2xl border-2 border-dashed border-border-color hover:border-accent hover:bg-accent/5 transition-all flex flex-col items-center justify-center gap-2 group"
+              >
+                <div className="w-12 h-12 rounded-full bg-bg-sidebar flex items-center justify-center group-hover:scale-110 transition-transform">
+                  <Icon name="camera" className="text-text-secondary group-hover:text-accent" />
+                </div>
+                <span className="text-xs font-bold text-text-secondary uppercase tracking-widest">Select Image</span>
+              </button>
+            )}
+            <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleFileChange} />
+          </div>
+        );
+      case "count":
+        return (
+          <div className="flex gap-2">
+            <input type="number" value={value} onChange={(e) => setValue(Number(e.target.value))} className="flex-1 bg-bg-sidebar border border-border-color rounded-xl px-4 py-2.5 outline-none text-text-primary font-mono" />
+            <div className="bg-bg-sidebar border border-border-color rounded-xl px-4 py-2.5 text-text-secondary text-xs font-bold flex items-center uppercase tracking-widest">
+              {habit.unit || 'Unit'}
+            </div>
+          </div>
+        );
+      default: // tap / quick
+        return (
+          <div className="space-y-2">
+             <label className="text-[10px] text-text-secondary uppercase block mb-1">Impact Multiplier</label>
+             <input type="number" min="1" value={value} onChange={(e) => setValue(parseInt(e.target.value) || 1)} className="w-full bg-bg-sidebar border border-border-color rounded-xl px-4 py-2.5 outline-none text-text-primary font-mono" />
+          </div>
+        );
+    }
+  };
+
+  const handleConfirm = () => {
+    let finalValue = value;
+    if (habit.mode === "timer") {
+      finalValue = timerValues.h * 3600 + timerValues.m * 60 + timerValues.s;
+    }
+    onConfirm(date, time, finalValue, photoData);
+  };
 
   return (
     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[150] flex items-center justify-center p-4 animate-in fade-in" onClick={onClose}>
       <div className="bg-bg-main border border-border-color rounded-2xl w-full max-w-sm p-6 shadow-2xl relative overflow-hidden" onClick={e => e.stopPropagation()}>
         <div className="mb-6">
           <h3 className="text-xl font-bold flex items-center gap-2 text-accent">
-            <Icon name="shield" size={18} /> Admin Override
+            <Icon name="edit-3" size={18} /> Override Log
           </h3>
-          <p className="text-sm text-text-secondary mt-1">Insert custom log for {habit.name}</p>
+          <p className="text-sm text-text-secondary mt-1">Insert custom record for {habit.name}</p>
         </div>
         <div className="space-y-4">
-          <div>
-            <label className="text-xs font-bold text-text-secondary uppercase tracking-widest mb-1.5 block">Date</label>
-            <input type="date" value={date} onChange={(e) => setDate(e.target.value)} className="w-full bg-bg-sidebar border border-border-color rounded-xl px-4 py-2.5 outline-none text-text-primary" />
-          </div>
-          <div>
-            <label className="text-xs font-bold text-text-secondary uppercase tracking-widest mb-1.5 block">Time (HH:MM:SS)</label>
-            <input type="time" step="1" value={time} onChange={(e) => setTime(e.target.value)} className="w-full bg-bg-sidebar border border-border-color rounded-xl px-4 py-2.5 outline-none text-text-primary" />
-          </div>
-          {habit.mode !== "check" && habit.mode !== "upload" && (
+          <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="text-xs font-bold text-text-secondary uppercase tracking-widest mb-1.5 block">Value / Amount</label>
-              <input type="number" value={value} onChange={(e) => setValue(Number(e.target.value))} className="w-full bg-bg-sidebar border border-border-color rounded-xl px-4 py-2.5 outline-none text-text-primary" />
+              <label className="text-[10px] font-black text-text-secondary uppercase tracking-[0.2em] mb-1.5 block">Date</label>
+              <input type="date" value={date} onChange={(e) => setDate(e.target.value)} className="w-full bg-bg-sidebar border border-border-color rounded-xl px-4 py-2.5 outline-none text-text-primary text-sm" />
             </div>
-          )}
+            <div>
+              <label className="text-[10px] font-black text-text-secondary uppercase tracking-[0.2em] mb-1.5 block">Time</label>
+              <input type="time" step="1" value={time} onChange={(e) => setTime(e.target.value)} className="w-full bg-bg-sidebar border border-border-color rounded-xl px-4 py-2.5 outline-none text-text-primary text-sm" />
+            </div>
+          </div>
+          
+          <div>
+            <label className="text-[10px] font-black text-text-secondary uppercase tracking-[0.2em] mb-1.5 block">
+              {habit.mode === "upload" ? "Media Evidence" : habit.mode === "timer" ? "Duration" : habit.mode === "rating" ? "Star Rating" : "Value / Amount"}
+            </label>
+            {renderValueInput()}
+          </div>
         </div>
-        <div className="flex justify-end gap-3 mt-6">
-          <Button variant="ghost" onClick={onClose} className="rounded-xl">Cancel</Button>
-          <Button variant="primary" onClick={() => onConfirm(date, time, value)} className="rounded-xl">Force Log</Button>
+        <div className="flex justify-end gap-3 mt-8">
+          <Button variant="ghost" onClick={onClose} className="rounded-xl grow">Cancel</Button>
+          <Button 
+            variant="primary" 
+            onClick={handleConfirm} 
+            className="rounded-xl grow shadow-lg shadow-accent/20"
+            disabled={habit.mode === "upload" && !photoData}
+          >
+            Force Log
+          </Button>
         </div>
       </div>
     </div>
@@ -965,17 +1088,15 @@ const Habits = ({ habits, setHabits, logActivity }) => {
               </div>
               {/* Action buttons */}
               <div className="absolute top-0 right-0 p-6 flex gap-2 z-[30]">
-                {isAdmin && (
-                  <Button
-                    onClick={(e) => { e.stopPropagation(); setAdminLogTarget(h.id); }}
-                    variant="outline"
-                    size="sm"
-                    className="w-8 h-8 p-0 rounded-lg flex items-center justify-center border border-border-color bg-bg-main hover:border-accent hover:text-accent transition-all"
-                    title="Admin Overide Log"
-                  >
-                    <Icon name="shield" size={13} />
-                  </Button>
-                )}
+                <Button
+                  onClick={(e) => { e.stopPropagation(); setAdminLogTarget(h.id); }}
+                  variant="outline"
+                  size="sm"
+                  className="w-8 h-8 p-0 rounded-lg flex items-center justify-center border border-border-color bg-bg-main hover:border-accent hover:text-accent transition-all"
+                  title="Override Log"
+                >
+                  <Icon name="edit-3" size={13} />
+                </Button>
                 <Button
                   onClick={(e) => { e.stopPropagation(); togglePin(h.id, h.isPinned); }}
                   variant="outline"
@@ -1350,11 +1471,11 @@ const Habits = ({ habits, setHabits, logActivity }) => {
         open={!!adminLogTarget}
         habit={adminLogHabit}
         onClose={() => setAdminLogTarget(null)}
-        onConfirm={(date, time, value) => {
+        onConfirm={(date, time, value, photoData) => {
           if (adminLogHabit) {
-            logActivity(adminLogHabit.id, true, value, adminLogHabit.unit, null, date, time);
+            logActivity(adminLogHabit.id, true, value, adminLogHabit.unit, photoData, date, time);
             const toastEvent = new CustomEvent("showToast", {
-              detail: { message: `Admin override: Logged under ${adminLogHabit.name}`, type: "success", id: Date.now() },
+              detail: { message: `Log Overridden: ${adminLogHabit.name}`, type: "success", id: Date.now() },
             });
             document.dispatchEvent(toastEvent);
           }
