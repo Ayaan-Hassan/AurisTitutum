@@ -214,7 +214,7 @@ const SocialEngine = () => {
     return privateServers.filter(s => s.members?.includes(user.uid));
   }, [privateServers, user]);
 
-  const handleJoin = async (serverId) => {
+  const handleJoin = async (inputCode) => {
     if (!user) {
       document.dispatchEvent(new CustomEvent("showToast", { 
         detail: { message: "Please sign in to join a server!", type: "error" } 
@@ -222,11 +222,23 @@ const SocialEngine = () => {
       return;
     }
     
+    const serverToJoin = servers.find(s => 
+      s.id === inputCode || 
+      s.id.slice(0,6).toUpperCase() === inputCode.toUpperCase()
+    );
+
+    if (!serverToJoin) {
+      document.dispatchEvent(new CustomEvent("showToast", { 
+        detail: { message: "Invalid Server ID.", type: "error" } 
+      }));
+      return;
+    }
+    
     try {
-      const serverRef = doc(db, "social_servers", serverId);
+      const serverRef = doc(db, "social_servers", serverToJoin.id);
       await updateDoc(serverRef, {
         members: arrayUnion(user.uid),
-        totalJoined: (servers.find(s => s.id === serverId)?.totalJoined || 0) + 1
+        totalJoined: increment(1)
       });
       document.dispatchEvent(new CustomEvent("showToast", { 
         detail: { message: "Successfully joined server!", type: "success" } 
@@ -393,6 +405,13 @@ const SocialEngine = () => {
                       <span className="text-[10px] font-black uppercase tracking-[0.2em] text-accent">{displayServer.habitType} Challenge</span>
                       <span className="w-1 h-1 rounded-full bg-border-color" />
                       <span className="text-[10px] font-mono font-bold text-text-secondary uppercase">{displayServer.mode}</span>
+                      <span className="w-1 h-1 rounded-full bg-border-color" />
+                      <span className="text-[10px] font-mono font-bold text-accent/80 uppercase cursor-pointer hover:text-accent transition-colors flex items-center gap-1" onClick={() => {
+                        navigator.clipboard.writeText(displayServer.id.slice(0,6).toUpperCase());
+                        document.dispatchEvent(new CustomEvent("showToast", { detail: { message: "Server Code Copied!", type: "success" } }));
+                      }}>
+                        ID: {displayServer.id.slice(0,6).toUpperCase()} <Icon name="copy" size={10} />
+                      </span>
                     </div>
                     <h3 className="text-3xl font-black tracking-tighter text-text-primary mb-2">{displayServer.name}</h3>
                     <p className="text-sm text-text-secondary max-w-lg">Master your {displayServer.habit} consistency alongside {displayServer.totalJoined?.toLocaleString() || "1"} users globally.</p>
@@ -672,56 +691,56 @@ const SocialEngine = () => {
 
       {activeTab === "private" && (
         <div className="space-y-10 animate-in fade-in duration-500">
-           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
-             <Card className="p-10 space-y-6 text-center lg:text-left flex flex-col items-center lg:items-start min-h-[300px] justify-center">
-                <div className="w-16 h-16 rounded-2xl bg-accent/10 border border-accent/20 flex items-center justify-center text-accent mb-2">
-                  <Icon name="link" size={24} />
+           <div className="bg-bg-sidebar/40 border border-border-color/50 rounded-3xl p-8 lg:p-12 relative overflow-hidden flex flex-col lg:flex-row items-center justify-between gap-10">
+              <div className="absolute -top-32 -left-32 w-96 h-96 bg-accent/5 rounded-full blur-[120px] pointer-events-none" />
+              
+              <div className="flex-1 space-y-4 relative z-10 text-center lg:text-left">
+                <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-accent/10 text-accent text-[10px] font-black uppercase tracking-widest rounded-full border border-accent/20">
+                   <Icon name="lock" size={12} /> Secure Protocols
                 </div>
-                <h3 className="text-2xl font-black tracking-tighter text-text-primary">Join Private Server</h3>
-                <p className="text-sm text-text-secondary max-w-sm leading-relaxed">Enter a Private Server ID below to securely join an exclusive challenge.</p>
-                
-                <div className="w-full max-w-md space-y-4 pt-2">
-                   <div className="flex gap-3">
+                <h3 className="text-3xl lg:text-4xl font-black tracking-tighter text-text-primary">Private Networks</h3>
+                <p className="text-sm text-text-secondary max-w-lg leading-relaxed mx-auto lg:mx-0">
+                  Connect locally with specialized groups or construct your own encrypted domain. Enter a 6-character Invite ID to link up.
+                </p>
+                <div className="flex flex-col sm:flex-row items-center gap-4 pt-4 justify-center lg:justify-start">
+                   <div className="flex gap-2 max-w-sm w-full">
                      <Input 
-                      placeholder="Enter Server ID" 
+                      placeholder="Enter 6-char ID" 
                       value={inviteUid} 
                       onChange={(e) => setInviteUid(e.target.value)} 
-                      className="flex-1 bg-white/[0.02]"
+                      className="flex-1 bg-bg-main/60 border-border-color/40 text-center font-mono font-bold tracking-widest uppercase"
+                      maxLength={6}
                      />
                      <Button 
                       variant="primary" 
                       disabled={!inviteUid} 
-                      className="h-11 shadow-lg shadow-accent/20"
+                      className="px-6 shadow-xl shadow-accent/20"
                       onClick={() => {
                         handleJoin(inviteUid);
                         setInviteUid("");
                       }}
                      >
-                      Join Server
+                      Join
                      </Button>
                    </div>
-                   <p className="text-[10px] text-text-secondary/50 font-mono italic">You must get the ID from the server creator.</p>
+                   <div className="hidden sm:block w-px h-8 bg-border-color/50 mx-2" />
+                   <Button 
+                     variant="ghost" 
+                     icon="plus" 
+                     className="px-6 bg-white/[0.02] border border-border-color/30 hover:bg-white/[0.05]"
+                     onClick={() => setIsCreateModalOpen(true)}
+                   >
+                     Create Server
+                   </Button>
                 </div>
-             </Card>
-
-             <Card className="p-10 space-y-6 flex flex-col justify-center min-h-[300px] bg-accent/5 border-accent/20 text-center lg:text-left items-center lg:items-start">
-                <div className="w-16 h-16 rounded-2xl bg-accent text-bg-main flex items-center justify-center mb-2 shadow-xl shadow-accent/20">
-                  <Icon name="plus" size={24} />
-                </div>
-                <h3 className="text-2xl font-black tracking-tighter text-text-primary">Create New</h3>
-                <p className="text-sm text-text-secondary max-w-sm leading-relaxed">Start your own new Private Server securely. Share the ID to let others join.</p>
-                <div className="pt-2">
-                  <Button 
-                    variant="primary" 
-                    icon="plus" 
-                    size="lg"
-                    className="shadow-xl shadow-accent/20"
-                    onClick={() => setIsCreateModalOpen(true)}
-                  >
-                    Start New Server
-                  </Button>
-                </div>
-             </Card>
+              </div>
+              
+              <div className="hidden lg:flex w-64 h-64 relative justify-center items-center shrink-0">
+                 <div className="absolute inset-0 bg-gradient-to-tr from-accent/20 to-transparent border border-accent/20 rounded-full animate-spin-slow opacity-50" />
+                 <div className="w-48 h-48 bg-bg-main rounded-full border border-border-color flex items-center justify-center shadow-2xl relative z-10">
+                    <Icon name="shield" size={48} className="text-accent/40" />
+                 </div>
+              </div>
            </div>
 
            {joinedPrivateServers.length > 0 && (
@@ -928,14 +947,9 @@ const ServerCard = ({ server, onOpen, onJoin, active = false }) => (
         <div className={`w-12 h-12 rounded-2xl flex items-center justify-center text-accent shadow-lg shadow-accent/5 transition-all group-hover:scale-110 ${active ? 'bg-accent text-bg-main' : 'bg-accent/10'}`}>
           <Icon name={active ? "activity" : "layers"} size={24} />
         </div>
-        <div className="flex items-center gap-2">
-           <span className="flex items-center gap-1.5 text-[10px] font-black tracking-widest bg-success/10 text-success border border-success/20 px-2.5 py-1 rounded-lg">
-             <div className="w-1.5 h-1.5 rounded-full bg-success animate-pulse" /> {server.onlineCount} Online
-           </span>
-        </div>
       </div>
 
-      <div className="space-y-1 relative z-10">
+      <div className="space-y-1 relative z-10 mt-4">
         <h3 className="text-xl font-black tracking-tight text-text-primary leading-tight group-hover:text-accent transition-colors">{server.name}</h3>
         <p className="text-xs font-bold text-text-secondary flex items-center gap-2">
           {server.habit} <span className="w-1 h-1 rounded-full bg-border-color" /> {server.mode}
@@ -947,10 +961,10 @@ const ServerCard = ({ server, onOpen, onJoin, active = false }) => (
           <span>{server.totalJoined?.toLocaleString() || "1"} Users</span>
           <span className="text-accent/60 cursor-pointer hover:text-accent flex items-center gap-1 z-20" onClick={(e) => {
             e.stopPropagation();
-            navigator.clipboard.writeText(server.id);
+            navigator.clipboard.writeText(server.id.slice(0,6).toUpperCase());
             document.dispatchEvent(new CustomEvent("showToast", { detail: { message: "Server ID copied!", type: "success" } }));
           }}>
-            ID: {server.id.slice(0,6)} <Icon name="copy" size={10} />
+            ID: {server.id.slice(0,6).toUpperCase()} <Icon name="copy" size={10} />
           </span>
         </div>
         <div className="w-full bg-black/20 rounded-full h-1 overflow-hidden">
@@ -991,9 +1005,6 @@ const ServerRow = ({ server, onOpen, onJoin, active = false }) => (
       <div className="flex flex-col items-start sm:items-end gap-1">
         <span className="text-[10px] font-mono font-black uppercase tracking-widest text-text-secondary">
           {server.totalJoined?.toLocaleString() || "1"} Users
-        </span>
-        <span className="flex items-center gap-1.5 text-[9px] font-black tracking-widest text-success border border-success/20 bg-success/5 px-2 py-0.5 rounded-full">
-           <div className="w-1.5 h-1.5 rounded-full bg-success animate-pulse" /> {server.onlineCount} Online
         </span>
       </div>
       
