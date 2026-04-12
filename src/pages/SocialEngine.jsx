@@ -363,7 +363,6 @@ const SocialEngine = () => {
   if (displayServer) {
     return (
       <div className="page-fade space-y-8 animate-in fade-in duration-500 pb-20">
-      <div className="page-fade space-y-8 animate-in fade-in duration-500 pb-20">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
           <div className="flex items-center gap-4">
             <Button variant="ghost" size="sm" icon="arrow-left" onClick={() => setActiveServer(null)}>
