@@ -13,6 +13,7 @@ import {
   onSnapshot, 
   updateDoc, 
   doc, 
+  deleteDoc,
   arrayUnion, 
   arrayRemove, 
   query, 
@@ -255,6 +256,22 @@ const SocialEngine = () => {
       console.error("Error leaving server:", err);
     }
   };
+
+  const handleDeleteServer = async (serverId) => {
+    if (!window.confirm("Are you sure you want to permanently delete this server?")) return;
+    try {
+      await deleteDoc(doc(db, "social_servers", serverId));
+      setActiveServer(null);
+      document.dispatchEvent(new CustomEvent("showToast", { 
+        detail: { message: "Server deleted successfully.", type: "success" } 
+      }));
+    } catch (err) {
+      console.error("Error deleting server:", err);
+      document.dispatchEvent(new CustomEvent("showToast", { 
+        detail: { message: "Failed to delete server.", type: "error" } 
+      }));
+    }
+  };
   
   const isFormValid = useMemo(() => {
     const { name, habit, mode, visibility, startDate, endDate } = newServerForm;
@@ -357,7 +374,14 @@ const SocialEngine = () => {
                   <h3 className="text-3xl font-black tracking-tighter text-text-primary mb-2">{displayServer.name}</h3>
                   <p className="text-sm text-text-secondary max-w-lg">Master your {displayServer.habit} consistency alongside {displayServer.totalJoined?.toLocaleString() || "1"} users globally.</p>
                 </div>
-                <Button variant="danger" size="sm" icon="log-out" onClick={() => handleLeave(displayServer.id)}>Leave Server</Button>
+                <div className="flex items-center gap-2">
+                  {(isAdmin || displayServer.createdBy === user?.uid) && (
+                    <Button variant="danger" size="sm" icon="trash" onClick={() => handleDeleteServer(displayServer.id)}>
+                      Delete
+                    </Button>
+                  )}
+                  <Button variant="ghost" size="sm" className="text-danger hover:bg-danger/10" icon="log-out" onClick={() => handleLeave(displayServer.id)}>Leave</Button>
+                </div>
               </div>
 
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-8 relative z-10">
@@ -496,10 +520,34 @@ const SocialEngine = () => {
 
       {activeTab === "public" && (
         <div className="space-y-10">
-          <div className="flex justify-end">
+          <div className="flex flex-col md:flex-row gap-4 items-center justify-between bg-bg-sidebar/50 p-4 rounded-2xl border border-border-color/50">
+            <div className="flex flex-col sm:flex-row gap-3 items-center w-full md:w-auto">
+              <div className="relative w-full sm:w-64">
+                <Icon name="search" size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-text-secondary/50" />
+                <input 
+                  type="text" 
+                  placeholder="Search global servers..." 
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full h-10 flex-1 bg-bg-main/40 border border-border-color/30 rounded-xl pl-10 pr-4 text-xs font-bold text-text-primary outline-none focus:border-accent/50 transition-all placeholder:text-text-secondary/30"
+                />
+              </div>
+              <CustomSelect 
+                value={filterMode} 
+                onChange={setFilterMode}
+                options={[
+                  { value: "all", label: "All Modes" },
+                  { value: "check", label: "Check-in" },
+                  { value: "count", label: "Number Count" },
+                  { value: "timer", label: "Stopwatch/Timer" },
+                ]}
+                containerClassName="h-10 w-full sm:w-40"
+              />
+            </div>
+            
             <Button 
               variant="primary" 
-              className="shadow-xl shadow-accent/20 rounded-xl" 
+              className="shadow-xl shadow-accent/20 w-full md:w-auto mt-2 md:mt-0" 
               icon="plus" 
               size="md"
               onClick={() => setIsCreateModalOpen(true)}
@@ -507,8 +555,6 @@ const SocialEngine = () => {
               Start New Server
             </Button>
           </div>
-
-
 
           {joinedPublicServers.length > 0 && (
             <div className="space-y-6">
@@ -524,43 +570,18 @@ const SocialEngine = () => {
           )}
 
           <div className="space-y-6">
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
-              <h3 className="text-[11px] font-black uppercase tracking-[0.3em] text-text-secondary flex items-center gap-3">
-                <Icon name="layout" size={14} /> Global Servers
-              </h3>
-              
-              <div className="flex flex-col sm:flex-row gap-3 items-center bg-bg-sidebar/30 p-2 rounded-2xl border border-border-color/50 backdrop-blur-sm">
-                <div className="relative w-full sm:w-64">
-                  <Icon name="search" size={12} className="absolute left-3 top-1/2 -translate-y-1/2 text-text-secondary/50" />
-                  <input 
-                    type="text" 
-                    placeholder="Search servers..." 
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="w-full h-9 bg-bg-main/40 border border-border-color/30 rounded-xl pl-9 pr-4 text-[11px] font-bold text-text-primary outline-none focus:border-accent/50 transition-all placeholder:text-text-secondary/20"
-                  />
-                </div>
-                <CustomSelect 
-                  value={filterMode} 
-                  onChange={setFilterMode}
-                  options={[
-                    { value: "all", label: "All Modes" },
-                    { value: "check", label: "Check-in" },
-                    { value: "count", label: "Number Count" },
-                    { value: "timer", label: "Stopwatch/Timer" },
-                  ]}
-                  containerClassName="h-9 w-full sm:w-40"
-                />
-              </div>
-            </div>
+            <h3 className="text-[11px] font-black uppercase tracking-[0.3em] text-text-secondary flex items-center gap-3">
+              <Icon name="globe" size={14} /> Available Public Servers
+            </h3>
+            
             {loading ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 opacity-50">
-                {[1, 2, 3].map(i => <div key={i} className="h-48 rounded-[2.5rem] bg-bg-sidebar/50 animate-pulse border border-border-color" />)}
+              <div className="space-y-3 opacity-50">
+                {[1, 2, 3].map(i => <div key={i} className="h-24 rounded-2xl bg-bg-sidebar/50 animate-pulse border border-border-color" />)}
               </div>
             ) : availablePublicServers.length > 0 ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+              <div className="space-y-3">
                 {availablePublicServers.map(server => (
-                  <ServerCard key={server.id} server={server} onOpen={setActiveServer} onJoin={handleJoin} />
+                  <ServerRow key={server.id} server={server} onOpen={setActiveServer} onJoin={handleJoin} />
                 ))}
               </div>
             ) : (
@@ -871,6 +892,46 @@ const ServerCard = ({ server, onOpen, onJoin, active = false }) => (
   </Card>
 );
 
+const ServerRow = ({ server, onOpen, onJoin, active = false }) => (
+  <Card 
+    className="p-4 overflow-hidden group cursor-pointer border border-border-color/50 bg-bg-sidebar/30 hover:bg-bg-sidebar/60 transition-colors shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4"
+    onClick={() => onOpen?.(server)}
+  >
+    <div className="flex items-center gap-5">
+      <div className={`w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 transition-transform group-hover:scale-105 ${active ? 'bg-accent text-bg-main shadow-lg shadow-accent/20' : 'bg-accent/10 text-accent'}`}>
+        <Icon name={active ? "activity" : "layers"} size={22} />
+      </div>
+      <div>
+        <h3 className="text-sm font-black tracking-tight text-text-primary leading-tight group-hover:text-accent transition-colors">{server.name}</h3>
+        <div className="flex items-center gap-3 mt-1.5 opacity-80">
+          <span className="text-[10px] font-bold text-text-secondary bg-bg-main px-2 py-0.5 rounded-md border border-border-color">{server.habit}</span>
+          <span className="w-1 h-1 rounded-full bg-border-color" />
+          <span className="text-[10px] font-mono text-text-secondary uppercase">{server.mode}</span>
+        </div>
+      </div>
+    </div>
+    
+    <div className="flex items-center justify-between sm:justify-end gap-6 w-full sm:w-auto">
+      <div className="flex flex-col items-start sm:items-end gap-1">
+        <span className="text-[10px] font-mono font-black uppercase tracking-widest text-text-secondary">
+          {server.totalJoined?.toLocaleString() || "1"} Users
+        </span>
+        <span className="flex items-center gap-1.5 text-[9px] font-black tracking-widest text-success border border-success/20 bg-success/5 px-2 py-0.5 rounded-full">
+           <div className="w-1.5 h-1.5 rounded-full bg-success animate-pulse" /> {server.onlineCount} Online
+        </span>
+      </div>
+      
+      <div className="sm:border-l border-border-color/30 sm:pl-6 pl-0">
+        {active ? (
+          <Button variant="ghost" size="sm" className="text-accent hover:bg-accent/10 h-9" onClick={(e) => { e.stopPropagation(); onOpen?.(server); }}>Open Server</Button>
+        ) : (
+          <Button variant="primary" size="sm" className="h-9 px-6 shadow-md shadow-accent/10" onClick={(e) => { e.stopPropagation(); onJoin?.(server.id); }}>Join</Button>
+        )}
+      </div>
+    </div>
+  </Card>
+);
+
 const ChatMessage = ({ user, msg, time, self = false }) => (
   <div className={`flex flex-col ${self ? 'items-end' : 'items-start'} max-w-[90%] ${self ? 'ml-auto' : ''}`}>
     <div className="flex items-center gap-2 mb-1">
@@ -920,7 +981,7 @@ const CustomSelect = ({ label, options, value, onChange, containerClassName }) =
         <button
           type="button"
           onClick={() => setIsOpen(!isOpen)}
-          className="w-full bg-accent-dim border border-border-color px-4 py-3 rounded-xl text-xs font-bold text-text-primary flex items-center justify-between hover:bg-white/[0.03] transition-all outline-none focus:border-accent"
+          className="w-full h-full min-h-[40px] bg-accent-dim border border-border-color px-4 rounded-xl text-xs font-bold text-text-primary flex items-center justify-between hover:bg-white/[0.03] transition-all outline-none focus:border-accent"
         >
           {selectedOption.label}
           <Icon name="chevron-down" size={14} className={`transition-transform duration-300 ${isOpen ? 'rotate-180' : ''}`} />
