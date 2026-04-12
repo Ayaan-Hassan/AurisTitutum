@@ -190,15 +190,28 @@ const SocialEngine = () => {
     });
   }, [servers, searchQuery, filterMode]);
 
-  const joinedServers = useMemo(() => {
-    if (!user) return [];
-    return filteredServers.filter(s => s.members?.includes(user.uid));
-  }, [filteredServers, user]);
-
   const publicServers = useMemo(() => {
-    if (!user) return filteredServers;
-    return filteredServers.filter(s => !s.members?.includes(user.uid) && s.visibility === "public");
-  }, [filteredServers, user]);
+    return filteredServers.filter(s => s.visibility === "public");
+  }, [filteredServers]);
+
+  const privateServers = useMemo(() => {
+    return filteredServers.filter(s => s.visibility === "private");
+  }, [filteredServers]);
+
+  const joinedPublicServers = useMemo(() => {
+    if (!user) return [];
+    return publicServers.filter(s => s.members?.includes(user.uid));
+  }, [publicServers, user]);
+
+  const availablePublicServers = useMemo(() => {
+    if (!user) return publicServers;
+    return publicServers.filter(s => !s.members?.includes(user.uid));
+  }, [publicServers, user]);
+
+  const joinedPrivateServers = useMemo(() => {
+    if (!user) return [];
+    return privateServers.filter(s => s.members?.includes(user.uid));
+  }, [privateServers, user]);
 
   const handleJoin = async (serverId) => {
     if (!user) {
@@ -313,7 +326,12 @@ const SocialEngine = () => {
     }
   };
 
-  if (activeServer) {
+  const displayServer = useMemo(() => {
+    if (!activeServer) return null;
+    return servers.find(s => s.id === activeServer.id) || activeServer;
+  }, [activeServer, servers]);
+
+  if (displayServer) {
     return (
       <div className="page-fade space-y-8 animate-in fade-in duration-500 pb-20">
         <div className="flex items-center gap-4">
@@ -321,7 +339,7 @@ const SocialEngine = () => {
             Back to Hub
           </Button>
           <div className="h-4 w-px bg-border-color" />
-          <h2 className="text-xl font-bold tracking-tight text-text-primary capitalize">{activeServer.name}</h2>
+          <h2 className="text-xl font-bold tracking-tight text-text-primary capitalize">{displayServer.name}</h2>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -332,57 +350,23 @@ const SocialEngine = () => {
                   <div className="flex justify-between items-start mb-8 relative z-10">
                 <div>
                   <div className="flex items-center gap-2 mb-2">
-                    <span className="text-[10px] font-black uppercase tracking-[0.2em] text-accent">{activeServer.habitType} Challenge</span>
+                    <span className="text-[10px] font-black uppercase tracking-[0.2em] text-accent">{displayServer.habitType} Challenge</span>
                     <span className="w-1 h-1 rounded-full bg-border-color" />
-                    <span className="text-[10px] font-mono font-bold text-text-secondary uppercase">{activeServer.mode}</span>
+                    <span className="text-[10px] font-mono font-bold text-text-secondary uppercase">{displayServer.mode}</span>
                   </div>
-                  <h3 className="text-3xl font-black tracking-tighter text-text-primary mb-2">{activeServer.name}</h3>
-                  <p className="text-sm text-text-secondary max-w-lg">Master your {activeServer.habit} consistency alongside {activeServer.totalJoined.toLocaleString()} users globally.</p>
+                  <h3 className="text-3xl font-black tracking-tighter text-text-primary mb-2">{displayServer.name}</h3>
+                  <p className="text-sm text-text-secondary max-w-lg">Master your {displayServer.habit} consistency alongside {displayServer.totalJoined?.toLocaleString() || "1"} users globally.</p>
                 </div>
-                <Button variant="danger" size="sm" icon="log-out" onClick={() => handleLeave(activeServer.id)}>Leave Server</Button>
+                <Button variant="danger" size="sm" icon="log-out" onClick={() => handleLeave(displayServer.id)}>Leave Server</Button>
               </div>
 
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-8 relative z-10">
-                <MetricBox label="Global Rank" value="#42" icon="trending-up" color="text-accent" />
-                <MetricBox label="Active Streak" value="14d" icon="flame" color="text-success" />
-                <MetricBox label="Completion" value="88%" icon="check-circle" color="text-text-primary" />
-                <MetricBox label="Time Remaining" value="12d" icon="clock" color="text-text-secondary" />
+                <MetricBox label="Total Members" value={displayServer.totalJoined?.toString() || "1"} icon="users" color="text-accent" />
+                <MetricBox label="Mode" value={displayServer.mode} icon="settings" color="text-success" />
+                <MetricBox label="Start Date" value={new Date(displayServer.startDate).toLocaleDateString()} icon="calendar" color="text-text-primary" />
+                <MetricBox label="End Date" value={new Date(displayServer.endDate).toLocaleDateString()} icon="flag" color="text-text-secondary" />
               </div>
 
-              <div className="space-y-4 relative z-10">
-                <div className="flex items-center justify-between">
-                  <h4 className="text-[10px] font-black uppercase tracking-[0.3em] text-text-secondary">Performance Velocity</h4>
-                  <div className="flex items-center gap-4">
-                    <span className="flex items-center gap-1.5 text-[10px] font-bold text-success"><div className="w-1.5 h-1.5 rounded-full bg-success" /> You</span>
-                    <span className="flex items-center gap-1.5 text-[10px] font-bold text-text-secondary/40"><div className="w-1.5 h-1.5 rounded-full bg-text-secondary/40" /> Avg.</span>
-                  </div>
-                </div>
-                <div className="h-48 w-full bg-bg-main/30 rounded-2xl border border-border-color/50 p-4">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <AreaChart data={[
-                      { name: 'Mon', you: 4, avg: 3 },
-                      { name: 'Tue', you: 6, avg: 4 },
-                      { name: 'Wed', you: 5, avg: 4 },
-                      { name: 'Thu', you: 8, avg: 5 },
-                      { name: 'Fri', you: 7, avg: 4 },
-                      { name: 'Sat', you: 9, avg: 6 },
-                      { name: 'Sun', you: 6, avg: 5 },
-                    ]}>
-                      <defs>
-                        <linearGradient id="colorYou" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="5%" stopColor="var(--accent)" stopOpacity={0.3}/>
-                          <stop offset="95%" stopColor="var(--accent)" stopOpacity={0}/>
-                        </linearGradient>
-                      </defs>
-                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--border-color)" opacity={0.1} />
-                      <XAxis dataKey="name" stroke="var(--text-secondary)" fontSize={9} tickLine={false} axisLine={false} />
-                      <Tooltip contentStyle={{ backgroundColor: 'var(--card-bg)', borderColor: 'var(--border-color)', borderRadius: '12px', fontSize: '10px' }} />
-                      <Area type="monotone" dataKey="you" stroke="var(--accent)" fillOpacity={1} fill="url(#colorYou)" strokeWidth={3} />
-                      <Area type="monotone" dataKey="avg" stroke="var(--border-color)" fill="transparent" strokeDasharray="5 5" strokeWidth={1} />
-                    </AreaChart>
-                  </ResponsiveContainer>
-                </div>
-              </div>
             </Card>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
@@ -391,20 +375,8 @@ const SocialEngine = () => {
                   <Icon name="trophy" size={16} className="text-yellow-500" /> Leaderboard (Real-time)
                 </h4>
                 <div className="space-y-2">
-                  {[
-                    { rank: 42, name: "You", val: "14d", color: "text-success", active: true },
-                  ].map((p) => (
-                    <div key={p.rank} className={`flex items-center justify-between p-3 rounded-xl border transition-all ${p.active ? 'bg-accent/10 border-accent/30' : 'bg-bg-main/50 border-border-color/50 hover:border-text-secondary/30'}`}>
-                      <div className="flex items-center gap-3">
-                        <span className="text-[10px] font-mono font-black text-text-secondary w-5">#{p.rank}</span>
-                        <div className="w-7 h-7 rounded-lg bg-bg-sidebar border border-border-color flex items-center justify-center text-[10px] font-black">{p.name[0]}</div>
-                        <span className={`text-xs font-bold ${p.active ? 'text-accent' : 'text-text-primary'}`}>{p.name}</span>
-                      </div>
-                      <span className={`text-xs font-mono font-bold ${p.color}`}>{p.val}</span>
-                    </div>
-                  ))}
                   <div className="text-center py-4">
-                    <p className="text-[10px] text-text-secondary italic">Consolidating operator data...</p>
+                    <p className="text-[10px] text-text-secondary italic">Tracking data will be collected soon...</p>
                   </div>
                 </div>
                 <Button 
@@ -420,7 +392,7 @@ const SocialEngine = () => {
               <Card className="p-6 flex flex-col h-[400px]">
                 <h4 className="text-sm font-bold tracking-tight text-text-primary flex items-center justify-between mb-4">
                   <div className="flex items-center gap-2"><Icon name="mail" size={16} className="text-accent" /> Server Transmissions</div>
-                  <span className="text-[9px] font-mono text-success uppercase tracking-widest">{activeServer.onlineCount} Online</span>
+                  <span className="text-[9px] font-mono text-success uppercase tracking-widest">{displayServer.onlineCount} Online</span>
                 </h4>
                 <div className="flex-1 overflow-y-auto custom-scrollbar space-y-4 mb-4 pr-1">
                   {messages.length > 0 ? (
@@ -464,9 +436,9 @@ const SocialEngine = () => {
              <Card className="p-6">
                 <h4 className="text-sm font-bold text-text-primary mb-4">Server Rules</h4>
                 <div className="space-y-4">
-                  {activeServer.rules ? (
+                  {displayServer.rules ? (
                     <div className="p-4 rounded-xl bg-bg-main/50 border border-border-color/30 text-[11px] text-text-secondary leading-relaxed font-bold italic">
-                      "{activeServer.rules}"
+                      "{displayServer.rules}"
                     </div>
                   ) : null}
                   <ProtocolItem icon="shield-check" title="Verification" desc="Anti-cheat always active" />
@@ -486,18 +458,6 @@ const SocialEngine = () => {
                 </Button>
              </Card>
 
-             <Card className="p-6 bg-accent-dim/20 border-accent/20">
-                <div className="flex items-center gap-3 mb-3">
-                  <div className="w-10 h-10 rounded-xl bg-accent text-bg-main flex items-center justify-center">
-                    <Icon name="sparkles" size={20} />
-                  </div>
-                  <div>
-                    <h4 className="text-xs font-black uppercase tracking-widest text-text-primary">Personal Insight</h4>
-                    <p className="text-[10px] text-accent font-bold">AI Analysis</p>
-                  </div>
-                </div>
-                <p className="text-xs text-text-secondary leading-relaxed">Based on your recent progress, you are doing better than 65% of users on <span className="text-accent font-bold">Wednesdays</span>. Keep it up to reach the top 20!</p>
-             </Card>
           </div>
         </div>
       </div>
@@ -550,13 +510,13 @@ const SocialEngine = () => {
 
 
 
-          {joinedServers.length > 0 && (
+          {joinedPublicServers.length > 0 && (
             <div className="space-y-6">
               <h3 className="text-[11px] font-black uppercase tracking-[0.3em] text-text-secondary flex items-center gap-3">
                 <div className="w-1.5 h-1.5 rounded-full bg-success shadow-[0_0_8px_rgba(74,222,128,0.5)]" /> My Joined Servers
               </h3>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                {joinedServers.map(server => (
+                {joinedPublicServers.map(server => (
                    <ServerCard key={server.id} server={server} onOpen={setActiveServer} active />
                 ))}
               </div>
@@ -597,9 +557,9 @@ const SocialEngine = () => {
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 opacity-50">
                 {[1, 2, 3].map(i => <div key={i} className="h-48 rounded-[2.5rem] bg-bg-sidebar/50 animate-pulse border border-border-color" />)}
               </div>
-            ) : publicServers.length > 0 ? (
+            ) : availablePublicServers.length > 0 ? (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                {publicServers.map(server => (
+                {availablePublicServers.map(server => (
                   <ServerCard key={server.id} server={server} onOpen={setActiveServer} onJoin={handleJoin} />
                 ))}
               </div>
@@ -614,53 +574,71 @@ const SocialEngine = () => {
       )}
 
       {activeTab === "private" && (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start animate-in fade-in duration-500">
-           <Card className="p-10 space-y-6 text-center lg:text-left flex flex-col items-center lg:items-start min-h-[400px] justify-center">
-              <div className="w-20 h-20 rounded-3xl bg-accent/10 border border-accent/20 flex items-center justify-center text-accent mb-4 shadow-2xl shadow-accent/5">
-                <Icon name="user-plus" size={32} />
-              </div>
-              <h3 className="text-3xl font-black tracking-tighter text-text-primary">Create Private Server</h3>
-              <p className="text-sm text-text-secondary max-w-sm leading-relaxed">Start a private server for your friends by entering their ID below.</p>
-              
-              <div className="w-full max-w-md space-y-4 pt-4">
-                 <div className="flex gap-3">
-                   <Input 
-                    placeholder="Enter Friend's ID" 
-                    value={inviteUid} 
-                    onChange={(e) => setInviteUid(e.target.value)} 
-                    className="flex-1 bg-white/[0.02]"
-                   />
-                   <Button 
-                    variant="primary" 
-                    disabled={!inviteUid} 
-                    className="h-11"
-                    onClick={() => {
-                      document.dispatchEvent(new CustomEvent("showToast", { detail: { message: `Invite sent to ID: ${inviteUid}`, type: "success" } }));
-                      setInviteUid("");
-                    }}
-                   >
-                    Send Invite
-                   </Button>
-                 </div>
-                 <div className="flex items-center gap-2 px-3 py-2 bg-accent-dim/30 rounded-lg border border-border-color/50">
-                    <Icon name="info" size={12} className="text-text-secondary" />
-                    <p className="text-[9px] font-mono font-bold text-text-secondary uppercase">Invites cannot be changed once they are sent.</p>
-                 </div>
-              </div>
-           </Card>
+        <div className="space-y-10 animate-in fade-in duration-500">
+           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
+             <Card className="p-10 space-y-6 text-center lg:text-left flex flex-col items-center lg:items-start min-h-[300px] justify-center">
+                <div className="w-16 h-16 rounded-2xl bg-accent/10 border border-accent/20 flex items-center justify-center text-accent mb-2">
+                  <Icon name="link" size={24} />
+                </div>
+                <h3 className="text-2xl font-black tracking-tighter text-text-primary">Join Private Server</h3>
+                <p className="text-sm text-text-secondary max-w-sm leading-relaxed">Enter a Private Server ID below to securely join an exclusive challenge.</p>
+                
+                <div className="w-full max-w-md space-y-4 pt-2">
+                   <div className="flex gap-3">
+                     <Input 
+                      placeholder="Enter Server ID" 
+                      value={inviteUid} 
+                      onChange={(e) => setInviteUid(e.target.value)} 
+                      className="flex-1 bg-white/[0.02]"
+                     />
+                     <Button 
+                      variant="primary" 
+                      disabled={!inviteUid} 
+                      className="h-11 shadow-lg shadow-accent/20"
+                      onClick={() => {
+                        handleJoin(inviteUid);
+                        setInviteUid("");
+                      }}
+                     >
+                      Join Server
+                     </Button>
+                   </div>
+                   <p className="text-[10px] text-text-secondary/50 font-mono italic">You must get the ID from the server creator.</p>
+                </div>
+             </Card>
 
+             <Card className="p-10 space-y-6 flex flex-col justify-center min-h-[300px] bg-accent/5 border-accent/20 text-center lg:text-left items-center lg:items-start">
+                <div className="w-16 h-16 rounded-2xl bg-accent text-bg-main flex items-center justify-center mb-2 shadow-xl shadow-accent/20">
+                  <Icon name="plus" size={24} />
+                </div>
+                <h3 className="text-2xl font-black tracking-tighter text-text-primary">Create New</h3>
+                <p className="text-sm text-text-secondary max-w-sm leading-relaxed">Start your own new Private Server securely. Share the ID to let others join.</p>
+                <div className="pt-2">
+                  <Button 
+                    variant="primary" 
+                    icon="plus" 
+                    size="lg"
+                    className="shadow-xl shadow-accent/20"
+                    onClick={() => setIsCreateModalOpen(true)}
+                  >
+                    Start New Server
+                  </Button>
+                </div>
+             </Card>
+           </div>
+
+           {joinedPrivateServers.length > 0 && (
             <div className="space-y-6">
-              <h3 className="text-[11px] font-black uppercase tracking-[0.3em] text-text-secondary">Pending Invites</h3>
-              <div className="space-y-4">
-                 <div className="flex flex-col items-center justify-center py-12 bg-bg-sidebar/30 rounded-[2rem] border border-border-color border-dashed text-center space-y-3">
-                    <div className="w-12 h-12 rounded-2xl bg-border-color/20 flex items-center justify-center text-text-secondary/40">
-                      <Icon name="user-check" size={24} />
-                    </div>
-                    <p className="text-[10px] font-bold text-text-secondary uppercase tracking-[0.2em]">No Incoming Invites</p>
-                 </div>
-                 <p className="text-[10px] text-center text-text-secondary/40 font-mono italic">Waiting for new invites...</p>
+              <h3 className="text-[11px] font-black uppercase tracking-[0.3em] text-text-secondary flex items-center gap-3">
+                <div className="w-1.5 h-1.5 rounded-full bg-accent shadow-[0_0_8px_rgba(var(--accent),0.5)]" /> My Private Servers
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                {joinedPrivateServers.map(server => (
+                   <ServerCard key={server.id} server={server} onOpen={setActiveServer} active />
+                ))}
               </div>
             </div>
+           )}
         </div>
       )}
 
@@ -868,12 +846,18 @@ const ServerCard = ({ server, onOpen, onJoin, active = false }) => (
       </div>
 
       <div className="space-y-2 relative z-10 pt-2">
-        <div className="flex justify-between text-[10px] font-mono font-black uppercase tracking-widest text-text-secondary/50">
-          <span>{server.totalJoined.toLocaleString()} Users</span>
-          <span>95% Active</span>
+        <div className="flex justify-between items-center text-[10px] font-mono font-black uppercase tracking-widest text-text-secondary/50">
+          <span>{server.totalJoined?.toLocaleString() || "1"} Users</span>
+          <span className="text-accent/60 cursor-pointer hover:text-accent flex items-center gap-1 z-20" onClick={(e) => {
+            e.stopPropagation();
+            navigator.clipboard.writeText(server.id);
+            document.dispatchEvent(new CustomEvent("showToast", { detail: { message: "Server ID copied!", type: "success" } }));
+          }}>
+            ID: {server.id.slice(0,6)} <Icon name="copy" size={10} />
+          </span>
         </div>
         <div className="w-full bg-black/20 rounded-full h-1 overflow-hidden">
-          <div className="bg-accent h-full w-[70%] group-hover:w-[75%] transition-all duration-700" />
+          <div className="bg-accent h-full w-[100%] transition-all duration-700" />
         </div>
       </div>
     </div>
