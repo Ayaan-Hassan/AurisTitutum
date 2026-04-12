@@ -3,9 +3,7 @@ import Icon from "../components/Icon";
 import { Card } from "../components/ui/Card";
 import { Button } from "../components/ui/Button";
 import { Input } from "../components/ui/Input";
-import { Select } from "../components/ui/Select";
 import { useAuth } from "../contexts/AuthContext";
-import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
 import { db } from "../firebase.config";
 import { 
   collection, 
@@ -17,17 +15,20 @@ import {
   arrayUnion, 
   arrayRemove, 
   query, 
-  where,
   serverTimestamp,
   orderBy,
   increment
 } from "firebase/firestore";
 
+// Stable date constants hoisted outside component to avoid impure render calls
+const getTodayStr = () => new Date().toISOString().split('T')[0];
+const getTomorrowStr = () => new Date(Date.now() + 86400000).toISOString().split('T')[0];
+
 const TARGET_DATE = new Date("2026-03-23T13:14:08Z"); // 60 hours from 2026-03-21T01:14:08+05:30 (ISO 2026-03-20T19:44:08Z, so +60h = 2026-03-23T07:44:08Z UTC or 2026-03-23T13:14:08 IST)
 
 const SocialEngine = () => {
-  const todayDateStr = todayDateStr;
-  const tomorrowDateMs = Date.now() + 86400000;
+  const todayDateStr = getTodayStr();
+  const tomorrowDateStr = getTomorrowStr();
   const { user } = useAuth();
   const adminUid = (import.meta.env.VITE_ADMIN_UID || "").replace(/['"]/g, '').trim();
   const isAdmin = user && adminUid && user.uid?.trim() === adminUid;
@@ -43,7 +44,7 @@ const SocialEngine = () => {
   const [timeLeft, setTimeLeft] = useState(TARGET_DATE - new Date());
 
   const [logValue, setLogValue] = useState("");
-  const [leaderboardData, setLeaderboardData] = useState([]);
+  const [leaderboardData] = useState([]);
 
   const handleOpenServer = (server) => {
     setActiveServer(server);
@@ -901,7 +902,7 @@ const SocialEngine = () => {
                       <Input 
                         label="End Date"
                         type="date"
-                        min={newServerForm.startDate ? new Date(new Date(newServerForm.startDate).getTime() + 86400000).toISOString().split('T')[0] : new Date(tomorrowDateMs).toISOString().split('T')[0]}
+                        min={newServerForm.startDate ? new Date(new Date(newServerForm.startDate).getTime() + 86400000).toISOString().split('T')[0] : tomorrowDateStr}
                         value={newServerForm.endDate}
                         style={{ colorScheme: 'dark' }}
                         onChange={(e) => setNewServerForm({...newServerForm, endDate: e.target.value})}
