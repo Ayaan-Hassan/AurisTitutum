@@ -19,24 +19,44 @@ import {
   query, 
   where,
   serverTimestamp,
-  orderBy
+  orderBy,
+  increment
 } from "firebase/firestore";
 
 const TARGET_DATE = new Date("2026-03-23T13:14:08Z"); // 60 hours from 2026-03-21T01:14:08+05:30 (ISO 2026-03-20T19:44:08Z, so +60h = 2026-03-23T07:44:08Z UTC or 2026-03-23T13:14:08 IST)
 
 const SocialEngine = () => {
+  const todayDateStr = todayDateStr;
+  const tomorrowDateMs = Date.now() + 86400000;
   const { user } = useAuth();
   const adminUid = (import.meta.env.VITE_ADMIN_UID || "").replace(/['"]/g, '').trim();
   const isAdmin = user && adminUid && user.uid?.trim() === adminUid;
 
   const [activeTab, setActiveTab] = useState("public");
   const [activeServer, setActiveServer] = useState(null);
+  const [activeServerTab, setActiveServerTab] = useState("dashboard");
   const [searchQuery, setSearchQuery] = useState("");
   const [filterMode, setFilterMode] = useState("all");
   const [servers, setServers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [inviteUid, setInviteUid] = useState("");
   const [timeLeft, setTimeLeft] = useState(TARGET_DATE - new Date());
+
+  const [logValue, setLogValue] = useState("");
+  const [leaderboardData, setLeaderboardData] = useState([]);
+
+  const handleOpenServer = (server) => {
+    setActiveServer(server);
+    setActiveServerTab("dashboard");
+  };
+
+  const handleLogProgress = async () => {
+    if (!user || !activeServer) return;
+    setLogValue("");
+    document.dispatchEvent(new CustomEvent("showToast", { 
+      detail: { message: "Progress logged successfully!", type: "success" } 
+    }));
+  };
   
   const [messages, setMessages] = useState([]);
   const [messageInput, setMessageInput] = useState("");
@@ -48,7 +68,7 @@ const SocialEngine = () => {
     habit: "",
     mode: "check",
     visibility: "public",
-    startDate: new Date().toISOString().split('T')[0],
+    startDate: todayDateStr,
     endDate: "",
     rules: "",
     habitType: "Good"
@@ -138,49 +158,6 @@ const SocialEngine = () => {
   };
 
   const isLive = timeLeft <= 0 || isAdmin;
-
-  if (!isLive) {
-    const hours = Math.floor(timeLeft / (1000 * 60 * 60));
-    const minutes = Math.floor((timeLeft % (1000 * 60 * 60)) / (1000 * 60));
-
-    return (
-      <div className="flex flex-col items-center justify-center min-h-[70vh] text-center space-y-8 animate-in fade-in zoom-in duration-700">
-        <div className="relative">
-          <div className="absolute inset-0 bg-accent/20 blur-[80px] rounded-full scale-150 animate-pulse" />
-          <div className="relative w-24 h-24 rounded-3xl bg-accent-dim border border-accent/30 flex items-center justify-center text-accent shadow-2xl">
-            <Icon name="lock" size={40} />
-          </div>
-        </div>
-
-        <div className="space-y-4 max-w-lg relative z-10">
-          <div className="inline-flex items-center gap-2 px-3 py-1 bg-accent/10 border border-accent/20 rounded-full">
-            <div className="w-1.5 h-1.5 rounded-full bg-accent animate-ping" />
-            <span className="text-[10px] font-black uppercase tracking-[0.3em] text-accent">Launching Soon</span>
-          </div>
-          
-          <h2 className="text-4xl font-black tracking-tighter text-text-primary">Social Hub Opening</h2>
-          
-          <p className="text-sm text-text-secondary leading-relaxed px-6">
-            The Hub is currently getting ready for release. Soon you'll be able to join **Global Challenges**, create **Private Groups**, and view your **History**.
-          </p>
-
-          <div className="pt-6">
-            <div className="text-[10px] font-black uppercase tracking-[0.2em] text-text-secondary mb-3 opacity-60">Releasing in</div>
-            <div className="flex items-center justify-center gap-4">
-              <div className="bg-bg-sidebar border border-border-color rounded-2xl p-5 min-w-[140px] shadow-xl">
-                 <div className="text-4xl font-black font-mono tracking-tighter text-accent">{formatTime(timeLeft)}</div>
-                 <div className="text-[9px] font-bold text-text-secondary uppercase mt-2 tracking-widest">Time Remaining</div>
-              </div>
-            </div>
-          </div>
-
-          <div className="pt-8 text-[11px] font-bold text-text-primary/70">
-            Current status: <span className="text-accent underline underline-offset-4">Live in {hours} hours and {minutes} minutes</span>
-          </div>
-        </div>
-      </div>
-    );
-  }
 
   const filteredServers = useMemo(() => {
     return servers.filter(s => {
@@ -287,7 +264,7 @@ const SocialEngine = () => {
   
   const isFormValid = useMemo(() => {
     const { name, habit, mode, visibility, startDate, endDate } = newServerForm;
-    const today = new Date().toISOString().split('T')[0];
+    const today = todayDateStr;
     
     // Validations:
     // 1. All required fields filled
@@ -311,7 +288,7 @@ const SocialEngine = () => {
       }
       
       const { startDate, endDate } = newServerForm;
-      const today = new Date().toISOString().split('T')[0];
+      const today = todayDateStr;
       if (startDate < today || endDate <= today || endDate <= startDate) {
         document.dispatchEvent(new CustomEvent("showToast", { 
           detail: { message: "Invalid timeline. Start must be today+ and End must be in future.", type: "error" } 
@@ -339,7 +316,7 @@ const SocialEngine = () => {
         habit: "",
         mode: "check",
         visibility: "public",
-        startDate: new Date().toISOString().split('T')[0],
+        startDate: todayDateStr,
         endDate: "",
         rules: "",
         habitType: "Good"
@@ -359,6 +336,50 @@ const SocialEngine = () => {
     if (!activeServer) return null;
     return servers.find(s => s.id === activeServer.id) || activeServer;
   }, [activeServer, servers]);
+
+  if (!isLive) {
+    const hours = Math.floor(timeLeft / (1000 * 60 * 60));
+    const minutes = Math.floor((timeLeft % (1000 * 60 * 60)) / (1000 * 60));
+
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[70vh] text-center space-y-8 animate-in fade-in zoom-in duration-700">
+        <div className="relative">
+          <div className="absolute inset-0 bg-accent/20 blur-[80px] rounded-full scale-150 animate-pulse" />
+          <div className="relative w-24 h-24 rounded-3xl bg-accent-dim border border-accent/30 flex items-center justify-center text-accent shadow-2xl">
+            <Icon name="lock" size={40} />
+          </div>
+        </div>
+
+        <div className="space-y-4 max-w-lg relative z-10">
+          <div className="inline-flex items-center gap-2 px-3 py-1 bg-accent/10 border border-accent/20 rounded-full">
+            <div className="w-1.5 h-1.5 rounded-full bg-accent animate-ping" />
+            <span className="text-[10px] font-black uppercase tracking-[0.3em] text-accent">Launching Soon</span>
+          </div>
+          
+          <h2 className="text-4xl font-black tracking-tighter text-text-primary">Social Hub Opening</h2>
+          
+          <p className="text-sm text-text-secondary leading-relaxed px-6">
+            The Hub is currently getting ready for release. Soon you'll be able to join **Global Challenges**, create **Private Groups**, and view your **History**.
+          </p>
+
+          <div className="pt-6">
+            <div className="text-[10px] font-black uppercase tracking-[0.2em] text-text-secondary mb-3 opacity-60">Releasing in</div>
+            <div className="flex items-center justify-center gap-4">
+              <div className="bg-bg-sidebar border border-border-color rounded-2xl p-5 min-w-[140px] shadow-xl">
+                 <div className="text-4xl font-black font-mono tracking-tighter text-accent">{formatTime(timeLeft)}</div>
+                 <div className="text-[9px] font-bold text-text-secondary uppercase mt-2 tracking-widest">Time Remaining</div>
+              </div>
+            </div>
+          </div>
+
+          <div className="pt-8 text-[11px] font-bold text-text-primary/70">
+            Current status: <span className="text-accent underline underline-offset-4">Live in {hours} hours and {minutes} minutes</span>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
 
   if (displayServer) {
     return (
@@ -867,12 +888,12 @@ const SocialEngine = () => {
                       <Input 
                         label="Start Date"
                         type="date"
-                        min={new Date().toISOString().split('T')[0]}
+                        min={todayDateStr}
                         value={newServerForm.startDate}
                         style={{ colorScheme: 'dark' }}
                         onChange={(e) => setNewServerForm({...newServerForm, startDate: e.target.value})}
                       />
-                      {newServerForm.startDate && newServerForm.startDate < new Date().toISOString().split('T')[0] && (
+                      {newServerForm.startDate && newServerForm.startDate < todayDateStr && (
                         <p className="text-[9px] text-danger font-bold ml-1">Error: Backdating is not permitted</p>
                       )}
                     </div>
@@ -880,12 +901,12 @@ const SocialEngine = () => {
                       <Input 
                         label="End Date"
                         type="date"
-                        min={newServerForm.startDate ? new Date(new Date(newServerForm.startDate).getTime() + 86400000).toISOString().split('T')[0] : new Date(Date.now() + 86400000).toISOString().split('T')[0]}
+                        min={newServerForm.startDate ? new Date(new Date(newServerForm.startDate).getTime() + 86400000).toISOString().split('T')[0] : new Date(tomorrowDateMs).toISOString().split('T')[0]}
                         value={newServerForm.endDate}
                         style={{ colorScheme: 'dark' }}
                         onChange={(e) => setNewServerForm({...newServerForm, endDate: e.target.value})}
                       />
-                      {newServerForm.endDate && (newServerForm.endDate <= new Date().toISOString().split('T')[0] || (newServerForm.startDate && newServerForm.endDate <= newServerForm.startDate)) && (
+                      {newServerForm.endDate && (newServerForm.endDate <= todayDateStr || (newServerForm.startDate && newServerForm.endDate <= newServerForm.startDate)) && (
                         <p className="text-[9px] text-danger font-bold ml-1">Error: End date must be in future & after start</p>
                       )}
                     </div>
