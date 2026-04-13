@@ -1,9 +1,9 @@
 import { useState, useRef, useEffect } from 'react';
 import Icon from './Icon';
 
-export default function AurisChat({ isOpen, onClose, userConfig, habits, notes, reminders }) {
+export default function AurisChat({ isOpen, onClose, userConfig, habits, notes, reminders, notifications }) {
   const [messages, setMessages] = useState([
-    { role: 'assistant', content: 'Hello! I am Titum AI, your habit coach. How can I help you build better systems today?' }
+    { role: 'assistant', content: 'Hello! I am Titum AI, your friendly habit coach. How can I help you build better systems today? 😊' }
   ]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -12,7 +12,7 @@ export default function AurisChat({ isOpen, onClose, userConfig, habits, notes, 
 
   const handleClearChat = () => {
     setMessages([
-      { role: 'assistant', content: 'Hello! I am Titum AI, your habit coach. How can I help you build better systems today?' }
+      { role: 'assistant', content: 'Hello! I am Titum AI, your friendly habit coach. How can I help you build better systems today? 😊' }
     ]);
   };
 
@@ -74,20 +74,22 @@ export default function AurisChat({ isOpen, onClose, userConfig, habits, notes, 
       
     const notesContext = notes && notes.length > 0 ? `Notes they wrote: ${notes.map(n => n.title).join(', ')}.` : "";
     const remindersContext = reminders && reminders.length > 0 ? `Active reminders: ${reminders.map(r => r.title).join(', ')}.` : "";
+    const notificationsContext = notifications && notifications.length > 0 ? `Recent notifications: ${notifications.map(n => n.title).join(', ')}.` : "";
 
     const userNameContext = userConfig && userConfig.name ? `The user's name is ${userConfig.name}.` : "";
 
-    const systemPrompt = `You are Titum AI, a friendly habit coach. ${userNameContext}
+    const systemPrompt = `You are Titum AI, a highly empathetic, friendly, and enthusiastic habit coach. ${userNameContext}
 ${habitContext}
 ${notesContext}
 ${remindersContext}
+${notificationsContext}
 
 CRITICAL RULES FOR YOUR RESPONSES:
-1. CONVERSATIONAL EMPATHY: Always acknowledge and respond directly to what the user just said FIRST before shifting to coaching, suggestions, or asking questions.
-2. NO MARKDOWN: Absolutely NO markdown formatting. Do not use asterisks (* or **), no bold, no italics, no hashtags, no bullet points. Send plain text ONLY.
-3. NO SPACING: Keep your entire response in a single continuous paragraph. NEVER use line breaks or newlines. 
-4. BE HUMAN: Don't be robotic or instantly demanding. If they just say "hi", say hi back warmly. Wait for them to ask for help or state a problem.
-5. Use plain text formatting only. Very light emoji use is okay but don't overdo it.`;
+1. CONVERSATIONAL EMPATHY: Always acknowledge and respond warmly to what the user just said FIRST. Do not sound robotic.
+2. FORMATTING: Use paragraphs (line breaks) to make your text highly readable and natural. Do not send giant walls of text.
+3. HIGHLIGHTING: Important! Whenever you mention a key point, habit name, metric, or crucial advice, MUST wrap it in double asterisks like **this**. Our frontend parses this into dynamic colored highlights. Use this frequently for all key information.
+4. BE HUMAN & FRIENDLY: Have an exceptionally warm, inviting, and encouraging tone. Use emojis naturally where they fit.
+5. NO OTHER MARKDOWN: Do not use headers (#), lists (-/1.), or italics. Only use **bold** formatting for highlights.`;
 
     const attemptFetch = async (model) => {
       if (!import.meta.env.VITE_OPENROUTER_KEY) {
@@ -190,25 +192,49 @@ CRITICAL RULES FOR YOUR RESPONSES:
   if (!isOpen) return null;
 
   // Use a normal function returning JSX to prevent React from unmounting focus state on typing
+  const renderFormattedText = (text) => {
+    if (!text) return null;
+    const parts = text.split(/\*\*(.*?)\*\*/g);
+    const colors = [
+      'var(--chart-primary)',
+      'var(--chart-secondary)',
+      'var(--chart-accent)',
+      'var(--success)',
+      'var(--accent)'
+    ];
+    
+    return parts.map((part, index) => {
+      if (index % 2 === 1) {
+        const color = colors[((index - 1) / 2) % colors.length];
+        return (
+          <span key={index} className="font-extrabold tracking-wide" style={{ color, filter: 'brightness(1.2)' }}>
+            {part}
+          </span>
+        );
+      }
+      return <span key={index}>{part}</span>;
+    });
+  };
+
   const renderChatContent = (isMobile) => (
     <>
       <div className="flex-1 overflow-y-auto p-4 sm:p-5 space-y-4 custom-scrollbar">
         {messages.map((msg, index) => (
           <div key={index} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
             <div 
-              className={`max-w-[85%] rounded-2xl p-3 sm:p-4 text-xs sm:text-sm leading-relaxed ${
+              className={`max-w-[85%] rounded-2xl p-3 sm:p-4 text-xs sm:text-sm leading-relaxed shadow-sm transition-all ${
                 msg.role === 'user' 
-                  ? 'bg-accent text-bg-main rounded-tr-sm' 
-                  : 'bg-bg-main border border-border-color text-text-primary rounded-tl-sm'
+                  ? 'bg-accent text-bg-main rounded-tr-sm animate-in fade-in slide-in-from-bottom-2 duration-300' 
+                  : 'bg-bg-main border border-border-color text-text-primary rounded-tl-sm animate-in fade-in slide-in-from-left-2 zoom-in-95 duration-500'
               }`}
             >
               {msg.role === 'assistant' && (
-                <div className="flex items-center gap-1.5 mb-1.5 opacity-80">
+                <div className="flex items-center gap-1.5 mb-2 opacity-80">
                   <Icon name="brain" size={12} className="text-accent" />
                   <span className="text-[10px] font-bold tracking-wider uppercase font-mono">Titum AI</span>
                 </div>
               )}
-              <div className="whitespace-pre-wrap">{msg.content}</div>
+              <div className="whitespace-pre-wrap">{msg.role === 'assistant' ? renderFormattedText(msg.content) : msg.content}</div>
             </div>
           </div>
         ))}
