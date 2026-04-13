@@ -69,7 +69,13 @@ export default function AurisChat({ isOpen, onClose, userConfig, habits, notes, 
     let fallbackToUse = fallbackModel;
 
     const habitContext = habits && habits.length > 0 
-      ? `Their tracked habits: ${habits.map(h => `${h.name}`).join(', ')}.` 
+      ? `Their tracked habits and raw data:\n${habits.map(h => {
+          const recentLogs = h.logs ? h.logs.slice(-14) : [];
+          const logsStr = recentLogs.length > 0 
+            ? recentLogs.map(l => `[${l.date}: ${l.mode || 'Completed'}]`).join(', ') 
+            : 'No logs yet';
+          return `- ${h.name} (Type: ${h.type || 'Unknown'}): ${logsStr}`;
+        }).join('\n')}` 
       : "They have no habits tracked yet.";
       
     const notesContext = notes && notes.length > 0 ? `Notes they wrote: ${notes.map(n => n.title).join(', ')}.` : "";
@@ -86,10 +92,11 @@ ${notificationsContext}
 
 CRITICAL RULES FOR YOUR RESPONSES:
 1. CONVERSATIONAL EMPATHY: Always acknowledge and respond warmly to what the user just said FIRST. Do not sound robotic.
-2. FORMATTING: Use paragraphs (line breaks) to make your text highly readable and natural. Do not send giant walls of text.
+2. FORMATTING: Use paragraphs (line breaks) to make your text highly readable and natural. Do not send giant walls of text. Be brutally honest if they are skipping habits, don't make up fake compliments.
 3. HIGHLIGHTING: Important! Whenever you mention a key point, habit name, metric, or crucial advice, MUST wrap it in double asterisks like **this**. Our frontend parses this into dynamic colored highlights. Use this frequently for all key information.
 4. BE HUMAN & FRIENDLY: Have an exceptionally warm, inviting, and encouraging tone. Use emojis naturally where they fit.
-5. NO OTHER MARKDOWN: Do not use headers (#), lists (-/1.), or italics. Only use **bold** formatting for highlights.`;
+5. NO HALLUCINATION: NEVER invent or hallucinate data that isn't explicitly provided in the prompt context. If a user asks about trends, only use the raw logs provided.
+6. NO OTHER MARKDOWN: Do not use headers (#), lists (-/1.), or italics. Only use **bold** formatting for highlights.`;
 
     const attemptFetch = async (model) => {
       if (!import.meta.env.VITE_OPENROUTER_KEY) {
@@ -195,19 +202,19 @@ CRITICAL RULES FOR YOUR RESPONSES:
   const renderFormattedText = (text) => {
     if (!text) return null;
     const parts = text.split(/\*\*(.*?)\*\*/g);
-    const colors = [
-      'var(--chart-primary)',
-      'var(--chart-secondary)',
-      'var(--chart-accent)',
-      'var(--success)',
-      'var(--accent)'
+    const bgColors = [
+      'bg-chart-primary text-white shadow-sm',
+      'bg-success text-white shadow-sm',
+      'bg-chart-accent text-white shadow-sm',
+      'bg-chart-secondary text-white shadow-sm',
+      'bg-text-primary text-bg-main shadow-sm'
     ];
     
     return parts.map((part, index) => {
       if (index % 2 === 1) {
-        const color = colors[((index - 1) / 2) % colors.length];
+        const styleClass = bgColors[((index - 1) / 2) % bgColors.length];
         return (
-          <span key={index} className="font-extrabold tracking-wide" style={{ color, filter: 'brightness(1.2)' }}>
+          <span key={index} className={`font-black tracking-wide px-1.5 py-0.5 mx-0.5 rounded-md ${styleClass}`}>
             {part}
           </span>
         );
