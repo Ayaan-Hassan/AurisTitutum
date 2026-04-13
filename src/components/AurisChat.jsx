@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import Icon from './Icon';
 
-export default function AurisChat({ isOpen, onClose }) {
+export default function AurisChat({ isOpen, onClose, userConfig, habits, notes, reminders }) {
   const [messages, setMessages] = useState([
     { role: 'assistant', content: 'Hello! I am Titum AI, your habit coach. How can I help you build better systems today?' }
   ]);
@@ -62,7 +62,26 @@ export default function AurisChat({ isOpen, onClose }) {
     let modelToUse = complexity === 'complex' ? secondaryModel : primaryModel;
     let fallbackToUse = fallbackModel;
 
-    const systemPrompt = "You are Titum AI, a habit coach. Be concise, practical, and motivating.";
+    const habitContext = habits && habits.length > 0 
+      ? `Their tracked habits: ${habits.map(h => `${h.name}`).join(', ')}.` 
+      : "They have no habits tracked yet.";
+      
+    const notesContext = notes && notes.length > 0 ? `Notes they wrote: ${notes.map(n => n.title).join(', ')}.` : "";
+    const remindersContext = reminders && reminders.length > 0 ? `Active reminders: ${reminders.map(r => r.title).join(', ')}.` : "";
+
+    const userNameContext = userConfig && userConfig.name ? `The user's name is ${userConfig.name}.` : "";
+
+    const systemPrompt = `You are Titum AI, a friendly habit coach. ${userNameContext}
+${habitContext}
+${notesContext}
+${remindersContext}
+
+CRITICAL RULES FOR YOUR RESPONSES:
+1. CONVERSATIONAL EMPATHY: Always acknowledge and respond directly to what the user just said FIRST before shifting to coaching, suggestions, or asking questions.
+2. NO MARKDOWN: Absolutely NO markdown formatting. Do not use asterisks (* or **), no bold, no italics, no hashtags, no bullet points. Send plain text ONLY.
+3. NO SPACING: Keep your entire response in a single continuous paragraph. NEVER use line breaks or newlines. 
+4. BE HUMAN: Don't be robotic or instantly demanding. If they just say "hi", say hi back warmly. Wait for them to ask for help or state a problem.
+5. Use plain text formatting only. Very light emoji use is okay but don't overdo it.`;
 
     const attemptFetch = async (model) => {
       if (!import.meta.env.VITE_OPENROUTER_KEY) {

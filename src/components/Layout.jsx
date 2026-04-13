@@ -15,6 +15,8 @@ const Layout = ({
   habits = [],
   notifications = [],
   onNotificationsRead,
+  notes = [],
+  reminders = [],
 }) => {
   const location = useLocation();
   const navigate = useNavigate();
@@ -441,7 +443,7 @@ const Layout = ({
         )}
       </main>
 
-      <AurisChat isOpen={aurisOpen} onClose={() => setAurisOpen(false)} />
+      <AurisChat isOpen={aurisOpen} onClose={() => setAurisOpen(false)} userConfig={userConfig} habits={habits} notes={notes} reminders={reminders} />
     </div>
   );
 };

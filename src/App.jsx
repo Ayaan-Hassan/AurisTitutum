@@ -796,6 +796,8 @@ function AppContent() {
                 habits={displayHabits}
                 notifications={notifications}
                 onNotificationsRead={markAllRead}
+                notes={displayNotes}
+                reminders={displayReminders}
               >
                 <ToastContainer toasts={toasts} onClose={removeToast} />
                 <Routes>
