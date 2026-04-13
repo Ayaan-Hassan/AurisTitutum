@@ -30,12 +30,17 @@ export default function AurisChat({ isOpen, onClose }) {
     const { timeout = 15000 } = options;
     const controller = new AbortController();
     const id = setTimeout(() => controller.abort(), timeout);
-    const response = await fetch(resource, {
-      ...options,
-      signal: controller.signal
-    });
-    clearTimeout(id);
-    return response;
+    try {
+        const response = await fetch(resource, {
+        ...options,
+        signal: controller.signal
+        });
+        clearTimeout(id);
+        return response;
+    } catch (err) {
+        clearTimeout(id);
+        throw err;
+    }
   };
 
   const handleSend = async () => {
@@ -50,10 +55,9 @@ export default function AurisChat({ isOpen, onClose }) {
     const complexity = determineComplexity(userMessage.content);
     
     // Model fallback sequence
-    // Use env variables with fallbacks to the exact models requested
-    const primaryModel = import.meta.env.VITE_MODEL_PRIMARY || 'google/gemma-4-31b-it';
-    const secondaryModel = import.meta.env.VITE_MODEL_SECONDARY || 'qwen/qwen-3-next-80b';
-    const fallbackModel = import.meta.env.VITE_MODEL_FALLBACK || 'meta-llama/llama-3.3-70b-instruct';
+    const primaryModel = import.meta.env.VITE_MODEL_PRIMARY || 'google/gemma-3-27b-it'; // updated from generic 4-31b
+    const secondaryModel = import.meta.env.VITE_MODEL_SECONDARY || 'qwen/qwen-3-next-80b'; // generic fallback
+    const fallbackModel = import.meta.env.VITE_MODEL_FALLBACK || 'meta-llama/llama-3.3-70b-instruct'; // valid id
     
     let modelToUse = complexity === 'complex' ? secondaryModel : primaryModel;
     let fallbackToUse = fallbackModel;
@@ -61,21 +65,17 @@ export default function AurisChat({ isOpen, onClose }) {
     const systemPrompt = "You are Titum AI, a habit coach. Be concise, practical, and motivating.";
 
     const attemptFetch = async (model) => {
-      // If no OpenRouter key is provided, fake the response for UI testing
       if (!import.meta.env.VITE_OPENROUTER_KEY) {
-        return new Promise(resolve => setTimeout(() => resolve({
-          ok: true,
-          json: () => Promise.resolve({
-            choices: [{ message: { content: `(Simulated ${model} response) I am here to help you stay consistent.` } }]
-          })
-        }), 1000));
+        throw new Error("API Key Missing: VITE_OPENROUTER_KEY is not defined in the build. If on Vercel, please trigger a full Redeploy.");
       }
 
-      return fetchWithTimeout("https://openrouter.ai/api/v1/chat/completions", {
+      const response = await fetchWithTimeout("https://openrouter.ai/api/v1/chat/completions", {
         method: "POST",
         headers: {
           "Authorization": `Bearer ${import.meta.env.VITE_OPENROUTER_KEY}`,
-          "Content-Type": "application/json"
+          "Content-Type": "application/json",
+          "HTTP-Referer": window.location.href,
+          "X-Title": "Titum AI",
         },
         body: JSON.stringify({
           model: model,
@@ -85,25 +85,36 @@ export default function AurisChat({ isOpen, onClose }) {
           ]
         })
       });
+
+      if (!response.ok) {
+        const errText = await response.text();
+        throw new Error(`OpenRouter Error (${response.status}): ${errText}`);
+      }
+      return response;
     };
 
     try {
       let res = await attemptFetch(modelToUse);
-      if (!res.ok) throw new Error("Primary request failed");
-      
       let data = await res.json();
       setMessages([...newMessages, { role: 'assistant', content: data.choices[0].message.content }]);
     } catch (error) {
-      console.warn(`Request with ${modelToUse} failed, switching to fallback ${fallbackToUse}`, error);
+      console.warn(`Request with ${modelToUse} failed:`, error.message);
       try {
         let resFallback = await attemptFetch(fallbackToUse);
-        if (!resFallback.ok) throw new Error("Fallback request failed");
-        
         let dataFallback = await resFallback.json();
         setMessages([...newMessages, { role: 'assistant', content: dataFallback.choices[0].message.content }]);
       } catch (fallbackError) {
-        console.error("All models failed", fallbackError);
-        setMessages([...newMessages, { role: 'assistant', content: "I'm having trouble connecting to my brain right now. Please check your API keys or try again later." }]);
+        console.error("All models failed", fallbackError.message);
+        
+        let errorMessage = "I'm having trouble connecting to my brain right now.";
+        
+        if (fallbackError.message.includes("API Key Missing")) {
+           errorMessage = "VITE_OPENROUTER_KEY is missing! If you just added it in Vercel, you *must* trigger a new deployment for Vite to embed it.";
+        } else if (fallbackError.message.includes("OpenRouter Error")) {
+           errorMessage = `OpenRouter rejected the model request. You might be using an invalid model name or your account lacks credits. Details: ${fallbackError.message}`;
+        }
+        
+        setMessages([...newMessages, { role: 'assistant', content: errorMessage }]);
       }
     } finally {
       setIsLoading(false);
@@ -119,7 +130,8 @@ export default function AurisChat({ isOpen, onClose }) {
 
   if (!isOpen) return null;
 
-  const ChatContent = ({ isMobile }) => (
+  // Use a normal function returning JSX to prevent React from unmounting focus state on typing
+  const renderChatContent = (isMobile) => (
     <>
       <div className="flex-1 overflow-y-auto p-4 sm:p-5 space-y-4 custom-scrollbar">
         {messages.map((msg, index) => (
@@ -187,14 +199,13 @@ export default function AurisChat({ isOpen, onClose }) {
 
   return (
     <>
-      {/* Full-screen backdrop */}
       <div
         className="fixed inset-0 bg-black/50 backdrop-blur-md z-40 animate-in fade-in duration-200"
         onClick={onClose}
         aria-hidden="true"
       />
 
-      {/* Desktop: slide-in panel from right */}
+      {/* Desktop */}
       <div className="hidden md:flex fixed top-0 right-0 bottom-0 w-full max-w-md bg-bg-main border-l border-border-color shadow-xl z-50 flex-col animate-in slide-in-from-right">
         <div className="flex items-center justify-between p-4 border-b border-border-color shrink-0">
           <div className="flex items-center gap-2">
@@ -211,10 +222,10 @@ export default function AurisChat({ isOpen, onClose }) {
           </button>
         </div>
 
-        <ChatContent isMobile={false} />
+        {renderChatContent(false)}
       </div>
 
-      {/* Mobile: bottom sheet style popup */}
+      {/* Mobile */}
       <div className="md:hidden fixed inset-x-0 bottom-0 top-[10%] z-50 flex flex-col pointer-events-none">
         <div
           className="flex-1 bg-bg-main border-t border-border-color rounded-t-2xl shadow-2xl animate-in slide-in-from-bottom duration-300 pointer-events-auto flex flex-col overflow-hidden"
@@ -235,7 +246,7 @@ export default function AurisChat({ isOpen, onClose }) {
             </button>
           </div>
           
-          <ChatContent isMobile={true} />
+          {renderChatContent(true)}
         </div>
       </div>
     </>
