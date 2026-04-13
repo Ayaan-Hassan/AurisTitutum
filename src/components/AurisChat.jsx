@@ -54,11 +54,11 @@ export default function AurisChat({ isOpen, onClose }) {
 
     const complexity = determineComplexity(userMessage.content);
     
-    // Model fallback sequence
-    const primaryModel = import.meta.env.VITE_MODEL_PRIMARY || 'google/gemma-3-27b-it'; // updated from generic 4-31b
-    const secondaryModel = import.meta.env.VITE_MODEL_SECONDARY || 'qwen/qwen-3-next-80b'; // generic fallback
-    const fallbackModel = import.meta.env.VITE_MODEL_FALLBACK || 'meta-llama/llama-3.3-70b-instruct'; // valid id
-    
+    // Model fallback sequence (OpenRouter)
+    const primaryModel = import.meta.env.VITE_MODEL_PRIMARY || 'google/gemma-3-27b-it';
+    const secondaryModel = import.meta.env.VITE_MODEL_SECONDARY || 'meta-llama/llama-3.3-70b-instruct';
+    const fallbackModel = import.meta.env.VITE_MODEL_FALLBACK || 'mistralai/mistral-7b-instruct';
+
     let modelToUse = complexity === 'complex' ? secondaryModel : primaryModel;
     let fallbackToUse = fallbackModel;
 
