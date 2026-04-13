@@ -10,6 +10,12 @@ export default function AurisChat({ isOpen, onClose, userConfig, habits, notes, 
   const messagesEndRefDesktop = useRef(null);
   const messagesEndRefMobile = useRef(null);
 
+  const handleClearChat = () => {
+    setMessages([
+      { role: 'assistant', content: 'Hello! I am Titum AI, your habit coach. How can I help you build better systems today?' }
+    ]);
+  };
+
   useEffect(() => {
     if (messagesEndRefDesktop.current) {
       messagesEndRefDesktop.current.scrollIntoView({ behavior: 'smooth' });
@@ -98,6 +104,7 @@ CRITICAL RULES FOR YOUR RESPONSES:
         },
         body: JSON.stringify({
           model: model,
+          stream: true,
           messages: [
             { role: "system", content: systemPrompt },
             ...newMessages
@@ -112,16 +119,50 @@ CRITICAL RULES FOR YOUR RESPONSES:
       return response;
     };
 
+    const processStream = async (response) => {
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder("utf-8");
+      let assistantMessage = "";
+      
+      setMessages(prev => [...prev, { role: 'assistant', content: '' }]);
+      setIsLoading(false);
+
+      while (true) {
+        const { value, done } = await reader.read();
+        if (done) break;
+        
+        const chunk = decoder.decode(value, { stream: true });
+        const lines = chunk.split('\n').filter(line => line.trim() !== '');
+        
+        for (const line of lines) {
+          if (line === 'data: [DONE]') return;
+          if (line.startsWith('data: ')) {
+              try {
+                  const data = JSON.parse(line.slice(6));
+                  if (data.choices?.[0]?.delta?.content) {
+                      assistantMessage += data.choices[0].delta.content;
+                      setMessages(prev => {
+                          const newMsgs = [...prev];
+                          newMsgs[newMsgs.length - 1] = { role: 'assistant', content: assistantMessage };
+                          return newMsgs;
+                      });
+                  }
+              } catch (e) {
+                  // handle parse err silently
+              }
+          }
+        }
+      }
+    };
+
     try {
       let res = await attemptFetch(modelToUse);
-      let data = await res.json();
-      setMessages([...newMessages, { role: 'assistant', content: data.choices[0].message.content }]);
+      await processStream(res);
     } catch (error) {
       console.warn(`Request with ${modelToUse} failed:`, error.message);
       try {
         let resFallback = await attemptFetch(fallbackToUse);
-        let dataFallback = await resFallback.json();
-        setMessages([...newMessages, { role: 'assistant', content: dataFallback.choices[0].message.content }]);
+        await processStream(resFallback);
       } catch (fallbackError) {
         console.error("All models failed", fallbackError.message);
         
@@ -130,13 +171,12 @@ CRITICAL RULES FOR YOUR RESPONSES:
         if (fallbackError.message.includes("API Key Missing")) {
            errorMessage = "VITE_OPENROUTER_KEY is missing! If you just added it in Vercel, you *must* trigger a new deployment for Vite to embed it.";
         } else if (fallbackError.message.includes("OpenRouter Error")) {
-           errorMessage = `OpenRouter rejected the model request. You might be using an invalid model name or your account lacks credits. Details: ${fallbackError.message}`;
+           errorMessage = `OpenRouter rejected the model request. Check API key and credits. Details: ${fallbackError.message}`;
         }
         
         setMessages([...newMessages, { role: 'assistant', content: errorMessage }]);
+        setIsLoading(false);
       }
-    } finally {
-      setIsLoading(false);
     }
   };
 
@@ -236,9 +276,18 @@ CRITICAL RULES FOR YOUR RESPONSES:
               <p className="text-[10px] text-success uppercase tracking-wider font-mono">Online</p>
             </div>
           </div>
-          <button onClick={onClose} className="w-9 h-9 rounded-lg border border-border-color flex items-center justify-center text-text-secondary hover:text-text-primary">
-            <Icon name="x" size={16} />
-          </button>
+          <div className="flex items-center gap-2">
+            <button 
+              onClick={handleClearChat} 
+              title="New Chat"
+              className="w-9 h-9 rounded-lg border border-border-color flex items-center justify-center text-text-secondary hover:text-text-primary hover:bg-accent/10 transition-colors"
+            >
+              <Icon name="rotate-ccw" size={14} />
+            </button>
+            <button onClick={onClose} className="w-9 h-9 rounded-lg border border-border-color flex items-center justify-center text-text-secondary hover:text-text-primary transition-colors">
+              <Icon name="x" size={16} />
+            </button>
+          </div>
         </div>
 
         {renderChatContent(false)}
@@ -260,9 +309,18 @@ CRITICAL RULES FOR YOUR RESPONSES:
                 <p className="text-[9px] text-success uppercase tracking-wider font-mono">Online</p>
               </div>
             </div>
-            <button onClick={onClose} className="w-8 h-8 rounded-lg border border-border-color flex items-center justify-center text-text-secondary hover:text-text-primary">
-              <Icon name="x" size={14} />
-            </button>
+            <div className="flex items-center gap-2">
+              <button 
+                onClick={handleClearChat} 
+                title="New Chat"
+                className="w-8 h-8 rounded-lg border border-border-color flex items-center justify-center text-text-secondary hover:text-text-primary hover:bg-accent/10 transition-colors"
+              >
+                <Icon name="rotate-ccw" size={12} />
+              </button>
+              <button onClick={onClose} className="w-8 h-8 rounded-lg border border-border-color flex items-center justify-center text-text-secondary hover:text-text-primary transition-colors">
+                <Icon name="x" size={14} />
+              </button>
+            </div>
           </div>
           
           {renderChatContent(true)}
