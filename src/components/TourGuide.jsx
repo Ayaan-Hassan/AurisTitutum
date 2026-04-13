@@ -43,7 +43,7 @@ const DESKTOP_STEPS = [
     },
     {
         targetId: 'tour-nav-ai-desktop-sidebar',
-        title: 'Auris AI Assistant',
+        title: 'Titum AI Assistant',
         text: 'Tap the brain icon to speak directly to the AI about your habits and progress.',
         position: 'right'
     }

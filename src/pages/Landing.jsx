@@ -55,7 +55,7 @@ const Landing = ({ habits, user, userConfig }) => {
     },
     {
       icon: "brain",
-      title: "Auris AI (Coming Soon)",
+      title: "Titum AI",
       desc: "An intelligent companion to surface insights, spot patterns, and coach you on building better systems.",
     },
     {
@@ -89,7 +89,7 @@ const Landing = ({ habits, user, userConfig }) => {
     {
       step: "03",
       title: "Review logs and streaks",
-      desc: "Check the calendar and logs view to see which days you really showed up. Sign in to unlock analytics and Auris AI.",
+      desc: "Check the calendar and logs view to see which days you really showed up. Sign in to unlock analytics and Titum AI.",
     },
   ];
 
@@ -462,7 +462,7 @@ const Landing = ({ habits, user, userConfig }) => {
                 </h3>
                 <p className="text-xs text-text-secondary max-w-md leading-relaxed">
                   No forced login. Track one habit locally for free — then sign
-                  in when you want sync, analytics, and Auris AI.
+                  in when you want sync, analytics, and Titum AI.
                 </p>
               </div>
               <div className="flex flex-col sm:flex-row gap-2.5 w-full sm:w-auto shrink-0">
