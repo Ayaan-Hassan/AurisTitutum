@@ -70,12 +70,23 @@ export default function AurisChat({ isOpen, onClose, userConfig, habits, notes, 
 
     const habitContext = habits && habits.length > 0 
       ? `Their tracked habits and raw data:\n${habits.map(h => {
-          const recentLogs = h.logs ? h.logs.slice(-14) : [];
+          const recentLogs = h.logs ? h.logs.slice(-60) : [];
           const logsStr = recentLogs.length > 0 
-            ? recentLogs.map(l => `[${l.date}: ${l.mode || 'Completed'}]`).join(', ') 
+            ? recentLogs.map(l => `[${l.date}: ${l.mode || 'Success'}]`).join(', ') 
             : 'No logs yet';
-          return `- ${h.name} (Type: ${h.type || 'Unknown'}): ${logsStr}`;
-        }).join('\n')}` 
+          
+          const totalCompletions = h.logs ? h.logs.filter(l => l.count > 0).length : 0;
+          const currentStreak = h.streak || 0;
+          
+          return `- **${h.name}**
+  | Type: ${h.type || 'N/A'}
+  | Mode: ${h.mode || 'N/A'}
+  | Unit: ${h.unit || 'count'}
+  | Frequency: ${h.frequency || 'Daily'}
+  | Total completions: ${totalCompletions}
+  | Current Streak: ${currentStreak}
+  | Recent History: ${logsStr}`;
+        }).join('\n\n')}` 
       : "They have no habits tracked yet.";
       
     const notesContext = notes && notes.length > 0 ? `Notes they wrote: ${notes.map(n => n.title).join(', ')}.` : "";
@@ -91,12 +102,13 @@ ${remindersContext}
 ${notificationsContext}
 
 CRITICAL RULES FOR YOUR RESPONSES:
-1. CONVERSATIONAL EMPATHY: Always acknowledge and respond warmly to what the user just said FIRST. Do not sound robotic.
-2. FORMATTING: Use paragraphs (line breaks) to make your text highly readable and natural. Do not send giant walls of text. Be brutally honest if they are skipping habits, don't make up fake compliments.
-3. HIGHLIGHTING: Important! Whenever you mention a key point, habit name, metric, or crucial advice, MUST wrap it in double asterisks like **this**. Our frontend parses this into dynamic colored highlights. Use this frequently for all key information.
-4. BE HUMAN & FRIENDLY: Have an exceptionally warm, inviting, and encouraging tone. Use emojis naturally where they fit.
-5. NO HALLUCINATION: NEVER invent or hallucinate data that isn't explicitly provided in the prompt context. If a user asks about trends, only use the raw logs provided.
-6. NO OTHER MARKDOWN: Do not use headers (#), lists (-/1.), or italics. Only use **bold** formatting for highlights.`;
+1. CONVERSATIONAL EMPATHY: Always acknowledge and respond warmly to what the user just said FIRST.
+2. EXHAUSTIVE ANALYSIS: When asked to analyze, you must be extremely detailed. Analyze every single piece of data provided in the context below. Calculate consistency percentages, identify specific days of the week where the user struggles, find correlations between different habits (e.g., "When you sleep well, your Manstratio habit improved by X%"), and provide a long-term trend report.
+3. BE BRUTALLY HONEST: If the logs show they are failing, tell them. Do not sugarcoat progress that isn't there. If they haven't logged a habit, explicitly mention that there is no data for it.
+4. FORMATTING: Use clear paragraphs. Never send a wall of text.
+5. HIGHLIGHTING: Wrap critical metrics, habit names, and advice in **double asterisks**. These appear as vibrant colored text in the UI. Use this for ALL important data points.
+6. NO HALLUCINATION: Only use the raw logs provided. If a habit has "No logs yet", say exactly that.
+7. NO OTHER MARKDOWN: Do not use headers, bullet points, or italics. Only use **bold** for highlights. Use emojis warmly.`;
 
     const attemptFetch = async (model) => {
       if (!import.meta.env.VITE_OPENROUTER_KEY) {
@@ -202,19 +214,20 @@ CRITICAL RULES FOR YOUR RESPONSES:
   const renderFormattedText = (text) => {
     if (!text) return null;
     const parts = text.split(/\*\*(.*?)\*\*/g);
-    const bgColors = [
-      'bg-chart-primary text-white shadow-sm',
-      'bg-success text-white shadow-sm',
-      'bg-chart-accent text-white shadow-sm',
-      'bg-chart-secondary text-white shadow-sm',
-      'bg-text-primary text-bg-main shadow-sm'
+    const colors = [
+      '#60a5fa', // Bright Blue
+      '#f472b6', // Pink
+      '#34d399', // Emerald
+      '#fbbf24', // Amber
+      '#a78bfa', // Purple
+      '#ffffff'  // White
     ];
     
     return parts.map((part, index) => {
       if (index % 2 === 1) {
-        const styleClass = bgColors[((index - 1) / 2) % bgColors.length];
+        const color = colors[((index - 1) / 2) % colors.length];
         return (
-          <span key={index} className={`font-black tracking-wide px-1.5 py-0.5 mx-0.5 rounded-md ${styleClass}`}>
+          <span key={index} className="font-extrabold tracking-tight" style={{ color, textShadow: '0 0 10px rgba(255,255,255,0.1)' }}>
             {part}
           </span>
         );
