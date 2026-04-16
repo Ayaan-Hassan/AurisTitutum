@@ -982,6 +982,18 @@ export default function AdminDashboard() {
                                             </select>
                                         </div>
                                     </div>
+                                    {createComplex.mode === 'count' && (
+                                        <div className="space-y-1">
+                                            <label className="text-[10px] font-black uppercase tracking-widest text-text-secondary pl-1">Unit</label>
+                                            <input 
+                                                type="text" 
+                                                className="w-full bg-bg-main border border-border-color p-3 rounded-xl text-sm outline-none focus:border-accent"
+                                                value={createComplex.unit || ''}
+                                                onChange={(e) => setCreateComplex({...createComplex, unit: e.target.value})}
+                                                placeholder="e.g. km, ml, pages"
+                                            />
+                                        </div>
+                                    )}
                                 </>
                             ) : (
                                 <>
@@ -1038,14 +1050,18 @@ export default function AdminDashboard() {
                                 try {
                                     if (createComplex.type === 'habit') {
                                         if (!createComplex.name.trim()) return;
-                                        await addDoc(collection(db, "users", selectedUser, "habits"), { 
+                                        const habitData = { 
                                             name: createComplex.name.trim(), 
                                             type: createComplex.habitType, 
                                             mode: createComplex.mode, 
                                             color: "admin-white",
                                             createdAt: new Date().toISOString(), 
                                             adminCreated: true 
-                                        });
+                                        };
+                                        if (createComplex.mode === 'count') {
+                                            habitData.unit = createComplex.unit || "";
+                                        }
+                                        await addDoc(collection(db, "users", selectedUser, "habits"), habitData);
                                     } else {
                                         if (!createComplex.title.trim()) return;
                                         await addDoc(collection(db, "users", selectedUser, "reminders"), { 
