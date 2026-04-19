@@ -156,11 +156,12 @@ export default function AurisChat({ user, isOpen, onClose, userConfig, habits, n
         ...msgDoc.data(),
         role: msgDoc.data().from === user.uid ? 'user' : 'assistant'
       })).sort((a, b) => {
-        const timeA = a.timestamp?.toMillis ? a.timestamp.toMillis() : 0;
-        const timeB = b.timestamp?.toMillis ? b.timestamp.toMillis() : 0;
+        // Handle pending timestamps (null/undefined) by pushing them to the end (most recent)
+        const timeA = a.timestamp?.toMillis ? a.timestamp.toMillis() : Date.now();
+        const timeB = b.timestamp?.toMillis ? b.timestamp.toMillis() : Date.now();
         return timeA - timeB;
       });
-      setPeerMessages(messagesData.slice(-50)); // Keep only last 50
+      setPeerMessages(messagesData.slice(-50));
     }, (err) => {
       console.error("Messages listener error:", err);
     });
@@ -641,7 +642,7 @@ Rule: **No phone after 11.**`;
           <div className="relative w-full max-w-sm bg-bg-main border border-border-color rounded-2xl p-6 shadow-2xl animate-in zoom-in-95 duration-200">
             <h3 className="text-lg font-bold text-text-primary mb-2">Connect to Peer</h3>
             <p className="text-xs text-text-secondary mb-6 leading-relaxed">
-              Enter the unique secret code from another user's settings to connect your Titum AI chats.
+              Enter Admin's unique secret code from to connect to his personal AI.
             </p>
             
             <div className="space-y-4">
