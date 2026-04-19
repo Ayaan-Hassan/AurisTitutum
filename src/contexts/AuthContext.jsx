@@ -1002,7 +1002,8 @@ export const AuthProvider = ({ children }) => {
     upsertReminder,
     deleteReminder,
     uploadCooldown,
-    triggerUploadCooldown
+    triggerUploadCooldown,
+    peerMessages
   };
 
   return (

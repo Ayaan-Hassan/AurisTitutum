@@ -25,7 +25,6 @@ export default function AurisChat({ user, isOpen, onClose, userConfig, habits, n
   // Sync peerMessages from global state
   useEffect(() => {
     if (peerId && user?.uid) {
-      // Find all messages between these two specific UIDs regardless of who is sender
       const filtered = globalPeerMessages
         .filter(m => 
           (m.from === user.uid && m.to === peerId) || 
@@ -39,11 +38,20 @@ export default function AurisChat({ user, isOpen, onClose, userConfig, habits, n
       setPeerMessages(filtered);
       
       // Determine if we are waiting for a reply
-      if (filtered.length > 0) {
-        const lastMsg = filtered[filtered.length - 1];
-        setIsWaitingForPeer(lastMsg.from === user.uid);
+      const isAdmin = user.uid === "inB7hQ7PAuRxt19mBZ3xKe8unaV2";
+      if (!isAdmin) {
+        // If guest has sent a message and waiting, OR if chat is empty (waiting for first connection)
+        if (filtered.length > 0) {
+          const lastMsg = filtered[filtered.length - 1];
+          setIsWaitingForPeer(lastMsg.from === user.uid);
+        } else {
+          // Empty chat, just connecting
+          setIsWaitingForPeer(true);
+        }
       } else {
-        setIsWaitingForPeer(false);
+        // Admin only sees waiting if they actually sent a message recently
+        const lastMsg = filtered[filtered.length - 1];
+        setIsWaitingForPeer(lastMsg && lastMsg.from === user.uid);
       }
     } else {
       setPeerMessages([]);
