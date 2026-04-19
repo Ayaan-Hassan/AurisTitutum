@@ -265,8 +265,9 @@ export const AuthProvider = ({ children }) => {
       
       // Sort locally to avoid index requirement
       messages.sort((a, b) => {
-        const timeA = a.timestamp?.toMillis ? a.timestamp.toMillis() : (a.timestamp ? new Date(a.timestamp).getTime() : 0);
-        const timeB = b.timestamp?.toMillis ? b.timestamp.toMillis() : (b.timestamp ? new Date(b.timestamp).getTime() : 0);
+        // Robust timestamp handling: Use server toMillis, then Date string, then Date.now() for optimistic/new messages
+        const timeA = a.timestamp?.toMillis ? a.timestamp.toMillis() : (a.timestamp ? new Date(a.timestamp).getTime() : Date.now() + 1000);
+        const timeB = b.timestamp?.toMillis ? b.timestamp.toMillis() : (b.timestamp ? new Date(b.timestamp).getTime() : Date.now() + 1000);
         return timeA - timeB;
       });
       
