@@ -217,6 +217,7 @@ export default function AurisChat({ user, isOpen, onClose, userConfig, habits, n
       try {
         await addDoc(collection(db, "titum_connect_messages"), {
           from: user.uid,
+          fromName: userConfig.name || "Peer User",
           to: peerId,
           participants: [user.uid, peerId],
           content: msgText,

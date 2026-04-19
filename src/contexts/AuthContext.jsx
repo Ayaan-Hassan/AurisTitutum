@@ -273,12 +273,28 @@ export const AuthProvider = ({ children }) => {
       // Auto-Handshake Detection
       if (messages.length > 0) {
         const lastMsg = messages[messages.length - 1];
-        if (lastMsg.from !== user?.uid && lastMsg.from !== userConfig?.connectedPeerId) {
-          // If message is newer than 30 seconds (to avoid old message notifications)
-          const isRecent = lastMsg.timestamp && (Date.now() - lastMsg.timestamp.toMillis() < 30000);
-          if (isRecent) {
+        
+        // Only trigger if message is from someone else and it's fresh (30s)
+        const isRecent = lastMsg.timestamp && (Date.now() - lastMsg.timestamp.toMillis() < 30000);
+        
+        if (lastMsg.from !== user?.uid && isRecent) {
+          // If we aren't connected to ANYONE, or if we were connected to something else 
+          // but this message is specifically coming into our channel, auto-handshake if appropriate.
+          if (!userConfig?.connectedPeerId) {
+             console.log("Auto-connecting to sender:", lastMsg.fromName);
+             updateUserConfig({
+               connectedPeerId: lastMsg.from,
+               connectedPeerName: lastMsg.fromName || "Peer User"
+             }).catch(e => console.error("Auto-handshake failed:", e));
+             
+             const toastEvent = new CustomEvent("showToast", {
+               detail: { message: `New message from ${lastMsg.fromName || "Peer User"}! Connection established.`, type: "success" },
+             });
+             document.dispatchEvent(toastEvent);
+          } else if (lastMsg.from !== userConfig.connectedPeerId) {
+            // Just a notification if we are busy with someone else
             const toastEvent = new CustomEvent("showToast", {
-              detail: { message: "New Titum Connect message received! Check your AI chat.", type: "info" },
+              detail: { message: `Incoming message from ${lastMsg.fromName || "Peer User"}...`, type: "info" },
             });
             document.dispatchEvent(toastEvent);
           }
