@@ -218,18 +218,22 @@ const Settings = ({
                     return; 
                   }
 
-                  // 2. Map code to user
+                  // 2. Map code to user in global registry
                   await setDoc(codeRef, { uid: user.uid, createdAt: new Date().toISOString() });
                   
                   // 3. Update user config
-                  await setUserConfig(prev => ({ ...prev, secretCode: newCode }));
+                  await setUserConfig({ secretCode: newCode });
                   
                   const toastEvent = new CustomEvent("showToast", {
-                    detail: { message: "Secret code generated successfully!", type: "success" },
+                    detail: { message: "Secret code generated successfully! This code is now permanently linked to your account.", type: "success" },
                   });
                   document.dispatchEvent(toastEvent);
                 } catch (err) {
                   console.error("Failed to generate code:", err);
+                  const toastEvent = new CustomEvent("showToast", {
+                    detail: { message: "Error generating code. Please check your connection.", type: "error" },
+                  });
+                  document.dispatchEvent(toastEvent);
                 }
               }}
               variant="outline"

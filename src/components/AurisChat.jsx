@@ -147,9 +147,12 @@ export default function AurisChat({ user, isOpen, onClose, userConfig, habits, n
 
   // Handle persistence of peer connection from userConfig
   useEffect(() => {
-    if (userConfig?.connectedPeerId !== peerId) {
-      setPeerId(userConfig.connectedPeerId || null);
-      setPeerName(userConfig.connectedPeerName || '');
+    if (userConfig?.connectedPeerId && userConfig.connectedPeerId !== peerId) {
+      setPeerId(userConfig.connectedPeerId);
+      setPeerName(userConfig.connectedPeerName || 'Peer User');
+    } else if (!userConfig?.connectedPeerId && peerId) {
+      setPeerId(null);
+      setPeerName('');
     }
   }, [userConfig?.connectedPeerId, userConfig?.connectedPeerName]);
 
