@@ -180,6 +180,9 @@ const DEFAULT_USER_CONFIG = {
   age: "",
   gender: "",
   avatar: null,
+  secretCode: "",
+  connectedPeerId: null,
+  connectedPeerName: "",
   settings: {
     persistence: true,
     audit: true,
@@ -208,10 +211,9 @@ const normalizeUserConfig = (raw = {}) => ({
 });
 
 const mergeUserIdentityIntoConfig = (config = {}, user = null) => {
-  const normalized = normalizeUserConfig(config);
-  if (!user) return normalized;
-
   const fallbackName = user?.email ? user.email.split("@")[0] : "";
+  const normalized = normalizeUserConfig(config);
+  
   return {
     ...normalized,
     email: user?.email || normalized.email || "",
