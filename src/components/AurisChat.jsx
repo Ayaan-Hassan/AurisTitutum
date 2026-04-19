@@ -243,11 +243,15 @@ export default function AurisChat({ user, isOpen, onClose, userConfig, habits, n
           conversationId: user.uid < peerId ? `${user.uid}_${peerId}` : `${peerId}_${user.uid}`
         });
       } catch (err) {
-        console.error("Error sending peer message:", err);
-        // Error handling: remove optimistic message or show error
+        console.error("Critical Send Error:", err);
+        // Remove optimistic message on actual failure
         setPeerMessages(prev => prev.filter(m => m.id !== optimisticMsg.id));
+        
         const toastEvent = new CustomEvent("showToast", {
-          detail: { message: "Failed to send message. Please check your connection.", type: "error" },
+          detail: { 
+            message: `Send Failed: ${err.code === 'permission-denied' ? "Check your Firebase Rules" : err.message}`, 
+            type: "error" 
+          },
         });
         document.dispatchEvent(toastEvent);
       }
