@@ -813,7 +813,7 @@ export const AuthProvider = ({ children }) => {
       : { ...userConfig, ...updater };
       
     // Filter out internal fields that shouldn't be saved to Firestore directly
-    const { updater: _, ...cleanConfig } = nextConfig;
+    const { updater: internalUpdater, ...cleanConfig } = nextConfig;
 
     return queueWrite(() => upsertUserSetting(
       user.uid,

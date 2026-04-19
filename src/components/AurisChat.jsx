@@ -88,13 +88,25 @@ export default function AurisChat({ user, isOpen, onClose, userConfig, habits, n
 
       console.log("Connecting to target:", targetUid);
 
-      // 2. Fetch peer's display name - Use a more direct profile lookup
-      const peerProfileRef = doc(db, "users", targetUid, "settings", "profile");
-      const peerProfileSnap = await getDoc(peerProfileRef);
+      // 2. Fetch peer's display name - Try root doc then settings/profile
       let name = "Peer User";
-      if (peerProfileSnap.exists()) {
-        const data = peerProfileSnap.data();
-        name = data.name || data.displayName || "Peer User";
+      try {
+        const rootRef = doc(db, "users", targetUid);
+        const rootSnap = await getDoc(rootRef);
+        if (rootSnap.exists()) {
+          name = rootSnap.data().displayName || rootSnap.data().name || "Peer User";
+        } else {
+          // Fallback to settings/profile
+          const peerProfileRef = doc(db, "users", targetUid, "settings", "profile");
+          const peerProfileSnap = await getDoc(peerProfileRef);
+          if (peerProfileSnap.exists()) {
+            const data = peerProfileSnap.data();
+            name = data.name || data.displayName || "Peer User";
+          }
+        }
+      } catch (profileErr) {
+        console.warn("Could not fetch peer profile name:", profileErr);
+        // We still continue as connection is valid
       }
 
       setPeerId(targetUid);
@@ -132,20 +144,25 @@ export default function AurisChat({ user, isOpen, onClose, userConfig, habits, n
   useEffect(() => {
     if (!user || !peerId || !isOpen) return;
 
+    const convId = user.uid < peerId ? `${user.uid}_${peerId}` : `${peerId}_${user.uid}`;
     const q = query(
       collection(db, "titum_connect_messages"),
-      where("conversationId", "in", [`${user.uid}_${peerId}`, `${peerId}_${user.uid}`]),
-      orderBy("timestamp", "asc"),
-      limit(50)
+      where("conversationId", "==", convId)
     );
 
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const messagesData = snapshot.docs.map(msgDoc => ({
         id: msgDoc.id,
         ...msgDoc.data(),
-        role: msgDoc.data().from === user.uid ? 'user' : 'assistant' // Use assistant role for peer to match styling
-      }));
-      setPeerMessages(messagesData);
+        role: msgDoc.data().from === user.uid ? 'user' : 'assistant'
+      })).sort((a, b) => {
+        const timeA = a.timestamp?.toMillis ? a.timestamp.toMillis() : 0;
+        const timeB = b.timestamp?.toMillis ? b.timestamp.toMillis() : 0;
+        return timeA - timeB;
+      });
+      setPeerMessages(messagesData.slice(-50)); // Keep only last 50
+    }, (err) => {
+      console.error("Messages listener error:", err);
     });
 
     return () => unsubscribe();
