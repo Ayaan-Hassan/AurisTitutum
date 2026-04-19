@@ -70,7 +70,9 @@ import {
     Loader2,
     Hash,
     Maximize2,
-    Users
+    Users,
+    Share2,
+    Copy
 } from 'lucide-react';
 
 
@@ -88,6 +90,8 @@ const Icon = ({ name, size = 18, className = "" }) => {
         'x': X,
         'user': User,
         'users': Users,
+        'share-2': Share2,
+        'copy': Copy,
         'info': Info,
         'brain': Brain,
         'sparkles': Sparkles,

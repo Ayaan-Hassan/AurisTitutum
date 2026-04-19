@@ -161,6 +161,89 @@ const Settings = ({
 
       <section>
         <h2 className="text-2xl font-bold tracking-tighter mb-6 text-text-primary">
+          Titum Connect
+        </h2>
+        <Card className="p-8 space-y-6 hover:translate-y-0 hover:shadow-none hover:border-border-color">
+          <div className="flex items-center gap-2 mb-2">
+            <Icon name="share-2" size={16} className="text-accent" />
+            <h3 className="text-sm font-bold uppercase tracking-widest text-text-primary">
+              Secret Connection Code
+            </h3>
+          </div>
+          <p className="text-xs text-text-secondary">
+            Share this unique code with another user to connect your Titum AI chats. This allows for direct peer-to-peer behavioral coaching and accountability.
+          </p>
+          <div className="flex flex-col sm:flex-row items-center gap-4">
+            <div className="w-full sm:flex-1 bg-bg-main border border-border-color rounded-xl px-4 py-3 flex items-center justify-between group">
+              <span className="font-mono text-lg font-bold tracking-widest text-accent uppercase">
+                {userConfig.secretCode || "••••••••"}
+              </span>
+              {userConfig.secretCode && (
+                <button 
+                  onClick={() => {
+                    navigator.clipboard.writeText(userConfig.secretCode);
+                    const toastEvent = new CustomEvent("showToast", {
+                      detail: { message: "Code copied to clipboard!", type: "success" },
+                    });
+                    document.dispatchEvent(toastEvent);
+                  }}
+                  className="p-1.5 rounded-lg hover:bg-accent/10 text-text-secondary hover:text-accent transition-colors"
+                  title="Copy Code"
+                >
+                  <Icon name="copy" size={14} />
+                </button>
+              )}
+            </div>
+            <Button
+              onClick={async () => {
+                if (!user) {
+                  const toastEvent = new CustomEvent("showToast", {
+                    detail: { message: "Sign in to generate a secret code.", type: "warning" },
+                  });
+                  document.dispatchEvent(toastEvent);
+                  return;
+                }
+                const newCode = Math.random().toString(36).substring(2, 10).toUpperCase();
+                
+                // We need to import db and doc, setDoc from firebase
+                // But it's better to do this through a context function
+                try {
+                  const { db } = await import("../firebase.config");
+                  const { doc, setDoc, getDoc } = await import("firebase/firestore");
+                  
+                  // 1. Check if the code is already taken (unlikely but safe)
+                  const codeRef = doc(db, "secret_codes", newCode);
+                  const codeSnap = await getDoc(codeRef);
+                  if (codeSnap.exists()) {
+                    // Try once more if collision
+                    return; 
+                  }
+
+                  // 2. Map code to user
+                  await setDoc(codeRef, { uid: user.uid, createdAt: new Date().toISOString() });
+                  
+                  // 3. Update user config
+                  await setUserConfig(prev => ({ ...prev, secretCode: newCode }));
+                  
+                  const toastEvent = new CustomEvent("showToast", {
+                    detail: { message: "Secret code generated successfully!", type: "success" },
+                  });
+                  document.dispatchEvent(toastEvent);
+                } catch (err) {
+                  console.error("Failed to generate code:", err);
+                }
+              }}
+              variant="outline"
+              className="bg-bg-main w-full sm:w-auto"
+            >
+              {userConfig.secretCode ? "Regenerate Code" : "Generate Code"}
+            </Button>
+          </div>
+        </Card>
+      </section>
+
+      <section>
+        <h2 className="text-2xl font-bold tracking-tighter mb-6 text-text-primary">
           System Parameters
         </h2>
 

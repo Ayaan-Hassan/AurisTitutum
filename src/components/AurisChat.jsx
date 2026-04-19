@@ -1,20 +1,122 @@
 import { useState, useRef, useEffect } from 'react';
 import Icon from './Icon';
+import { db } from '../firebase.config';
+import { collection, addDoc, query, where, onSnapshot, serverTimestamp, getDoc, doc, getDocs, orderBy, limit } from 'firebase/firestore';
 
-export default function AurisChat({ isOpen, onClose, userConfig, habits, notes, reminders, notifications }) {
+export default function AurisChat({ user, isOpen, onClose, userConfig, habits, notes, reminders, notifications }) {
   const [messages, setMessages] = useState([
     { role: 'assistant', content: 'System initialized. I am Titum AI, your behavioral analyst and execution coach. Let\'s review your data.' }
   ]);
+  const [peerMessages, setPeerMessages] = useState([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [peerId, setPeerId] = useState(null);
+  const [peerName, setPeerName] = useState('');
+  const [showConnectModal, setShowConnectModal] = useState(false);
+  const [peerCodeInput, setPeerCodeInput] = useState('');
+  const [isConnecting, setIsConnecting] = useState(false);
   const messagesEndRefDesktop = useRef(null);
   const messagesEndRefMobile = useRef(null);
 
   const handleClearChat = () => {
-    setMessages([
-      { role: 'assistant', content: 'System initialized. I am Titum AI, your behavioral analyst and execution coach. Let\'s review your data.' }
-    ]);
+    if (peerId) {
+      setPeerMessages([]);
+    } else {
+      setMessages([
+        { role: 'assistant', content: 'System initialized. I am Titum AI, your behavioral analyst and execution coach. Let\'s review your data.' }
+      ]);
+    }
   };
+
+  const handleExitPeerChat = () => {
+    setPeerId(null);
+    setPeerName('');
+    setPeerMessages([]);
+  };
+
+  const handleConnectPeer = async () => {
+    if (!user) {
+      const toastEvent = new CustomEvent("showToast", {
+        detail: { message: "Sign in to connect with others.", type: "warning" },
+      });
+      document.dispatchEvent(toastEvent);
+      return;
+    }
+    if (!peerCodeInput.trim()) return;
+
+    setIsConnecting(true);
+    try {
+      // 1. Find user ID by code
+      const codeRef = doc(db, "secret_codes", peerCodeInput.trim().toUpperCase());
+      const codeSnap = await getDoc(codeRef);
+
+      if (!codeSnap.exists()) {
+        const toastEvent = new CustomEvent("showToast", {
+          detail: { message: "Invalid secret code. Please check and try again.", type: "error" },
+        });
+        document.dispatchEvent(toastEvent);
+        setIsConnecting(false);
+        return;
+      }
+
+      const targetUid = codeSnap.data().uid;
+      if (targetUid === user.uid) {
+        const toastEvent = new CustomEvent("showToast", {
+          detail: { message: "You cannot connect with yourself.", type: "warning" },
+        });
+        document.dispatchEvent(toastEvent);
+        setIsConnecting(false);
+        return;
+      }
+
+      // 2. Fetch peer's display name
+      const peerProfileRef = doc(db, "users", targetUid, "settings", "profile");
+      const peerProfileSnap = await getDoc(peerProfileRef);
+      const name = peerProfileSnap.exists() ? (peerProfileSnap.data().name || "Unknown") : "Peer User";
+
+      setPeerId(targetUid);
+      setPeerName(name);
+      setShowConnectModal(false);
+      setPeerCodeInput('');
+      
+      const toastEvent = new CustomEvent("showToast", {
+        detail: { message: `Connected to ${name} successfully!`, type: "success" },
+      });
+      document.dispatchEvent(toastEvent);
+
+    } catch (err) {
+      console.error("Connection error:", err);
+      const toastEvent = new CustomEvent("showToast", {
+        detail: { message: "An error occurred while connecting.", type: "error" },
+      });
+      document.dispatchEvent(toastEvent);
+    } finally {
+      setIsConnecting(false);
+    }
+  };
+
+  // Real-time listener for peer messages
+  useEffect(() => {
+    if (!user || !peerId || !isOpen) return;
+
+    const q = query(
+      collection(db, "titum_connect_messages"),
+      where("conversationId", "in", [`${user.uid}_${peerId}`, `${peerId}_${user.uid}`]),
+      orderBy("timestamp", "asc"),
+      limit(50)
+    );
+
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const messagesData = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data(),
+        role: doc.data().from === user.uid ? 'user' : 'assistant' // Use assistant role for peer to match styling
+      }));
+      setPeerMessages(messagesData);
+    });
+
+    return () => unsubscribe();
+  }, [user, peerId, isOpen]);
 
   useEffect(() => {
     if (messagesEndRefDesktop.current) {
@@ -52,6 +154,23 @@ export default function AurisChat({ isOpen, onClose, userConfig, habits, notes, 
   const handleSend = async () => {
     if (!input.trim() || isLoading) return;
     
+    if (peerId) {
+      const msg = input.trim();
+      setInput('');
+      try {
+        await addDoc(collection(db, "titum_connect_messages"), {
+          from: user.uid,
+          to: peerId,
+          content: msg,
+          timestamp: serverTimestamp(),
+          conversationId: user.uid < peerId ? `${user.uid}_${peerId}` : `${peerId}_${user.uid}`
+        });
+      } catch (err) {
+        console.error("Error sending peer message:", err);
+      }
+      return;
+    }
+
     const userMessage = { role: 'user', content: input.trim() };
     const newMessages = [...messages, userMessage];
     setMessages(newMessages);
@@ -276,10 +395,13 @@ Rule: **No phone after 11.**`;
     });
   };
 
-  const renderChatContent = (isMobile) => (
+  const renderChatContent = (isMobile) => {
+    const activeMessages = peerId ? peerMessages : messages;
+    
+    return (
     <>
       <div className="flex-1 overflow-y-auto p-4 sm:p-5 space-y-4 custom-scrollbar">
-        {messages.map((msg, index) => (
+        {activeMessages.map((msg, index) => (
           <div key={index} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
             <div 
               className={`max-w-[85%] rounded-2xl p-3 sm:p-4 text-xs sm:text-sm leading-relaxed shadow-sm transition-all ${
@@ -288,13 +410,15 @@ Rule: **No phone after 11.**`;
                   : 'bg-bg-main border border-border-color text-text-primary rounded-tl-sm animate-in fade-in slide-in-from-left-2 zoom-in-95 duration-500'
               }`}
             >
-              {msg.role === 'assistant' && (
+              {(msg.role === 'assistant' || (peerId && msg.from !== user?.uid)) && (
                 <div className="flex items-center gap-1.5 mb-2 opacity-80">
-                  <Icon name="brain" size={12} className="text-accent" />
-                  <span className="text-[10px] font-bold tracking-wider uppercase font-mono">Titum AI</span>
+                  <Icon name={peerId ? "user" : "brain"} size={12} className="text-accent" />
+                  <span className="text-[10px] font-bold tracking-wider uppercase font-mono">
+                    {peerId ? (msg.from === user?.uid ? "You" : peerName) : "Titum AI"}
+                  </span>
                 </div>
               )}
-              <div className="whitespace-pre-wrap">{msg.role === 'assistant' ? renderFormattedText(msg.content) : msg.content}</div>
+              <div className="whitespace-pre-wrap">{msg.role === 'assistant' && !peerId ? renderFormattedText(msg.content) : msg.content}</div>
             </div>
           </div>
         ))}
@@ -316,7 +440,7 @@ Rule: **No phone after 11.**`;
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder="Ask Titum AI..."
+            placeholder={peerId ? `Message ${peerName}...` : "Ask Titum AI..."}
             className="w-full bg-bg-main border border-border-color rounded-xl py-3 px-4 text-sm text-text-primary placeholder:text-text-secondary focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent resize-none min-h-[44px] max-h-32 custom-scrollbar"
             rows={1}
             style={{
@@ -355,14 +479,32 @@ Rule: **No phone after 11.**`;
         <div className="flex items-center justify-between p-4 border-b border-border-color shrink-0">
           <div className="flex items-center gap-2">
             <div className="w-9 h-9 rounded-lg bg-accent/20 flex items-center justify-center">
-              <Icon name="brain" size={18} className="text-accent" />
+              <Icon name={peerId ? "users" : "brain"} size={18} className="text-accent" />
             </div>
             <div>
-              <h2 className="font-bold text-text-primary">Titum AI</h2>
-              <p className="text-[10px] text-success uppercase tracking-wider font-mono">Online</p>
+              <h2 className="font-bold text-text-primary leading-tight">{peerId ? peerName : "Titum AI"}</h2>
+              <p className="text-[10px] text-success uppercase tracking-wider font-mono">{peerId ? "Connected" : "Online"}</p>
             </div>
           </div>
           <div className="flex items-center gap-2">
+            {peerId ? (
+              <button 
+                onClick={handleExitPeerChat}
+                title="Exit Chat"
+                className="px-3 h-9 rounded-lg border border-border-color flex items-center justify-center text-[10px] uppercase font-black tracking-widest text-text-secondary hover:text-red-500 hover:bg-red-500/10 transition-all gap-2"
+              >
+                <Icon name="log-out" size={14} />
+                Exit
+              </button>
+            ) : (
+              <button 
+                onClick={() => setShowConnectModal(true)} 
+                title="Connect with Peer"
+                className="w-9 h-9 rounded-lg border border-border-color flex items-center justify-center text-text-secondary hover:text-accent hover:bg-accent/10 transition-colors"
+              >
+                <Icon name="share-2" size={14} />
+              </button>
+            )}
             <button 
               onClick={handleClearChat} 
               title="New Chat"
@@ -388,14 +530,32 @@ Rule: **No phone after 11.**`;
           <div className="flex items-center justify-between p-4 border-b border-border-color shrink-0">
             <div className="flex items-center gap-2">
               <div className="w-8 h-8 rounded-lg bg-accent/20 flex items-center justify-center">
-                <Icon name="brain" size={16} className="text-accent" />
+                <Icon name={peerId ? "users" : "brain"} size={16} className="text-accent" />
               </div>
               <div>
-                <h2 className="text-sm font-bold text-text-primary">Titum AI</h2>
-                <p className="text-[9px] text-success uppercase tracking-wider font-mono">Online</p>
+                <h2 className="text-sm font-bold text-text-primary leading-tight">{peerId ? peerName : "Titum AI"}</h2>
+                <p className="text-[9px] text-success uppercase tracking-wider font-mono">{peerId ? "Connected" : "Online"}</p>
               </div>
             </div>
             <div className="flex items-center gap-2">
+              {peerId ? (
+                <button 
+                  onClick={handleExitPeerChat}
+                  title="Exit Chat"
+                  className="px-2 h-8 rounded-lg border border-border-color flex items-center justify-center text-[9px] uppercase font-black tracking-widest text-text-secondary hover:text-red-500 transition-all gap-1.5"
+                >
+                  <Icon name="log-out" size={12} />
+                  Exit
+                </button>
+              ) : (
+                <button 
+                  onClick={() => setShowConnectModal(true)} 
+                  title="Connect with Peer"
+                  className="w-8 h-8 rounded-lg border border-border-color flex items-center justify-center text-text-secondary hover:text-accent hover:bg-accent/10 transition-colors"
+                >
+                  <Icon name="share-2" size={12} />
+                </button>
+              )}
               <button 
                 onClick={handleClearChat} 
                 title="New Chat"
@@ -412,6 +572,53 @@ Rule: **No phone after 11.**`;
           {renderChatContent(true)}
         </div>
       </div>
+      {/* Connect Modal */}
+      {showConnectModal && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 transition-all">
+          <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" onClick={() => setShowConnectModal(false)} />
+          <div className="relative w-full max-w-sm bg-bg-main border border-border-color rounded-2xl p-6 shadow-2xl animate-in zoom-in-95 duration-200">
+            <h3 className="text-lg font-bold text-text-primary mb-2">Connect to Peer</h3>
+            <p className="text-xs text-text-secondary mb-6 leading-relaxed">
+              Enter the unique secret code from another user's settings to connect your Titum AI chats.
+            </p>
+            
+            <div className="space-y-4">
+              <div>
+                <label className="block text-[10px] font-black text-text-secondary uppercase tracking-[0.2em] mb-2 font-mono">
+                  Enter Secret Code
+                </label>
+                <input
+                  type="text"
+                  value={peerCodeInput}
+                  onChange={(e) => setPeerCodeInput(e.target.value.toUpperCase())}
+                  placeholder="EX: A1B2C3D4"
+                  className="w-full bg-bg-sidebar border border-border-color rounded-xl py-3 px-4 text-center font-mono text-lg font-bold tracking-[0.3em] text-accent focus:outline-none focus:border-accent transition-all uppercase"
+                  autoFocus
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') handleConnectPeer();
+                  }}
+                />
+              </div>
+              
+              <div className="flex gap-3 pt-2">
+                <button 
+                  onClick={() => setShowConnectModal(false)}
+                  className="flex-1 px-4 py-3 rounded-xl border border-border-color text-[11px] font-bold uppercase tracking-widest text-text-secondary hover:bg-accent-dim transition-all"
+                >
+                  Cancel
+                </button>
+                <button 
+                  onClick={handleConnectPeer}
+                  disabled={!peerCodeInput.trim() || isConnecting}
+                  className="flex-1 px-4 py-3 rounded-xl bg-accent text-bg-main text-[11px] font-bold uppercase tracking-widest hover:opacity-90 transition-all disabled:opacity-50"
+                >
+                  {isConnecting ? "Connecting..." : "Connect"}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 }

@@ -443,7 +443,7 @@ const Layout = ({
         )}
       </main>
 
-      <AurisChat isOpen={aurisOpen} onClose={() => setAurisOpen(false)} userConfig={userConfig} habits={habits} notes={notes} reminders={reminders} notifications={notifications} />
+      <AurisChat user={user} isOpen={aurisOpen} onClose={() => setAurisOpen(false)} userConfig={userConfig} habits={habits} notes={notes} reminders={reminders} notifications={notifications} />
     </div>
   );
 };
