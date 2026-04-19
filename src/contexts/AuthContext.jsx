@@ -238,6 +238,50 @@ export const AuthProvider = ({ children }) => {
     return map;
   }, [settingsDocs]);
 
+  const [peerMessages, setPeerMessages] = useState([]);
+
+  // Global Listener for Titum Connect Peer Messages
+  useEffect(() => {
+    if (!user?.uid) {
+      setPeerMessages([]);
+      return;
+    }
+
+    const q = query(
+      collection(db, "titum_connect_messages"),
+      where("participants", "array-contains", user.uid),
+      orderBy("timestamp", "asc")
+    );
+
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const messages = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      }));
+      
+      // Auto-Handshake Detection
+      if (messages.length > 0) {
+        const lastMsg = messages[messages.length - 1];
+        if (lastMsg.from !== user?.uid && lastMsg.from !== userConfig?.connectedPeerId) {
+          // If message is newer than 30 seconds (to avoid old message notifications)
+          const isRecent = lastMsg.timestamp && (Date.now() - lastMsg.timestamp.toMillis() < 30000);
+          if (isRecent) {
+            const toastEvent = new CustomEvent("showToast", {
+              detail: { message: "New Titum Connect message received! Check your AI chat.", type: "info" },
+            });
+            document.dispatchEvent(toastEvent);
+          }
+        }
+      }
+      
+      setPeerMessages(messages);
+    }, (err) => {
+      console.error("Global Peer Listener Error:", err);
+    });
+
+    return () => unsubscribe();
+  }, [user?.uid]);
+
   const userConfig = useMemo(() => {
     const profile = settingsMap.profile || {};
     return mergeUserIdentityIntoConfig(normalizeUserConfig(profile), user);
@@ -922,6 +966,7 @@ export const AuthProvider = ({ children }) => {
     replaceNotesState,
     replaceRemindersState,
     updateUserConfig,
+    peerMessages,
 
     addHabit,
     updateHabit,

@@ -5,7 +5,7 @@ import { db } from '../firebase.config';
 import { collection, addDoc, query, where, onSnapshot, serverTimestamp, getDoc, doc, getDocs, orderBy, limit } from 'firebase/firestore';
 
 export default function AurisChat({ user, isOpen, onClose, userConfig, habits, notes, reminders, notifications }) {
-  const { updateUserConfig } = useAuth();
+  const { updateUserConfig, peerMessages: globalPeerMessages } = useAuth();
   const [messages, setMessages] = useState([
     { role: 'assistant', content: 'System initialized. I am Titum AI, your behavioral analyst and execution coach. Let\'s review your data.' }
   ]);
@@ -16,9 +16,25 @@ export default function AurisChat({ user, isOpen, onClose, userConfig, habits, n
   const [peerName, setPeerName] = useState('');
   const [showConnectModal, setShowConnectModal] = useState(false);
   const [peerCodeInput, setPeerCodeInput] = useState('');
-  const [isConnecting, setIsConnecting] = useState(false);
+  const [isConnecting, setIsLoadingLocal] = useState(false); // rename to avoid conflict
   const messagesEndRefDesktop = useRef(null);
   const messagesEndRefMobile = useRef(null);
+
+  // Sync peerMessages from global state
+  useEffect(() => {
+    if (peerId) {
+      const convId = user.uid < peerId ? `${user.uid}_${peerId}` : `${peerId}_${user.uid}`;
+      const filtered = globalPeerMessages
+        .filter(m => m.conversationId === convId)
+        .map(m => ({
+          ...m,
+          role: m.from === user.uid ? 'user' : 'assistant'
+        }));
+      setPeerMessages(filtered);
+    } else {
+      setPeerMessages([]);
+    }
+  }, [globalPeerMessages, peerId, user?.uid]);
 
   const handleClearChat = () => {
     if (peerId) {
@@ -61,7 +77,7 @@ export default function AurisChat({ user, isOpen, onClose, userConfig, habits, n
     }
     if (!peerCodeInput.trim()) return;
 
-    setIsConnecting(true);
+    setIsLoadingLocal(true);
     try {
       // 1. Find user ID by code
       const codeRef = doc(db, "secret_codes", peerCodeInput.trim().toUpperCase());
@@ -72,7 +88,7 @@ export default function AurisChat({ user, isOpen, onClose, userConfig, habits, n
           detail: { message: "Invalid secret code. Please check and try again.", type: "error" },
         });
         document.dispatchEvent(toastEvent);
-        setIsConnecting(false);
+        setIsLoadingLocal(false);
         return;
       }
 
@@ -82,13 +98,11 @@ export default function AurisChat({ user, isOpen, onClose, userConfig, habits, n
           detail: { message: "You cannot connect with yourself.", type: "warning" },
         });
         document.dispatchEvent(toastEvent);
-        setIsConnecting(false);
+        setIsLoadingLocal(false);
         return;
       }
 
-      console.log("Connecting to target:", targetUid);
-
-      // 2. Fetch peer's display name - Try root doc then settings/profile
+      // 2. Fetch peer's display name
       let name = "Peer User";
       try {
         const rootRef = doc(db, "users", targetUid);
@@ -96,7 +110,6 @@ export default function AurisChat({ user, isOpen, onClose, userConfig, habits, n
         if (rootSnap.exists()) {
           name = rootSnap.data().displayName || rootSnap.data().name || "Peer User";
         } else {
-          // Fallback to settings/profile
           const peerProfileRef = doc(db, "users", targetUid, "settings", "profile");
           const peerProfileSnap = await getDoc(peerProfileRef);
           if (peerProfileSnap.exists()) {
@@ -106,7 +119,6 @@ export default function AurisChat({ user, isOpen, onClose, userConfig, habits, n
         }
       } catch (profileErr) {
         console.warn("Could not fetch peer profile name:", profileErr);
-        // We still continue as connection is valid
       }
 
       setPeerId(targetUid);
@@ -136,41 +148,10 @@ export default function AurisChat({ user, isOpen, onClose, userConfig, habits, n
       });
       document.dispatchEvent(toastEvent);
     } finally {
-      setIsConnecting(false);
+      setIsLoadingLocal(false);
     }
   };
 
-  // Real-time listener for peer messages
-  useEffect(() => {
-    if (!user || !peerId || !isOpen) return;
-
-    const convId = user.uid < peerId ? `${user.uid}_${peerId}` : `${peerId}_${user.uid}`;
-    const q = query(
-      collection(db, "titum_connect_messages"),
-      where("conversationId", "==", convId),
-      where("participants", "array-contains", user.uid)
-    );
-
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const messagesData = snapshot.docs.map(msgDoc => ({
-        id: msgDoc.id,
-        ...msgDoc.data(),
-        role: msgDoc.data().from === user.uid ? 'user' : 'assistant'
-      })).sort((a, b) => {
-        // Handle pending timestamps (null/undefined) by pushing them to the end (most recent)
-        const timeA = a.timestamp?.toMillis ? a.timestamp.toMillis() : Date.now();
-        const timeB = b.timestamp?.toMillis ? b.timestamp.toMillis() : Date.now();
-        return timeA - timeB;
-      });
-      setPeerMessages(messagesData.slice(-50));
-    }, (err) => {
-      console.error("Messages listener error:", err);
-    });
-
-    return () => unsubscribe();
-  }, [user, peerId, isOpen]);
-
-  // Handle persistence of peer connection from userConfig
   useEffect(() => {
     if (userConfig?.connectedPeerId && userConfig.connectedPeerId !== peerId) {
       setPeerId(userConfig.connectedPeerId);
