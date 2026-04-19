@@ -147,7 +147,8 @@ export default function AurisChat({ user, isOpen, onClose, userConfig, habits, n
     const convId = user.uid < peerId ? `${user.uid}_${peerId}` : `${peerId}_${user.uid}`;
     const q = query(
       collection(db, "titum_connect_messages"),
-      where("conversationId", "==", convId)
+      where("conversationId", "==", convId),
+      where("participants", "array-contains", user.uid)
     );
 
     const unsubscribe = onSnapshot(q, (snapshot) => {
@@ -217,18 +218,38 @@ export default function AurisChat({ user, isOpen, onClose, userConfig, habits, n
     if (!input.trim() || isLoading) return;
     
     if (peerId) {
-      const msg = input.trim();
+      const msgText = input.trim();
       setInput('');
+      
+      const optimisticMsg = {
+        id: 'temp-' + Date.now(),
+        content: msgText,
+        from: user.uid,
+        to: peerId,
+        participants: [user.uid, peerId],
+        role: 'user',
+        timestamp: null // Will be handled by sorting logic
+      };
+
+      setPeerMessages(prev => [...prev, optimisticMsg]);
+      
       try {
         await addDoc(collection(db, "titum_connect_messages"), {
           from: user.uid,
           to: peerId,
-          content: msg,
+          participants: [user.uid, peerId],
+          content: msgText,
           timestamp: serverTimestamp(),
           conversationId: user.uid < peerId ? `${user.uid}_${peerId}` : `${peerId}_${user.uid}`
         });
       } catch (err) {
         console.error("Error sending peer message:", err);
+        // Error handling: remove optimistic message or show error
+        setPeerMessages(prev => prev.filter(m => m.id !== optimisticMsg.id));
+        const toastEvent = new CustomEvent("showToast", {
+          detail: { message: "Failed to send message. Please check your connection.", type: "error" },
+        });
+        document.dispatchEvent(toastEvent);
       }
       return;
     }
