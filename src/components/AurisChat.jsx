@@ -1,9 +1,11 @@
 import { useState, useRef, useEffect } from 'react';
 import Icon from './Icon';
+import { useAuth } from '../contexts/AuthContext';
 import { db } from '../firebase.config';
 import { collection, addDoc, query, where, onSnapshot, serverTimestamp, getDoc, doc, getDocs, orderBy, limit } from 'firebase/firestore';
 
 export default function AurisChat({ user, isOpen, onClose, userConfig, habits, notes, reminders, notifications }) {
+  const { updateUserConfig } = useAuth();
   const [messages, setMessages] = useState([
     { role: 'assistant', content: 'System initialized. I am Titum AI, your behavioral analyst and execution coach. Let\'s review your data.' }
   ]);
@@ -28,10 +30,25 @@ export default function AurisChat({ user, isOpen, onClose, userConfig, habits, n
     }
   };
 
-  const handleExitPeerChat = () => {
+  const handleExitPeerChat = async () => {
     setPeerId(null);
     setPeerName('');
     setPeerMessages([]);
+    
+    // Persist disconnection to Firestore
+    try {
+      await updateUserConfig({
+        connectedPeerId: null,
+        connectedPeerName: ''
+      });
+      
+      const toastEvent = new CustomEvent("showToast", {
+        detail: { message: "Disconnected from peer chat.", type: "info" },
+      });
+      document.dispatchEvent(toastEvent);
+    } catch (err) {
+      console.error("Failed to persist disconnection:", err);
+    }
   };
 
   const handleConnectPeer = async () => {
@@ -78,11 +95,21 @@ export default function AurisChat({ user, isOpen, onClose, userConfig, habits, n
       setPeerName(name);
       setShowConnectModal(false);
       setPeerCodeInput('');
-      
-      const toastEvent = new CustomEvent("showToast", {
-        detail: { message: `Connected to ${name} successfully!`, type: "success" },
-      });
-      document.dispatchEvent(toastEvent);
+
+      // Persist connection state to Firestore
+      try {
+        await updateUserConfig({
+          connectedPeerId: targetUid,
+          connectedPeerName: name
+        });
+        
+        const toastEvent = new CustomEvent("showToast", {
+          detail: { message: `Connected to ${name} successfully!`, type: "success" },
+        });
+        document.dispatchEvent(toastEvent);
+      } catch (err) {
+        console.error("Failed to persist connection:", err);
+      }
 
     } catch (err) {
       console.error("Connection error:", err);
@@ -117,6 +144,14 @@ export default function AurisChat({ user, isOpen, onClose, userConfig, habits, n
 
     return () => unsubscribe();
   }, [user, peerId, isOpen]);
+
+  // Handle persistence of peer connection from userConfig
+  useEffect(() => {
+    if (userConfig?.connectedPeerId !== peerId) {
+      setPeerId(userConfig.connectedPeerId || null);
+      setPeerName(userConfig.connectedPeerName || '');
+    }
+  }, [userConfig?.connectedPeerId, userConfig?.connectedPeerName]);
 
   useEffect(() => {
     if (messagesEndRefDesktop.current) {
