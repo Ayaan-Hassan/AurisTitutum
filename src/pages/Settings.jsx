@@ -195,7 +195,8 @@ const Settings = ({
                   <Icon name="copy" size={14} />
                 </button>
               )}
-                {!userConfig.secretCode && (
+            </div>
+            {!userConfig.secretCode && (
               <Button
                 onClick={async () => {
                   if (!user) {
