@@ -86,10 +86,16 @@ export default function AurisChat({ user, isOpen, onClose, userConfig, habits, n
         return;
       }
 
-      // 2. Fetch peer's display name
+      console.log("Connecting to target:", targetUid);
+
+      // 2. Fetch peer's display name - Use a more direct profile lookup
       const peerProfileRef = doc(db, "users", targetUid, "settings", "profile");
       const peerProfileSnap = await getDoc(peerProfileRef);
-      const name = peerProfileSnap.exists() ? (peerProfileSnap.data().name || "Unknown") : "Peer User";
+      let name = "Peer User";
+      if (peerProfileSnap.exists()) {
+        const data = peerProfileSnap.data();
+        name = data.name || data.displayName || "Peer User";
+      }
 
       setPeerId(targetUid);
       setPeerName(name);

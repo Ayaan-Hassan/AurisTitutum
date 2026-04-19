@@ -807,12 +807,18 @@ export const AuthProvider = ({ children }) => {
 
   const updateUserConfig = async (updater) => {
     if (!user?.uid) return;
-    const nextConfig =
-      typeof updater === "function" ? updater(userConfig) : updater || userConfig;
+    
+    const nextConfig = typeof updater === "function" 
+      ? updater(userConfig) 
+      : { ...userConfig, ...updater };
+      
+    // Filter out internal fields that shouldn't be saved to Firestore directly
+    const { updater: _, ...cleanConfig } = nextConfig;
+
     return queueWrite(() => upsertUserSetting(
       user.uid,
       "profile",
-      mergeUserIdentityIntoConfig(normalizeUserConfig(nextConfig), user),
+      mergeUserIdentityIntoConfig(normalizeUserConfig(cleanConfig), user),
       true,
     ));
   };
