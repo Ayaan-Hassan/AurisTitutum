@@ -4,7 +4,7 @@ import { useTheme } from "./ThemeProvider";
 import { useAuth } from "../contexts/AuthContext";
 
 const Sidebar = ({ userConfig, onOpenAuris }) => {
-  const { user } = useAuth();
+  const { user, unreadPeerCount } = useAuth();
   const location = useLocation();
   const { theme, setTheme } = useTheme();
   const path = location.pathname;
@@ -70,10 +70,20 @@ const Sidebar = ({ userConfig, onOpenAuris }) => {
               type="button"
               id="tour-nav-ai-desktop-sidebar"
               onClick={() => onOpenAuris?.()}
-              className="sidebar-item w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium transition-all text-text-secondary hover:text-text-primary hover:bg-accent-dim"
+              className="sidebar-item w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium transition-all text-text-secondary hover:text-text-primary hover:bg-accent-dim relative"
             >
-              <Icon name="brain" size={16} />
+              <div className="relative">
+                <Icon name="brain" size={16} />
+                {unreadPeerCount > 0 && (
+                  <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-success rounded-full border-2 border-bg-sidebar shadow-[0_0_8px_rgba(34,197,94,0.6)]" />
+                )}
+              </div>
               Titum AI
+              {unreadPeerCount > 0 && (
+                <span className="ml-auto bg-success/20 text-success text-[9px] font-bold px-1.5 py-0.5 rounded-full">
+                  {unreadPeerCount}
+                </span>
+              )}
             </button>
 
             <Link

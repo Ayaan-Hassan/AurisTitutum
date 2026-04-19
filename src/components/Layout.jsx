@@ -20,7 +20,7 @@ const Layout = ({
 }) => {
   const location = useLocation();
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, unreadPeerCount } = useAuth();
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [aurisOpen, setAurisOpen] = useState(false);
@@ -306,10 +306,17 @@ const Layout = ({
                     setMobileNavOpen(false);
                     setAurisOpen(true);
                   }}
-                  className="sidebar-item w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-all text-text-secondary hover:text-text-primary hover:bg-accent-dim"
+                  className="sidebar-item w-full flex items-center justify-between px-4 py-3 rounded-lg text-sm font-medium transition-all text-text-secondary hover:text-text-primary hover:bg-accent-dim"
                 >
-                  <Icon name="brain" size={16} />
-                  Titum AI
+                  <div className="flex items-center gap-3">
+                    <Icon name="brain" size={16} />
+                    Titum AI
+                  </div>
+                  {unreadPeerCount > 0 && (
+                    <span className="bg-success text-bg-main text-[10px] font-bold h-5 min-w-[20px] px-1.5 rounded-full flex items-center justify-center">
+                      {unreadPeerCount}
+                    </span>
+                  )}
                 </button>
               </nav>
 

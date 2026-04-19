@@ -519,7 +519,7 @@ Rule: **No phone after 11.**`;
             <div className="max-w-[85%] rounded-2xl p-4 bg-bg-main border border-border-color text-text-primary rounded-tl-sm flex flex-col gap-2">
               <div className="flex items-center gap-2 mb-1">
                 <span className="text-[10px] font-black text-accent uppercase tracking-widest font-mono">
-                  {isWaitingForPeer ? `Waiting for ${peerName}...` : "Titum AI"}
+                  {isWaitingForPeer ? "BioBot has a huge memory; it may take time" : "BioBot"}
                 </span>
               </div>
               <div className="flex items-center gap-2">
