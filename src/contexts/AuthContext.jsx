@@ -246,6 +246,8 @@ export const AuthProvider = ({ children }) => {
   const [peerMessages, setPeerMessages] = useState([]);
   const [unreadPeerCount, setUnreadPeerCount] = useState(0);
 
+  const clearUnreadPeerCount = () => setUnreadPeerCount(0);
+
   // ... (rest of the provider logic)
 
   // Global Listener for Titum Connect Peer Messages
@@ -1012,7 +1014,8 @@ export const AuthProvider = ({ children }) => {
     uploadCooldown,
     triggerUploadCooldown,
     peerMessages,
-    unreadPeerCount
+    unreadPeerCount,
+    clearUnreadPeerCount
   };
 
   return (

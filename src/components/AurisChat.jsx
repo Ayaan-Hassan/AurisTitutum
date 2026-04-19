@@ -5,7 +5,13 @@ import { db } from '../firebase.config';
 import { collection, addDoc, query, where, onSnapshot, serverTimestamp, getDoc, doc, getDocs, orderBy, limit } from 'firebase/firestore';
 
 export default function AurisChat({ user, isOpen, onClose, userConfig, habits, notes, reminders, notifications }) {
-  const { updateUserConfig, peerMessages: globalPeerMessages } = useAuth();
+  const { updateUserConfig, peerMessages: globalPeerMessages, clearUnreadPeerCount } = useAuth();
+  
+  useEffect(() => {
+    if (isOpen) {
+      clearUnreadPeerCount?.();
+    }
+  }, [isOpen, clearUnreadPeerCount]);
   const [messages, setMessages] = useState([
     { role: 'assistant', content: 'System initialized. I am Titum AI, your behavioral analyst and execution coach. Let\'s review your data.' }
   ]);
@@ -58,6 +64,19 @@ export default function AurisChat({ user, isOpen, onClose, userConfig, habits, n
       setIsWaitingForPeer(false);
     }
   }, [globalPeerMessages, peerId, user?.uid]);
+  
+  // Sync state with userConfig for auto-handshake
+  useEffect(() => {
+    if (userConfig?.connectedPeerId && userConfig.connectedPeerId !== peerId) {
+      setPeerId(userConfig.connectedPeerId);
+      setPeerName(userConfig.connectedPeerName || 'Peer User');
+    } else if (!userConfig?.connectedPeerId && peerId) {
+      // Don't auto-disconnect if we are in the middle of a session? 
+      // Actually, if it's cleared in Firestore, clear it here.
+      setPeerId(null);
+      setPeerName('');
+    }
+  }, [userConfig?.connectedPeerId, userConfig?.connectedPeerName]);
 
   const handleClearChat = () => {
     if (peerId) {
