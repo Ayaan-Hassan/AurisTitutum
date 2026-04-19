@@ -20,6 +20,7 @@ export default function AurisChat({ user, isOpen, onClose, userConfig, habits, n
   const [isConnecting, setIsLoadingLocal] = useState(false);
   const messagesEndRefDesktop = useRef(null);
   const messagesEndRefMobile = useRef(null);
+  const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
 
   // Sync peerMessages from global state
   useEffect(() => {
