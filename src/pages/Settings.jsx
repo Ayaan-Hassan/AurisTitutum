@@ -178,7 +178,7 @@ const Settings = ({
           <div className="flex flex-col sm:flex-row items-center gap-4">
             <div className="w-full sm:flex-1 bg-bg-main border border-border-color rounded-xl px-4 py-3 flex items-center justify-between group">
               <span className="font-mono text-lg font-bold tracking-widest text-accent uppercase">
-                {userConfig.secretCode || "••••••••"}
+                {userConfig.secretCode || "NOT GENERATED"}
               </span>
               {userConfig.secretCode && (
                 <button 
@@ -195,52 +195,53 @@ const Settings = ({
                   <Icon name="copy" size={14} />
                 </button>
               )}
-            </div>
-            <Button
-              onClick={async () => {
-                if (!user) {
-                  const toastEvent = new CustomEvent("showToast", {
-                    detail: { message: "Sign in to generate a secret code.", type: "warning" },
-                  });
-                  document.dispatchEvent(toastEvent);
-                  return;
-                }
-                const newCode = Math.random().toString(36).substring(2, 10).toUpperCase();
-                
-                // 2. We use top-level imports instead of dynamic ones for stability
-                try {
-                  
-                  // 1. Check if the code is already taken (unlikely but safe)
-                  const codeRef = doc(db, "secret_codes", newCode);
-                  const codeSnap = await getDoc(codeRef);
-                  if (codeSnap.exists()) {
-                    // Try once more if collision
-                    return; 
+                {!userConfig.secretCode && (
+              <Button
+                onClick={async () => {
+                  if (!user) {
+                    const toastEvent = new CustomEvent("showToast", {
+                      detail: { message: "Sign in to generate a secret code.", type: "warning" },
+                    });
+                    document.dispatchEvent(toastEvent);
+                    return;
                   }
+                  const newCode = Math.random().toString(36).substring(2, 10).toUpperCase();
+                  
+                  // 2. We use top-level imports instead of dynamic ones for stability
+                  try {
+                    
+                    // 1. Check if the code is already taken (unlikely but safe)
+                    const codeRef = doc(db, "secret_codes", newCode);
+                    const codeSnap = await getDoc(codeRef);
+                    if (codeSnap.exists()) {
+                      // Try once more if collision
+                      return; 
+                    }
 
-                  // 2. Map code to user in global registry
-                  await setDoc(codeRef, { uid: user.uid, createdAt: new Date().toISOString() });
-                  
-                  // 3. Update user config with functional style for safety
-                  await setUserConfig(prev => ({ ...prev, secretCode: newCode }));
-                  
-                  const toastEvent = new CustomEvent("showToast", {
-                    detail: { message: "Secret code generated! Linked to your account.", type: "success" },
-                  });
-                  document.dispatchEvent(toastEvent);
-                } catch (err) {
-                  console.error("Failed to generate code:", err);
-                  const toastEvent = new CustomEvent("showToast", {
-                    detail: { message: `Error: ${err.message || 'Check connection'}`, type: "error" },
-                  });
-                  document.dispatchEvent(toastEvent);
-                }
-              }}
-              variant="outline"
-              className="bg-bg-main w-full sm:w-auto"
-            >
-              {userConfig.secretCode ? "Regenerate Code" : "Generate Code"}
-            </Button>
+                    // 2. Map code to user in global registry
+                    await setDoc(codeRef, { uid: user.uid, createdAt: new Date().toISOString() });
+                    
+                    // 3. Update user config with functional style for safety
+                    await setUserConfig(prev => ({ ...prev, secretCode: newCode }));
+                    
+                    const toastEvent = new CustomEvent("showToast", {
+                      detail: { message: "Secret code generated! Linked to your account permanently.", type: "success" },
+                    });
+                    document.dispatchEvent(toastEvent);
+                  } catch (err) {
+                    console.error("Failed to generate code:", err);
+                    const toastEvent = new CustomEvent("showToast", {
+                      detail: { message: `Error: ${err.message || 'Check connection'}`, type: "error" },
+                    });
+                    document.dispatchEvent(toastEvent);
+                  }
+                }}
+                variant="outline"
+                className="bg-bg-main w-full sm:w-auto"
+              >
+                Generate Fixed Code
+              </Button>
+            )}
           </div>
         </Card>
       </section>
