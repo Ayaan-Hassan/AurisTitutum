@@ -648,7 +648,7 @@ Rule: **No phone after 11.**`;
           <div className="relative w-full max-w-sm bg-bg-main border border-border-color rounded-2xl p-6 shadow-2xl animate-in zoom-in-95 duration-200">
             <h3 className="text-lg font-bold text-text-primary mb-2">Connect to Peer</h3>
             <p className="text-xs text-text-secondary mb-6 leading-relaxed">
-              Enter Admin's unique secret code from to connect to his personal AI.
+              Enter Admin's unique secret code to connect to his personal AI.
             </p>
             
             <div className="space-y-4">

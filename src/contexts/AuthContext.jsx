@@ -254,15 +254,21 @@ export const AuthProvider = ({ children }) => {
 
     const q = query(
       collection(db, "titum_connect_messages"),
-      where("participants", "array-contains", user.uid),
-      orderBy("timestamp", "asc")
+      where("participants", "array-contains", user.uid)
     );
 
     const unsubscribe = onSnapshot(q, (snapshot) => {
-      const messages = snapshot.docs.map(doc => ({
+      let messages = snapshot.docs.map(doc => ({
         id: doc.id,
         ...doc.data()
       }));
+      
+      // Sort locally to avoid index requirement
+      messages.sort((a, b) => {
+        const timeA = a.timestamp?.toMillis ? a.timestamp.toMillis() : (a.timestamp ? new Date(a.timestamp).getTime() : 0);
+        const timeB = b.timestamp?.toMillis ? b.timestamp.toMillis() : (b.timestamp ? new Date(b.timestamp).getTime() : 0);
+        return timeA - timeB;
+      });
       
       // Auto-Handshake Detection
       if (messages.length > 0) {
