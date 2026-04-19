@@ -206,33 +206,33 @@ const Settings = ({
                     document.dispatchEvent(toastEvent);
                     return;
                   }
+                  // 1. Generate code locally first
                   const newCode = Math.random().toString(36).substring(2, 10).toUpperCase();
                   
-                  // 2. We use top-level imports instead of dynamic ones for stability
                   try {
+                    // 2. Persist to User Profile FIRST (most important for "staying still")
+                    await setUserConfig({ secretCode: newCode });
                     
-                    // 1. Check if the code is already taken (unlikely but safe)
+                    // 3. Register in global registry (so others can find you)
                     const codeRef = doc(db, "secret_codes", newCode);
-                    const codeSnap = await getDoc(codeRef);
-                    if (codeSnap.exists()) {
-                      // Try once more if collision
-                      return; 
-                    }
+                    await setDoc(codeRef, { 
+                      uid: user.uid, 
+                      createdAt: new Date().toISOString() 
+                    });
 
-                    // 2. Map code to user in global registry
-                    await setDoc(codeRef, { uid: user.uid, createdAt: new Date().toISOString() });
-                    
-                    // 3. Update user config with functional style for safety
-                    await setUserConfig(prev => ({ ...prev, secretCode: newCode }));
-                    
                     const toastEvent = new CustomEvent("showToast", {
-                      detail: { message: "Secret code generated! Linked to your account permanently.", type: "success" },
+                      detail: { message: "Secret code generated and saved permanently!", type: "success" },
                     });
                     document.dispatchEvent(toastEvent);
                   } catch (err) {
-                    console.error("Failed to generate code:", err);
+                    console.error("Critical failure during code generation:", err);
                     const toastEvent = new CustomEvent("showToast", {
-                      detail: { message: `Error: ${err.message || 'Check connection'}`, type: "error" },
+                      detail: { 
+                        message: err.code === 'permission-denied' 
+                          ? "Database error: Please check your Firebase Rules." 
+                          : "Failed to save code. Please try again.", 
+                        type: "error" 
+                      },
                     });
                     document.dispatchEvent(toastEvent);
                   }
