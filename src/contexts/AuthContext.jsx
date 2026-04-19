@@ -1,5 +1,5 @@
 import { createContext, useContext, useState, useEffect, useMemo, useRef } from "react";
-import { onSnapshot, doc, updateDoc, getDoc } from "firebase/firestore";
+import { onSnapshot, doc, updateDoc, getDoc, query, collection, where, orderBy } from "firebase/firestore";
 import {
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
@@ -280,7 +280,7 @@ export const AuthProvider = ({ children }) => {
     });
 
     return () => unsubscribe();
-  }, [user?.uid]);
+  }, [user?.uid, userConfig?.connectedPeerId]);
 
   const userConfig = useMemo(() => {
     const profile = settingsMap.profile || {};
