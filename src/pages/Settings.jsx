@@ -8,6 +8,8 @@ import { Input } from "../components/ui/Input";
 import Switch from "../components/ui/Switch";
 import { ConfirmModal } from "../components/Modals";
 import { getLocalDateKey } from "../utils/date";
+import { db } from "../firebase.config";
+import { doc, setDoc, getDoc } from "firebase/firestore";
 
 const Settings = ({
   userConfig,
@@ -205,11 +207,8 @@ const Settings = ({
                 }
                 const newCode = Math.random().toString(36).substring(2, 10).toUpperCase();
                 
-                // We need to import db and doc, setDoc from firebase
-                // But it's better to do this through a context function
+                // 2. We use top-level imports instead of dynamic ones for stability
                 try {
-                  const { db } = await import("../firebase.config");
-                  const { doc, setDoc, getDoc } = await import("firebase/firestore");
                   
                   // 1. Check if the code is already taken (unlikely but safe)
                   const codeRef = doc(db, "secret_codes", newCode);

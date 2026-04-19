@@ -107,10 +107,10 @@ export default function AurisChat({ user, isOpen, onClose, userConfig, habits, n
     );
 
     const unsubscribe = onSnapshot(q, (snapshot) => {
-      const messagesData = snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data(),
-        role: doc.data().from === user.uid ? 'user' : 'assistant' // Use assistant role for peer to match styling
+      const messagesData = snapshot.docs.map(msgDoc => ({
+        id: msgDoc.id,
+        ...msgDoc.data(),
+        role: msgDoc.data().from === user.uid ? 'user' : 'assistant' // Use assistant role for peer to match styling
       }));
       setPeerMessages(messagesData);
     });
@@ -464,7 +464,8 @@ Rule: **No phone after 11.**`;
         </p>
       </div>
     </>
-  );
+    );
+  };
 
   return (
     <>
