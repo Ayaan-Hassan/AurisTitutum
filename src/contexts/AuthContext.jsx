@@ -238,6 +238,11 @@ export const AuthProvider = ({ children }) => {
     return map;
   }, [settingsDocs]);
 
+  const userConfig = useMemo(() => {
+    const profile = settingsMap.profile || {};
+    return mergeUserIdentityIntoConfig(normalizeUserConfig(profile), user);
+  }, [settingsMap.profile, user]);
+
   const [peerMessages, setPeerMessages] = useState([]);
 
   // Global Listener for Titum Connect Peer Messages
@@ -281,11 +286,6 @@ export const AuthProvider = ({ children }) => {
 
     return () => unsubscribe();
   }, [user?.uid, userConfig?.connectedPeerId]);
-
-  const userConfig = useMemo(() => {
-    const profile = settingsMap.profile || {};
-    return mergeUserIdentityIntoConfig(normalizeUserConfig(profile), user);
-  }, [settingsMap.profile, user]);
 
 
   const replaceHabitsAndLogs = async (uid, nextHabitsArg) => {
