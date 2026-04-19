@@ -10,29 +10,43 @@ export default function AurisChat({ user, isOpen, onClose, userConfig, habits, n
     { role: 'assistant', content: 'System initialized. I am Titum AI, your behavioral analyst and execution coach. Let\'s review your data.' }
   ]);
   const [peerMessages, setPeerMessages] = useState([]);
+  const [isWaitingForPeer, setIsWaitingForPeer] = useState(false);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [peerId, setPeerId] = useState(null);
   const [peerName, setPeerName] = useState('');
   const [showConnectModal, setShowConnectModal] = useState(false);
   const [peerCodeInput, setPeerCodeInput] = useState('');
-  const [isConnecting, setIsLoadingLocal] = useState(false); // rename to avoid conflict
+  const [isConnecting, setIsLoadingLocal] = useState(false);
   const messagesEndRefDesktop = useRef(null);
   const messagesEndRefMobile = useRef(null);
 
   // Sync peerMessages from global state
   useEffect(() => {
-    if (peerId) {
-      const convId = user.uid < peerId ? `${user.uid}_${peerId}` : `${peerId}_${user.uid}`;
+    if (peerId && user?.uid) {
+      // Find all messages between these two specific UIDs regardless of who is sender
       const filtered = globalPeerMessages
-        .filter(m => m.conversationId === convId)
+        .filter(m => 
+          (m.from === user.uid && m.to === peerId) || 
+          (m.from === peerId && m.to === user.uid)
+        )
         .map(m => ({
           ...m,
           role: m.from === user.uid ? 'user' : 'assistant'
         }));
+      
       setPeerMessages(filtered);
+      
+      // Determine if we are waiting for a reply
+      if (filtered.length > 0) {
+        const lastMsg = filtered[filtered.length - 1];
+        setIsWaitingForPeer(lastMsg.from === user.uid);
+      } else {
+        setIsWaitingForPeer(false);
+      }
     } else {
       setPeerMessages([]);
+      setIsWaitingForPeer(false);
     }
   }, [globalPeerMessages, peerId, user?.uid]);
 
