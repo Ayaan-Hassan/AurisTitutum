@@ -10,7 +10,6 @@ const ADMIN_UID = "inB7hQ7PAuRxt19mBZ3xKe8unaV2";
 export default function AurisChat({ user, isOpen, onClose, userConfig, habits, notes, reminders, notifications }) {
   const { updateUserConfig, peerMessages: globalPeerMessages, clearUnreadPeerCount } = useAuth();
   
-  const isBioBotActive = peerId === ADMIN_UID;
   const [messages, setMessages] = useState([
     { role: 'assistant', content: 'System initialized. I am Titum AI, your behavioral analyst and execution coach. Let\'s review your data.' }
   ]);
@@ -20,6 +19,15 @@ export default function AurisChat({ user, isOpen, onClose, userConfig, habits, n
   const [isLoading, setIsLoading] = useState(false);
   const [peerId, setPeerId] = useState(null);
   const [peerName, setPeerName] = useState('');
+  
+  const isBioBotActive = peerId === ADMIN_UID;
+
+  useEffect(() => {
+    if (isOpen) {
+      clearUnreadPeerCount?.();
+    }
+  }, [isOpen, clearUnreadPeerCount]);
+
   const [showConnectModal, setShowConnectModal] = useState(false);
   const [peerCodeInput, setPeerCodeInput] = useState('');
   const [isConnecting, setIsLoadingLocal] = useState(false);
