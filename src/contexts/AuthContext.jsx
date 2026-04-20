@@ -308,8 +308,8 @@ export const AuthProvider = ({ children }) => {
       
       setPeerMessages(messages);
       
-      // Calculate unread count (messages NOT from us, meant FOR us, and not yet read)
-      const unreadCount = messages.filter(m => m.from !== user?.uid && m.to === user?.uid && !m.read).length;
+      // Calculate unread count (messages NOT from us, meant FOR us, and explicitly unread)
+      const unreadCount = messages.filter(m => m.from !== user?.uid && m.to === user?.uid && m.read === false).length;
       setUnreadPeerCount(unreadCount);
     }, (err) => {
       console.error("Global Peer Listener Error:", err);

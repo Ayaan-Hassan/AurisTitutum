@@ -23,10 +23,10 @@ export default function AurisChat({ user, isOpen, onClose, userConfig, habits, n
   const isBioBotActive = peerId === ADMIN_UID;
 
   useEffect(() => {
-    if (isOpen) {
-      clearUnreadPeerCount?.();
-    }
-  }, [isOpen, clearUnreadPeerCount]);
+    // We don't call clearUnreadPeerCount here anymore because it's a local-only state.
+    // Instead, the server-side 'read' update in the effect below will 
+    // naturally update the global count via the onSnapshot listener.
+  }, [isOpen]);
 
   const [showConnectModal, setShowConnectModal] = useState(false);
   const [peerCodeInput, setPeerCodeInput] = useState('');
@@ -71,20 +71,23 @@ export default function AurisChat({ user, isOpen, onClose, userConfig, habits, n
     }
   }, [globalPeerMessages, peerId, user?.uid]);
   
-  // Mark messages as read when chat is open
+  // Persistent Read-Sync Effect
   useEffect(() => {
-    if (isOpen && peerId && user?.uid) {
-      const unreadFromPeer = peerMessages.filter(m => m.from === peerId && !m.read);
+    if (isOpen && peerId && user?.uid && peerMessages.length > 0) {
+      const unreadFromPeer = peerMessages.filter(m => m.from === peerId && m.read === false);
       if (unreadFromPeer.length > 0) {
-        unreadFromPeer.forEach(async (m) => {
-          try {
-            await updateDoc(doc(db, "titum_connect_messages", m.id), {
-              read: true
-            });
-          } catch (err) {
-            console.warn("Failed to mark message as read:", err);
+        const markAllAsRead = async () => {
+          for (const m of unreadFromPeer) {
+            try {
+              await updateDoc(doc(db, "titum_connect_messages", m.id), {
+                read: true
+              });
+            } catch (err) {
+              console.warn(`Failed to mark message ${m.id} as read:`, err);
+            }
           }
-        });
+        };
+        markAllAsRead();
       }
     }
   }, [isOpen, peerId, user?.uid, peerMessages]);
