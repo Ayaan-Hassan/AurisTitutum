@@ -74,8 +74,7 @@ import {
     Maximize2,
     Users,
     Share2,
-    Copy,
-    Terminal
+    Copy
 } from 'lucide-react';
 
 
