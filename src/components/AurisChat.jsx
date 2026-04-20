@@ -496,20 +496,20 @@ Rule: **No phone after 11.**`;
     
     return (
     <>
-      <div className={`flex-1 overflow-y-auto p-4 sm:p-5 space-y-6 custom-scrollbar scroll-smooth transition-all duration-1000 ${isBioBotActive ? 'bg-[#020617] relative' : ''}`}>
+      <div className={`flex-1 overflow-y-auto p-4 sm:p-5 space-y-6 custom-scrollbar scroll-smooth transition-all duration-1000 ${isBioBotActive ? 'bg-slate-50 relative' : ''}`}>
         {isBioBotActive && (
           <>
-            <div className="absolute inset-0 pointer-events-none opacity-30" style={{ backgroundImage: 'radial-gradient(circle at 50% 0%, rgba(56, 189, 248, 0.05) 0%, transparent 75%)' }} />
-            <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-sky-500/10 to-transparent shadow-[0_0_15px_rgba(56,189,248,0.1)]" />
+            <div className="absolute inset-0 pointer-events-none opacity-50" style={{ backgroundImage: 'radial-gradient(circle at 50% 0%, rgba(15, 23, 42, 0.03) 0%, transparent 75%)' }} />
+            <div className="absolute top-0 left-0 right-0 h-[1px] bg-gradient-to-r from-transparent via-slate-300/50 to-transparent shadow-sm" />
           </>
         )}
         {(isBioBotActive ? peerMessages : (peerId ? peerMessages : messages)).map((msg, index) => (
           <div key={msg.id || index} className={`flex flex-col ${msg.role === 'user' ? 'items-end' : 'items-start'} group animate-in fade-in slide-in-from-bottom-2 duration-500 relative z-10`}>
             {(msg.role === 'assistant' || (peerId && msg.from !== user?.uid)) && (
-              <div className="flex items-center gap-2.5 mb-2 opacity-50 group-hover:opacity-100 transition-all">
-                <div className={`w-1.5 h-1.5 rounded-full ${isBioBotActive ? 'bg-sky-400 shadow-[0_0_10px_rgba(56,189,248,0.4)]' : 'bg-accent'}`} />
-                <span className={`text-[9px] font-black tracking-[0.25em] uppercase font-mono ${isBioBotActive ? 'text-sky-400/80' : 'text-text-secondary'}`}>
-                  {peerId ? (msg.from === user?.uid ? "Command Center" : (isBioBotActive ? "BioBot Master" : peerName)) : "Titum Core"}
+              <div className="flex items-center gap-2.5 mb-2 opacity-60 group-hover:opacity-100 transition-all">
+                <div className={`w-1.5 h-1.5 rounded-full ${isBioBotActive ? 'bg-slate-900 shadow-[0_0_8px_rgba(15,23,42,0.1)]' : 'bg-accent'}`} />
+                <span className={`text-[9px] font-black tracking-[0.25em] uppercase font-mono ${isBioBotActive ? 'text-slate-900' : 'text-text-secondary'}`}>
+                  {peerId ? (msg.from === user?.uid ? "Authorized" : (isBioBotActive ? "BioBot Master" : peerName)) : "Titum Core"}
                 </span>
               </div>
             )}
@@ -518,37 +518,36 @@ Rule: **No phone after 11.**`;
               className={`max-w-[85%] px-5 py-3.5 rounded-2xl text-[13px] leading-relaxed transition-all duration-500 ${
                 msg.role === 'user' 
                   ? (isBioBotActive 
-                      ? 'bg-slate-900/50 border border-slate-800 text-slate-100 rounded-tr-none shadow-lg' 
+                      ? 'bg-white border border-slate-200 text-slate-800 rounded-tr-none shadow-sm' 
                       : 'bg-accent text-bg-main font-medium rounded-tr-none shadow-lg shadow-accent/10')
                   : (isBioBotActive 
-                      ? 'bg-white/[0.02] border border-white/[0.05] backdrop-blur-md text-slate-200 rounded-tl-none border-l-sky-500/40 border-l-2 shadow-2xl' 
+                      ? 'bg-white border border-slate-100 text-slate-700 rounded-tl-none border-l-slate-400 border-l-2 shadow-sm' 
                       : 'bg-bg-main border border-border-color text-text-primary rounded-tl-none shadow-sm')
               }`}
-              style={isBioBotActive ? { boxShadow: msg.role === 'user' ? 'none' : 'inset 0 0 40px rgba(255,255,255,0.01)' } : {}}
             >
-              <div className={`whitespace-pre-wrap tracking-wide font-medium ${isBioBotActive ? 'text-slate-200' : ''}`}>
+              <div className={`whitespace-pre-wrap tracking-wide font-medium ${isBioBotActive ? 'text-slate-700' : ''}`}>
                 {msg.role === 'assistant' && !peerId ? renderFormattedText(msg.content) : msg.content}
               </div>
             </div>
             
             {msg.timestamp && (isBioBotActive || peerId) && (
-              <span className={`text-[8px] mt-2 opacity-20 font-mono tracking-widest uppercase font-black ${isBioBotActive ? 'text-sky-200' : ''}`}>
-                {msg.timestamp?.toMillis ? new Date(msg.timestamp.toMillis()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : "Encrypted"}
+              <span className={`text-[8px] mt-2 opacity-40 font-mono tracking-widest uppercase font-black ${isBioBotActive ? 'text-slate-400' : ''}`}>
+                {msg.timestamp?.toMillis ? new Date(msg.timestamp.toMillis()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : "Verified"}
               </span>
             )}
           </div>
         ))}
         {(isLoading || isWaitingForPeer) && (
           <div className="flex justify-start relative z-10">
-            <div className={`max-w-[85%] rounded-2xl p-5 flex flex-col gap-3 ${isBioBotActive ? 'bg-slate-900/40 border border-white/5 text-sky-400/70 rounded-tl-none shadow-2xl backdrop-blur-sm' : 'bg-bg-main border border-border-color text-text-primary rounded-tl-none'}`}>
+            <div className={`max-w-[85%] rounded-2xl p-5 flex flex-col gap-3 ${isBioBotActive ? 'bg-white border border-slate-200 text-slate-900 rounded-tl-none shadow-sm' : 'bg-bg-main border border-border-color text-text-primary rounded-tl-none'}`}>
               <div className="flex items-center gap-3">
                 <div className="flex space-x-1">
-                  <div className="w-1.5 h-1.5 bg-sky-500 rounded-full animate-pulse" />
-                  <div className="w-1.5 h-1.5 bg-sky-500/50 rounded-full animate-pulse delay-75" />
-                  <div className="w-1.5 h-1.5 bg-sky-500/20 rounded-full animate-pulse delay-150" />
+                  <div className="w-1.5 h-1.5 bg-slate-900 rounded-full animate-pulse" />
+                  <div className="w-1.5 h-1.5 bg-slate-400 rounded-full animate-pulse delay-75" />
+                  <div className="w-1.5 h-1.5 bg-slate-200 rounded-full animate-pulse delay-150" />
                 </div>
                 <span className="text-[9px] font-black uppercase tracking-[0.3em] font-mono whitespace-nowrap">
-                  {isWaitingForPeer ? "Analyzing Bio-Metrics..." : "Processing Command..."}
+                  {isWaitingForPeer ? "BioBot is calculating..." : "Synchronizing..."}
                 </span>
               </div>
             </div>
@@ -557,16 +556,16 @@ Rule: **No phone after 11.**`;
         <div ref={isMobile ? messagesEndRefMobile : messagesEndRefDesktop} className="h-6" />
       </div>
 
-      <div className={`p-5 border-t shrink-0 transition-all duration-1000 ${isBioBotActive ? 'bg-[#020617] border-white/5' : 'bg-bg-main border-border-color'}`}>
+      <div className={`p-5 border-t shrink-0 transition-all duration-1000 ${isBioBotActive ? 'bg-white border-slate-100' : 'bg-bg-main border-border-color'}`}>
         <div className="relative flex items-end gap-3">
           <textarea
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder={isBioBotActive ? "Execute Transmission..." : (peerId ? `Message ${peerName}...` : "Ask Titum AI...")}
+            placeholder={isBioBotActive ? "Enter command..." : (peerId ? `Message ${peerName}...` : "Ask Titum AI...")}
             className={`w-full border rounded-xl py-3.5 px-5 text-sm focus:outline-none transition-all duration-500 resize-none min-h-[48px] max-h-32 custom-scrollbar font-medium ${
               isBioBotActive 
-                ? 'bg-slate-900/50 border-white/5 text-slate-100 placeholder:text-slate-600 focus:border-sky-500/30 focus:ring-1 focus:ring-sky-500/10' 
+                ? 'bg-slate-50 border-slate-200 text-slate-800 placeholder:text-slate-400 focus:border-slate-400 focus:ring-1 focus:ring-slate-100' 
                 : 'bg-bg-main border-border-color text-text-primary placeholder:text-text-secondary focus:border-accent focus:ring-1 focus:ring-accent'
             }`}
             rows={1}
@@ -580,15 +579,15 @@ Rule: **No phone after 11.**`;
             disabled={!input.trim() || isLoading}
             className={`w-12 h-12 shrink-0 rounded-xl flex items-center justify-center transition-all duration-500 disabled:opacity-50 disabled:cursor-not-allowed ${
               isBioBotActive 
-                ? 'bg-sky-600 text-white shadow-lg shadow-sky-900/20 hover:bg-sky-500 hover:shadow-sky-500/20' 
+                ? 'bg-slate-900 text-white shadow-lg hover:bg-black' 
                 : 'bg-accent text-bg-main shadow-lg shadow-accent/10 hover:opacity-90'
             }`}
           >
             <Icon name="send" size={18} />
           </button>
         </div>
-        <p className={`text-center mt-3 text-[9px] font-black uppercase tracking-[0.2em] transition-colors duration-1000 ${isBioBotActive ? 'text-slate-700' : 'text-text-secondary'}`}>
-          {isBioBotActive ? "Secure Admin Terminal Connection Active" : "Titum AI may produce inaccurate information about habits."}
+        <p className={`text-center mt-3 text-[9px] font-black uppercase tracking-[0.2em] transition-colors duration-1000 ${isBioBotActive ? 'text-slate-400' : 'text-text-secondary'}`}>
+          {isBioBotActive ? "BioBot Premium Support Channel" : "Titum AI may produce inaccurate information about habits."}
         </p>
       </div>
     </>
@@ -598,24 +597,24 @@ Rule: **No phone after 11.**`;
   return (
     <>
       <div
-        className={`fixed inset-0 z-40 animate-in fade-in duration-1000 ${isBioBotActive ? 'bg-slate-950/80 backdrop-blur-2xl' : 'bg-black/50 backdrop-blur-md'}`}
+        className={`fixed inset-0 z-40 animate-in fade-in duration-1000 ${isBioBotActive ? 'bg-white/40 backdrop-blur-md' : 'bg-black/50 backdrop-blur-md'}`}
         onClick={onClose}
         aria-hidden="true"
       />
 
       {/* Desktop */}
-      <div className={`hidden md:flex fixed top-0 right-0 bottom-0 w-full max-w-md bg-bg-main border-l shadow-2xl z-50 flex-col animate-in slide-in-from-right transition-all duration-1000 ${isBioBotActive ? 'border-white/5' : 'border-border-color'}`}>
-        <div className={`flex items-center justify-between p-5 border-b shrink-0 transition-all duration-1000 ${isBioBotActive ? 'bg-[#020617] border-white/5' : 'border-border-color'}`}>
+      <div className={`hidden md:flex fixed top-0 right-0 bottom-0 w-full max-w-md bg-bg-main border-l shadow-2xl z-50 flex-col animate-in slide-in-from-right transition-all duration-1000 ${isBioBotActive ? 'border-slate-100' : 'border-border-color'}`}>
+        <div className={`flex items-center justify-between p-5 border-b shrink-0 transition-all duration-1000 ${isBioBotActive ? 'bg-white border-slate-100' : 'border-border-color'}`}>
           <div className="flex items-center gap-4">
-            <div className={`w-11 h-11 rounded-xl flex items-center justify-center transition-all duration-1000 ${isBioBotActive ? 'bg-sky-500 shadow-2xl shadow-sky-500/20' : 'bg-accent/20'}`}>
+            <div className={`w-11 h-11 rounded-xl flex items-center justify-center transition-all duration-1000 ${isBioBotActive ? 'bg-slate-900 shadow-xl' : 'bg-accent/20'}`}>
               <Icon name={isBioBotActive ? "shield-check" : (peerId ? "users" : "brain")} size={22} className={isBioBotActive ? "text-white" : "text-accent"} />
             </div>
             <div>
-              <h2 className={`font-black tracking-tight transition-all duration-1000 ${isBioBotActive ? 'text-sky-100 text-xl font-bold' : 'text-text-primary text-lg'}`}>
+              <h2 className={`font-black tracking-tight transition-all duration-1000 ${isBioBotActive ? 'text-slate-900 text-xl font-bold' : 'text-text-primary text-lg'}`}>
                 {isBioBotActive ? "BioBot Protocol" : (peerId ? peerName : "Titum AI")}
               </h2>
-              <p className={`text-[10px] uppercase tracking-[0.4em] font-mono font-black ${isBioBotActive ? 'text-sky-500 animate-pulse' : 'text-success'}`}>
-                {isBioBotActive ? "Active Link" : (peerId ? "Linked" : "Online")}
+              <p className={`text-[10px] uppercase tracking-[0.4em] font-mono font-black ${isBioBotActive ? 'text-slate-400 animate-pulse' : 'text-success'}`}>
+                {isBioBotActive ? "Encrypted Link" : (peerId ? "Linked" : "Online")}
               </p>
             </div>
           </div>
@@ -660,14 +659,14 @@ Rule: **No phone after 11.**`;
           className="flex-1 bg-bg-main border-t border-border-color rounded-t-2xl shadow-2xl animate-in slide-in-from-bottom duration-300 pointer-events-auto flex flex-col overflow-hidden"
           onClick={(e) => e.stopPropagation()}
         >
-          <div className={`flex items-center justify-between p-4 border-b shrink-0 transition-all duration-1000 ${isBioBotActive ? 'bg-[#020617] border-white/5' : 'border-border-color'}`}>
+          <div className={`flex items-center justify-between p-4 border-b shrink-0 transition-all duration-1000 ${isBioBotActive ? 'bg-white border-slate-100' : 'border-border-color'}`}>
             <div className="flex items-center gap-3">
-              <div className={`w-9 h-9 rounded-xl flex items-center justify-center transition-all duration-1000 ${isBioBotActive ? 'bg-sky-500 shadow-lg shadow-sky-500/20' : 'bg-accent/20'}`}>
+              <div className={`w-9 h-9 rounded-xl flex items-center justify-center transition-all duration-1000 ${isBioBotActive ? 'bg-slate-900 shadow-lg' : 'bg-accent/20'}`}>
                 <Icon name={isBioBotActive ? "shield-check" : (peerId ? "users" : "brain")} size={18} className={isBioBotActive ? "text-white" : "text-accent"} />
               </div>
               <div>
-                <h2 className={`text-sm font-black tracking-tight transition-all duration-1000 ${isBioBotActive ? 'text-sky-100 uppercase italic' : 'text-text-primary leading-tight'}`}>{isBioBotActive ? "BioBot Master" : (peerId ? peerName : "Titum AI")}</h2>
-                <p className={`text-[9px] uppercase tracking-[0.3em] font-mono font-black ${isBioBotActive ? 'text-sky-500 animate-pulse' : 'text-success'}`}>{isBioBotActive ? "Active Link" : (peerId ? "Connected" : "Online")}</p>
+                <h2 className={`text-sm font-black tracking-tight transition-all duration-1000 ${isBioBotActive ? 'text-slate-900 uppercase' : 'text-text-primary leading-tight'}`}>{isBioBotActive ? "BioBot Master" : (peerId ? peerName : "Titum AI")}</h2>
+                <p className={`text-[9px] uppercase tracking-[0.3em] font-mono font-black ${isBioBotActive ? 'text-slate-400 animate-pulse' : 'text-success'}`}>{isBioBotActive ? "Secure Link" : (peerId ? "Connected" : "Online")}</p>
               </div>
             </div>
             <div className="flex items-center gap-2">
@@ -675,7 +674,7 @@ Rule: **No phone after 11.**`;
                 <button 
                   onClick={handleExitPeerChat}
                   title="Exit Chat"
-                  className={`px-2 h-8 rounded-lg border flex items-center justify-center text-[9px] uppercase font-black tracking-widest transition-all gap-1.5 ${isBioBotActive ? 'border-white/10 text-slate-400 hover:text-white hover:bg-white/5' : 'border-border-color text-text-secondary hover:text-red-500'}`}
+                  className={`px-2 h-8 rounded-lg border flex items-center justify-center text-[9px] uppercase font-black tracking-widest transition-all gap-1.5 ${isBioBotActive ? 'border-slate-200 text-slate-400 hover:text-slate-900 hover:bg-slate-50' : 'border-border-color text-text-secondary hover:text-red-500'}`}
                 >
                   <Icon name="log-out" size={12} />
                   Exit
@@ -709,28 +708,28 @@ Rule: **No phone after 11.**`;
       {showConnectModal && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 transition-all">
           <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" onClick={() => setShowConnectModal(false)} />
-          <div className="relative w-full max-w-sm bg-[#020617] border border-white/5 rounded-2xl p-6 shadow-2xl animate-in zoom-in-95 duration-200">
-            <h3 className="text-xl font-black text-slate-100 mb-2 tracking-tighter flex items-center gap-3 uppercase">
-              <div className="w-8 h-8 rounded-lg bg-sky-500 flex items-center justify-center shadow-lg shadow-sky-500/20">
+          <div className="relative w-full max-w-sm bg-white border border-slate-200 rounded-2xl p-6 shadow-2xl animate-in zoom-in-95 duration-200">
+            <h3 className="text-xl font-black text-slate-900 mb-2 tracking-tighter flex items-center gap-3 uppercase">
+              <div className="w-8 h-8 rounded-lg bg-slate-900 flex items-center justify-center shadow-lg shadow-black/10">
                 <Icon name="command" size={16} className="text-white" />
               </div>
               BioBot Protocol
             </h3>
-            <p className="text-xs text-slate-400 mb-8 leading-relaxed font-medium">
+            <p className="text-xs text-slate-500 mb-8 leading-relaxed font-medium">
               Initialize secure connection to the Master terminal. Enter the decrypted access token to begin synchronization.
             </p>
             
             <div className="space-y-6">
               <div>
-                <label className="block text-[10px] font-black text-sky-500/80 uppercase tracking-[0.4em] mb-3 font-mono">
+                <label className="block text-[10px] font-black text-slate-900 uppercase tracking-[0.4em] mb-3 font-mono">
                   &gt; IDENTIFY_TOKEN
                 </label>
                 <input
                   type="text"
                   value={peerCodeInput}
                   onChange={(e) => setPeerCodeInput(e.target.value)}
-                  placeholder="EX: ABC-123"
-                  className="w-full bg-slate-900/50 border border-white/10 rounded-xl py-4 px-4 text-center font-mono text-lg font-bold tracking-[0.2em] text-white placeholder:text-slate-700 focus:outline-none focus:border-sky-500/50 focus:ring-1 focus:ring-sky-500/20 transition-all"
+                  placeholder="********"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl py-4 px-4 text-center font-mono text-lg font-bold tracking-[0.2em] text-slate-900 placeholder:text-slate-300 focus:outline-none focus:border-slate-900/50 focus:ring-1 focus:ring-slate-100 transition-all"
                   autoFocus
                   onKeyDown={(e) => {
                     if (e.key === 'Enter') handleConnectPeer();
@@ -748,7 +747,7 @@ Rule: **No phone after 11.**`;
                 <button 
                   onClick={handleConnectPeer}
                   disabled={!peerCodeInput.trim() || isConnecting}
-                  className="flex-1 px-4 py-4 rounded-xl bg-sky-600 text-white text-[11px] font-black uppercase tracking-[0.2em] hover:bg-sky-500 transition-all disabled:opacity-50 shadow-lg shadow-sky-500/20"
+                  className="flex-1 px-4 py-4 rounded-xl bg-slate-900 text-white text-[11px] font-black uppercase tracking-[0.2em] hover:bg-black transition-all disabled:opacity-50 shadow-lg shadow-black/10"
                 >
                   {isConnecting ? "SYNCING..." : "INITIALIZE"}
                 </button>
