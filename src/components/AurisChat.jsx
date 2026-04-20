@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useMemo } from 'react';
 import Icon from './Icon';
 import { useAuth } from '../contexts/AuthContext';
 import { db } from '../firebase.config';
@@ -246,40 +246,49 @@ export default function AurisChat({ user, isOpen, onClose, userConfig, habits, n
     }
   }, [messages, isOpen]);
 
-  const isAdmin = user?.uid === "inB7hQ7PAuRxt19mBZ3xKe8unaV2" || user?.uid === import.meta.env.VITE_ADMIN_UID;
+  const isAdmin = useMemo(() => {
+    if (!user?.uid) return false;
+    const envAdmin = (import.meta.env.VITE_ADMIN_UID || "").replace(/['"]/g, '').trim();
+    return user.uid === ADMIN_UID || user.uid === envAdmin;
+  }, [user?.uid]);
 
   const adminConversations = useMemo(() => {
-    if (!isAdmin || !globalPeerMessages.length) return [];
+    if (!isAdmin || !globalPeerMessages || !globalPeerMessages.length) return [];
     
     const conversations = {};
     globalPeerMessages.forEach(msg => {
-      const otherUid = msg.from === user.uid ? msg.to : msg.from;
-      if (!otherUid || otherUid === user.uid) return;
+      if (!msg) return;
+      const otherUid = msg.from === user?.uid ? msg.to : msg.from;
+      if (!otherUid || otherUid === user?.uid) return;
       
+      const isFromOther = msg.from === otherUid;
+      const isToAdmin = msg.to === user?.uid;
+
       if (!conversations[otherUid]) {
         conversations[otherUid] = {
           uid: otherUid,
-          name: msg.from === user.uid ? (msg.toName || "User") : (msg.fromName || "User"),
+          name: msg.from === user?.uid ? (msg.toName || "User") : (msg.fromName || "User"),
           lastMessage: msg,
-          unreadCount: 0
+          unreadCount: (isFromOther && isToAdmin && msg.read === false) ? 1 : 0
         };
       } else {
         const currentLast = conversations[otherUid].lastMessage;
         const msgTime = msg.timestamp?.toMillis ? msg.timestamp.toMillis() : 0;
-        const lastTime = currentLast.timestamp?.toMillis ? currentLast.timestamp.toMillis() : 0;
+        const lastTime = currentLast?.timestamp?.toMillis ? currentLast.timestamp.toMillis() : 0;
+        
         if (msgTime > lastTime) {
           conversations[otherUid].lastMessage = msg;
         }
-      }
-      
-      if (msg.from === otherUid && msg.to === user.uid && msg.read === false) {
-        conversations[otherUid].unreadCount++;
+
+        if (isFromOther && isToAdmin && msg.read === false) {
+          conversations[otherUid].unreadCount++;
+        }
       }
     });
 
     return Object.values(conversations).sort((a, b) => {
-        const timeA = a.lastMessage.timestamp?.toMillis ? a.lastMessage.timestamp.toMillis() : 0;
-        const timeB = b.lastMessage.timestamp?.toMillis ? b.lastMessage.timestamp.toMillis() : 0;
+        const timeA = a.lastMessage?.timestamp?.toMillis ? a.lastMessage.timestamp.toMillis() : 0;
+        const timeB = b.lastMessage?.timestamp?.toMillis ? b.lastMessage.timestamp.toMillis() : 0;
         return timeB - timeA;
     });
   }, [globalPeerMessages, user?.uid, isAdmin]);
@@ -686,7 +695,7 @@ Rule: **No phone after 11.**`;
                 </span>
               </div>
               <p className="text-[11px] text-slate-500 truncate font-medium">
-                {conv.lastMessage?.from === user.uid ? (
+                {conv.lastMessage?.from === user?.uid ? (
                   <span className="text-[9px] uppercase font-black text-slate-300 mr-1 tracking-tighter">Admin:</span>
                 ) : ""}
                 {conv.lastMessage?.content}
@@ -700,7 +709,6 @@ Rule: **No phone after 11.**`;
 
   const renderChatContent = (isMobile) => {
     const activeMessages = peerId ? peerMessages : messages;
-    const isAdmin = user?.uid === ADMIN_UID || user?.uid === import.meta.env.VITE_ADMIN_UID;
 
     if (isAdmin && isAdminListView) {
       return renderAdminUserList();
