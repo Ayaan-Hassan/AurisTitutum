@@ -74,8 +74,7 @@ import {
     Maximize2,
     Users,
     Share2,
-    Copy,
-    ChevronLeft
+    Copy
 } from 'lucide-react';
 
 
@@ -157,8 +156,7 @@ const Icon = ({ name, size = 18, className = "" }) => {
         'hash': Hash,
         'maximize-2': Maximize2,
         'terminal': Terminal,
-        'command': Command,
-        'chevron-left': ChevronLeft
+        'command': Command
     };
 
 

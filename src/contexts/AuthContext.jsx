@@ -160,11 +160,9 @@ const facebookProvider = new FacebookAuthProvider();
 
 // Admin UID — this account is permanently exempt from ban enforcement
 const ADMIN_UID = (import.meta.env.VITE_ADMIN_UID || "").replace(/['"]/g, '').trim();
-const HARDCODED_ADMIN_UID = "inB7hQ7PAuRxt19mBZ3xKe8unaV2";
 const isAdminUid = (uid) => {
-  if (!uid) return false;
-  const cleanUid = uid.trim();
-  return cleanUid === ADMIN_UID || cleanUid === HARDCODED_ADMIN_UID;
+  if (!ADMIN_UID || !uid) return false;
+  return uid.trim() === ADMIN_UID;
 };
 
 export const useAuth = () => {
@@ -282,8 +280,7 @@ export const AuthProvider = ({ children }) => {
         const lastMsg = messages[messages.length - 1];
         
         // Only trigger if message is from someone else and it's fresh (30s)
-        const getTs = (m) => m.timestamp?.toMillis ? m.timestamp.toMillis() : (m.timestamp ? new Date(m.timestamp).getTime() : 0);
-        const isRecent = lastMsg.timestamp && (Date.now() - getTs(lastMsg) < 30000);
+        const isRecent = lastMsg.timestamp && (Date.now() - lastMsg.timestamp.toMillis() < 30000);
         
         if (lastMsg.from !== user?.uid && isRecent) {
           // If we aren't connected to ANYONE, or if we were connected to something else 
