@@ -73,12 +73,12 @@ const Sidebar = ({ userConfig, onOpenAuris }) => {
               className="sidebar-item w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium transition-all text-text-secondary hover:text-text-primary hover:bg-accent-dim relative"
             >
               <div className="relative">
-                <Icon name="brain" size={16} />
+                <Icon name={userConfig?.connectedPeerId === "inB7hQ7PAuRxt19mBZ3xKe8unaV2" ? "shield-check" : "brain"} size={16} className={userConfig?.connectedPeerId === "inB7hQ7PAuRxt19mBZ3xKe8unaV2" ? "text-accent animate-pulse" : ""} />
                 {unreadPeerCount > 0 && (
                   <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-success rounded-full border-2 border-bg-sidebar shadow-[0_0_8px_rgba(34,197,94,0.6)]" />
                 )}
               </div>
-              Titum AI
+              {userConfig?.connectedPeerId === "inB7hQ7PAuRxt19mBZ3xKe8unaV2" ? "BioBot Protocol" : "Titum AI"}
               {unreadPeerCount > 0 && (
                 <span className="ml-auto bg-success/20 text-success text-[9px] font-bold px-1.5 py-0.5 rounded-full">
                   {unreadPeerCount}

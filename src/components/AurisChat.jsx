@@ -40,8 +40,7 @@ export default function AurisChat({ user, isOpen, onClose, userConfig, habits, n
     if (peerId && user?.uid) {
       const filtered = globalPeerMessages
         .filter(m => 
-          (m.from === user.uid && m.to === peerId) || 
-          (m.from === peerId && m.to === user.uid)
+          m.participants?.includes(user.uid) && m.participants?.includes(peerId)
         )
         .map(m => ({
           ...m,
@@ -497,59 +496,76 @@ Rule: **No phone after 11.**`;
     
     return (
     <>
-      <div className="flex-1 overflow-y-auto p-4 sm:p-5 space-y-4 custom-scrollbar">
-        {activeMessages.map((msg, index) => (
-          <div key={index} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+      <div className={`flex-1 overflow-y-auto p-4 sm:p-5 space-y-6 custom-scrollbar scroll-smooth ${isBioBotActive ? 'bg-black/60 relative' : ''}`}>
+        {isBioBotActive && (
+          <div className="absolute inset-0 pointer-events-none opacity-20" style={{ backgroundImage: 'radial-gradient(circle at 50% 0%, rgba(255, 191, 0, 0.1) 0%, transparent 70%)' }} />
+        )}
+        {(isBioBotActive ? peerMessages : (peerId ? peerMessages : messages)).map((msg, index) => (
+          <div key={msg.id || index} className={`flex flex-col ${msg.role === 'user' ? 'items-end' : 'items-start'} group animate-in fade-in slide-in-from-bottom-2 duration-300 relative z-10`}>
+            {(msg.role === 'assistant' || (peerId && msg.from !== user?.uid)) && (
+              <div className="flex items-center gap-2 mb-1.5 opacity-60 group-hover:opacity-100 transition-all">
+                <div className={`w-1.5 h-1.5 rounded-full ${isBioBotActive ? 'bg-amber-500 animate-pulse' : 'bg-accent'}`} />
+                <span className="text-[9px] font-black tracking-[0.2em] uppercase font-mono text-text-secondary">
+                  {peerId ? (msg.from === user?.uid ? "Local Operator" : (isBioBotActive ? "BioBot Protocol" : peerName)) : "Titum Intelligence"}
+                </span>
+              </div>
+            )}
+            
             <div 
-              className={`max-w-[85%] rounded-2xl p-3 sm:p-4 text-xs sm:text-sm leading-relaxed shadow-sm transition-all ${
+              className={`max-w-[85%] px-4 py-3 rounded-2xl text-[13px] leading-relaxed transition-all duration-300 ${
                 msg.role === 'user' 
-                  ? 'bg-accent text-bg-main rounded-tr-sm animate-in fade-in slide-in-from-bottom-2 duration-300' 
-                  : 'bg-bg-main border border-border-color text-text-primary rounded-tl-sm animate-in fade-in slide-in-from-left-2 zoom-in-95 duration-500'
+                  ? (isBioBotActive 
+                      ? 'bg-amber-500/10 border border-amber-500/30 text-white rounded-tr-none shadow-[0_0_15px_rgba(245,158,11,0.05)]' 
+                      : 'bg-accent text-bg-main font-medium rounded-tr-none shadow-lg shadow-accent/10')
+                  : (isBioBotActive 
+                      ? 'bg-white/[0.03] border border-white/[0.08] backdrop-blur-xl text-white rounded-tl-none border-l-amber-500/60 border-l-2' 
+                      : 'bg-bg-main border border-border-color text-text-primary rounded-tl-none shadow-sm')
               }`}
             >
-              {(msg.role === 'assistant' || (peerId && msg.from !== user?.uid)) && (
-                <div className="flex items-center gap-1.5 mb-2 opacity-80">
-                  <Icon name={peerId ? "user" : "brain"} size={12} className="text-accent" />
-                  <span className="text-[10px] font-bold tracking-wider uppercase font-mono">
-                    {peerId ? (msg.from === user?.uid ? "You" : peerName) : "Titum AI"}
-                  </span>
-                </div>
-              )}
-              <div className="whitespace-pre-wrap">{msg.role === 'assistant' && !peerId ? renderFormattedText(msg.content) : msg.content}</div>
+              <div className="whitespace-pre-wrap tracking-wide font-medium">
+                {msg.role === 'assistant' && !peerId ? renderFormattedText(msg.content) : msg.content}
+              </div>
             </div>
+            
+            {msg.timestamp && (isBioBotActive || peerId) && (
+              <span className="text-[8px] mt-1.5 opacity-30 font-mono tracking-tighter uppercase font-bold">
+                {msg.timestamp?.toMillis ? new Date(msg.timestamp.toMillis()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : "Secured"}
+              </span>
+            )}
           </div>
         ))}
         {(isLoading || isWaitingForPeer) && (
-          <div className="flex justify-start">
-            <div className="max-w-[85%] rounded-2xl p-4 bg-bg-main border border-border-color text-text-primary rounded-tl-sm flex flex-col gap-2">
+          <div className="flex justify-start relative z-10 animate-pulse">
+            <div className={`max-w-[85%] rounded-2xl p-4 flex flex-col gap-2 ${isBioBotActive ? 'bg-amber-500/5 border border-amber-500/20 text-amber-500/80 rounded-tl-none' : 'bg-bg-main border border-border-color text-text-primary rounded-tl-none'}`}>
               <div className="flex items-center gap-2 mb-1">
-                <span className="text-[10px] font-black text-accent uppercase tracking-widest font-mono">
-                  {isWaitingForPeer ? "BioBot has a huge memory; it may take time" : "BioBot"}
+                <span className="text-[9px] font-black uppercase tracking-[0.2em] font-mono">
+                  {isWaitingForPeer ? "BioBot Analysis in Progress..." : "Processing Transaction..."}
                 </span>
               </div>
               <div className="flex items-center gap-2">
-                <span className="w-1.5 h-1.5 bg-accent rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
-                <span className="w-1.5 h-1.5 bg-accent rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
-                <span className="w-1.5 h-1.5 bg-accent rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+                <span className="w-1.5 h-1.5 bg-current rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+                <span className="w-1.5 h-1.5 bg-current rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+                <span className="w-1.5 h-1.5 bg-current rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
               </div>
             </div>
           </div>
         )}
-        <div ref={isMobile ? messagesEndRefMobile : messagesEndRefDesktop} />
+        <div ref={isMobile ? messagesEndRefMobile : messagesEndRefDesktop} className="h-4" />
       </div>
 
-      <div className="p-4 border-t border-border-color bg-bg-main shrink-0">
+      <div className={`p-4 border-t shrink-0 transition-all duration-700 ${isBioBotActive ? 'bg-black border-amber-500/20' : 'bg-bg-main border-border-color'}`}>
         <div className="relative flex items-end gap-2">
           <textarea
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder={peerId ? `Message ${peerName}...` : "Ask Titum AI..."}
-            className="w-full bg-bg-main border border-border-color rounded-xl py-3 px-4 text-sm text-text-primary placeholder:text-text-secondary focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent resize-none min-h-[44px] max-h-32 custom-scrollbar"
+            placeholder={isBioBotActive ? "Execute Transmission..." : (peerId ? `Message ${peerName}...` : "Ask Titum AI...")}
+            className={`w-full border rounded-xl py-3 px-4 text-sm focus:outline-none transition-all duration-300 resize-none min-h-[44px] max-h-32 custom-scrollbar font-medium ${
+              isBioBotActive 
+                ? 'bg-amber-500/5 border-amber-500/30 text-amber-500 placeholder:text-amber-500/40 focus:border-amber-500 focus:ring-1 focus:ring-amber-500/50' 
+                : 'bg-bg-main border-border-color text-text-primary placeholder:text-text-secondary focus:border-accent focus:ring-1 focus:ring-accent'
+            }`}
             rows={1}
-            style={{
-              height: 'auto',
-            }}
             onInput={(e) => {
               e.target.style.height = 'auto';
               e.target.style.height = `${Math.min(e.target.scrollHeight, 128)}px`;
@@ -558,13 +574,17 @@ Rule: **No phone after 11.**`;
           <button
             onClick={handleSend}
             disabled={!input.trim() || isLoading}
-            className="w-11 h-11 shrink-0 rounded-xl bg-accent text-bg-main flex items-center justify-center hover:opacity-90 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+            className={`w-11 h-11 shrink-0 rounded-xl flex items-center justify-center transition-all disabled:opacity-50 disabled:cursor-not-allowed ${
+              isBioBotActive 
+                ? 'bg-amber-500 text-black shadow-[0_0_15px_rgba(245,158,11,0.3)] hover:shadow-[0_0_25px_rgba(245,158,11,0.5)]' 
+                : 'bg-accent text-bg-main shadow-lg shadow-accent/10 hover:opacity-90'
+            }`}
           >
             <Icon name="send" size={16} />
           </button>
         </div>
-        <p className="text-center mt-2 text-[9px] text-text-secondary">
-          Titum AI may produce inaccurate information about habits.
+        <p className={`text-center mt-2 text-[9px] font-bold uppercase tracking-tight transition-colors ${isBioBotActive ? 'text-amber-500/40' : 'text-text-secondary'}`}>
+          {isBioBotActive ? "End-to-End Encrypted Session" : "Titum AI may produce inaccurate information about habits."}
         </p>
       </div>
     </>
@@ -574,24 +594,24 @@ Rule: **No phone after 11.**`;
   return (
     <>
       <div
-        className="fixed inset-0 bg-black/50 backdrop-blur-md z-40 animate-in fade-in duration-200"
+        className={`fixed inset-0 z-40 animate-in fade-in duration-500 ${isBioBotActive ? 'bg-black/80 backdrop-blur-xl' : 'bg-black/50 backdrop-blur-md'}`}
         onClick={onClose}
         aria-hidden="true"
       />
 
       {/* Desktop */}
-      <div className={`hidden md:flex fixed top-0 right-0 bottom-0 w-full max-w-md bg-bg-main border-l shadow-xl z-50 flex-col animate-in slide-in-from-right transition-all duration-700 ${isBioBotActive ? 'border-amber-500/30' : 'border-border-color'}`}>
-        <div className={`flex items-center justify-between p-4 border-b shrink-0 transition-all duration-700 ${isBioBotActive ? 'bg-amber-500/5 border-amber-500/20' : 'border-border-color'}`}>
+      <div className={`hidden md:flex fixed top-0 right-0 bottom-0 w-full max-w-md bg-bg-main border-l shadow-2xl z-50 flex-col animate-in slide-in-from-right transition-all duration-700 ${isBioBotActive ? 'border-amber-500/30' : 'border-border-color'}`}>
+        <div className={`flex items-center justify-between p-4 border-b shrink-0 transition-all duration-700 ${isBioBotActive ? 'bg-black border-amber-500/20' : 'border-border-color'}`}>
           <div className="flex items-center gap-3">
-            <div className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all duration-700 ${isBioBotActive ? 'bg-amber-500 animate-pulse shadow-[0_0_20px_rgba(245,158,11,0.4)]' : 'bg-accent/20'}`}>
-              <Icon name={isBioBotActive ? "command" : (peerId ? "users" : "brain")} size={20} className={isBioBotActive ? "text-bg-main" : "text-accent"} />
+            <div className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all duration-700 ${isBioBotActive ? 'bg-amber-500 shadow-[0_0_30px_rgba(245,158,11,0.5)]' : 'bg-accent/20'}`}>
+              <Icon name={isBioBotActive ? "shield-check" : (peerId ? "users" : "brain")} size={20} className={isBioBotActive ? "text-black" : "text-accent"} />
             </div>
             <div>
-              <h2 className={`font-black tracking-tight transition-colors duration-700 ${isBioBotActive ? 'text-amber-500 text-lg uppercase italic' : 'text-text-primary'}`}>
-                {isBioBotActive ? "BioBot" : (peerId ? peerName : "Titum AI")}
+              <h2 className={`font-black tracking-tighter transition-all duration-700 ${isBioBotActive ? 'text-amber-500 text-xl uppercase italic' : 'text-text-primary text-lg'}`}>
+                {isBioBotActive ? "BioBot Protocol" : (peerId ? peerName : "Titum AI")}
               </h2>
-              <p className={`text-[10px] uppercase tracking-widest font-mono font-bold ${isBioBotActive ? 'text-amber-500/60' : 'text-success'}`}>
-                {isBioBotActive ? "Master Control" : (peerId ? "Connected" : "Online")}
+              <p className={`text-[10px] uppercase tracking-[0.3em] font-mono font-black ${isBioBotActive ? 'text-amber-500/60 animate-pulse' : 'text-success'}`}>
+                {isBioBotActive ? "Active Session" : (peerId ? "Linked" : "Online")}
               </p>
             </div>
           </div>

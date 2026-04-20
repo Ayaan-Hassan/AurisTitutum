@@ -13,6 +13,8 @@ import {
     Info,
     Brain,
     Sparkles,
+    Command,
+    Terminal,
     Filter,
     Flame,
     FileText,
@@ -72,7 +74,8 @@ import {
     Maximize2,
     Users,
     Share2,
-    Copy
+    Copy,
+    Terminal
 } from 'lucide-react';
 
 
@@ -152,7 +155,9 @@ const Icon = ({ name, size = 18, className = "" }) => {
         'arrow-down-right': ArrowDownRight,
         'loader-2': Loader2,
         'hash': Hash,
-        'maximize-2': Maximize2
+        'maximize-2': Maximize2,
+        'terminal': Terminal,
+        'command': Command
     };
 
 
