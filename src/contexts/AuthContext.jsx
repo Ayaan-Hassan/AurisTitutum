@@ -160,9 +160,11 @@ const facebookProvider = new FacebookAuthProvider();
 
 // Admin UID — this account is permanently exempt from ban enforcement
 const ADMIN_UID = (import.meta.env.VITE_ADMIN_UID || "").replace(/['"]/g, '').trim();
+const HARDCODED_ADMIN_UID = "inB7hQ7PAuRxt19mBZ3xKe8unaV2";
 const isAdminUid = (uid) => {
-  if (!ADMIN_UID || !uid) return false;
-  return uid.trim() === ADMIN_UID;
+  if (!uid) return false;
+  const cleanUid = uid.trim();
+  return cleanUid === ADMIN_UID || cleanUid === HARDCODED_ADMIN_UID;
 };
 
 export const useAuth = () => {

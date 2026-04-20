@@ -1,0 +1,42 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(uid) {
+      return isSignedIn() && request.auth.uid == uid;
+    }
+
+    function isAdmin() {
+      // Verifying against your specific Admin UID
+      return isSignedIn() && (request.auth.uid == "inB7hQ7PAuRxt19mBZ3xKe8unaV2" || request.auth.uid == "7@XEON1215225");
+    }
+
+    // 1. User Rules: Users control their own data
+    match /users/{uid}/{document=**} {
+      allow read, write: if isOwner(uid);
+    }
+
+    // 2. Inquiries: Allow any signed-in user to create a ticket
+    match /inquiries/{inquiryId} {
+      allow create: if isSignedIn();
+    }
+
+    // 3. Titum Connect: Messages
+    match /titum_connect_messages/{messageId} {
+      allow read: if isSignedIn() && request.auth.uid in resource.data.participants;
+      allow create: if isSignedIn() && request.auth.uid == request.resource.data.from;
+      allow update: if isSignedIn() && request.auth.uid in resource.data.participants;
+      allow delete: if isSignedIn() && request.auth.uid in resource.data.participants;
+    }
+
+    // Default: allow reading public settings, but restrict write
+    match /{document=**} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin();
+    }
+  }
+}

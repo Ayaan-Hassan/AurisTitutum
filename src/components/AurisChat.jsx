@@ -545,18 +545,72 @@ Rule: **No phone after 11.**`;
   };
 
   const renderChatContent = (isMobile) => {
+    const isAdmin = user?.uid === ADMIN_UID;
     const activeMessages = peerId ? peerMessages : messages;
+
+    // Admin Recent Chats Extraction
+    const recentPeers = isAdmin ? Array.from(new Set(globalPeerMessages.map(m => m.from !== user?.uid ? m.from : m.to)))
+      .filter(id => id && id !== user?.uid)
+      .map(id => {
+        const lastMsg = globalPeerMessages.filter(m => m.participants?.includes(id)).pop();
+        return {
+          uid: id,
+          name: lastMsg?.from === id ? (lastMsg?.fromName || "User") : (lastMsg?.toName || "User"),
+          lastMessage: lastMsg?.content || "No history",
+          timestamp: lastMsg?.timestamp
+        };
+      })
+      .sort((a,b) => (b.timestamp?.toMillis ? b.timestamp.toMillis() : 0) - (a.timestamp?.toMillis ? a.timestamp.toMillis() : 0))
+      : [];
 
     return (
       <>
-        <div className={`flex-1 overflow-y-auto p-4 sm:p-5 space-y-6 custom-scrollbar scroll-smooth transition-all duration-1000 ${isBioBotActive ? 'bg-slate-50 relative' : ''}`}>
-          {isBioBotActive && (
-            <>
-              <div className="absolute inset-0 pointer-events-none opacity-50" style={{ backgroundImage: 'radial-gradient(circle at 50% 0%, rgba(15, 23, 42, 0.03) 0%, transparent 75%)' }} />
-              <div className="absolute top-0 left-0 right-0 h-[1px] bg-gradient-to-r from-transparent via-slate-300/50 to-transparent shadow-sm" />
-            </>
+        <div className={`flex flex-1 overflow-hidden transition-all duration-1000 ${isBioBotActive ? 'bg-slate-50' : ''}`}>
+          {/* Admin Sidebar for Recent Chats */}
+          {isAdmin && !isMobile && (
+            <div className={`w-32 border-r border-slate-100 bg-white transition-all duration-700 overflow-y-auto custom-scrollbar ${peerId ? 'w-16' : 'w-48'}`}>
+              <div className="p-4 border-b border-slate-100">
+                <p className={`text-[8px] font-black uppercase tracking-[0.3em] text-slate-400 ${peerId ? 'text-center' : ''}`}>
+                  {peerId ? "Nodes" : "Synchronized Nodes"}
+                </p>
+              </div>
+              <div className="p-2 space-y-2">
+                {recentPeers.map(peer => (
+                  <button
+                    key={peer.uid}
+                    onClick={() => {
+                      setPeerId(peer.uid);
+                      setPeerName(peer.name);
+                    }}
+                    className={`w-full group flex items-center transition-all rounded-xl p-2.5 ${peerId === peer.uid ? 'bg-slate-900 shadow-lg' : 'hover:bg-slate-50'}`}
+                  >
+                    <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 border ${peerId === peer.uid ? 'bg-white text-slate-900 border-transparent' : 'bg-slate-100 text-slate-400 border-slate-200'}`}>
+                      <Icon name="user" size={14} />
+                    </div>
+                    {!peerId && (
+                      <div className="ml-3 text-left overflow-hidden">
+                        <p className={`text-[11px] font-bold truncate ${peerId === peer.uid ? 'text-white' : 'text-slate-900'}`}>{peer.name}</p>
+                        <p className={`text-[8px] truncate opacity-60 ${peerId === peer.uid ? 'text-slate-200' : 'text-slate-400'}`}>{peer.lastMessage}</p>
+                      </div>
+                    )}
+                  </button>
+                ))}
+                {recentPeers.length === 0 && (
+                  <p className="text-[10px] text-slate-400 text-center py-10 px-2 italic">No active nodes detected.</p>
+                )}
+              </div>
+            </div>
           )}
-          {(isBioBotActive ? peerMessages : (peerId ? peerMessages : messages)).map((msg, index) => (
+
+          <div className="flex-1 flex flex-col relative overflow-hidden">
+            <div className={`flex-1 overflow-y-auto p-4 sm:p-5 space-y-6 custom-scrollbar scroll-smooth transition-all duration-1000 ${isBioBotActive ? 'relative' : ''}`}>
+              {isBioBotActive && (
+                <>
+                  <div className="absolute inset-0 pointer-events-none opacity-50" style={{ backgroundImage: 'radial-gradient(circle at 50% 0%, rgba(15, 23, 42, 0.03) 0%, transparent 75%)' }} />
+                  <div className="absolute top-0 left-0 right-0 h-[1px] bg-gradient-to-r from-transparent via-slate-300/50 to-transparent shadow-sm" />
+                </>
+              )}
+              {activeMessages.map((msg, index) => (
             <div key={msg.id || index} className={`flex flex-col ${msg.role === 'user' ? 'items-end' : 'items-start'} group animate-in fade-in slide-in-from-bottom-2 duration-500 relative z-10`}>
               {(msg.role === 'assistant' || (peerId && msg.from !== user?.uid)) && (
                 <div className="flex items-center gap-2.5 mb-2 opacity-60 group-hover:opacity-100 transition-all">
@@ -608,6 +662,9 @@ Rule: **No phone after 11.**`;
           <div ref={isMobile ? messagesEndRefMobile : messagesEndRefDesktop} className="h-6" />
         </div>
 
+          </div>
+        </div>
+
         <div className={`p-5 border-t shrink-0 transition-all duration-1000 ${isBioBotActive ? 'bg-white border-slate-100' : 'bg-bg-main border-border-color'}`}>
           <div className="relative flex items-end gap-3">
             <textarea
@@ -657,15 +714,24 @@ Rule: **No phone after 11.**`;
       <div className={`hidden md:flex fixed top-0 right-0 bottom-0 w-full max-w-md bg-bg-main border-l shadow-2xl z-50 flex-col animate-in slide-in-from-right transition-all duration-1000 ${isBioBotActive ? 'border-slate-100' : 'border-border-color'}`}>
         <div className={`flex items-center justify-between p-5 border-b shrink-0 transition-all duration-1000 ${isBioBotActive ? 'bg-white border-slate-100' : 'border-border-color'}`}>
           <div className="flex items-center gap-4">
+            {isAdmin && peerId && (
+              <button
+                onClick={handleExitPeerChat}
+                className="w-10 h-10 rounded-xl bg-slate-50 border border-slate-100 flex items-center justify-center text-slate-400 hover:text-slate-900 transition-all hover:shadow-sm group"
+                title="Return to Nodes"
+              >
+                <Icon name="chevron-left" size={16} className="group-hover:-translate-x-0.5 transition-transform" />
+              </button>
+            )}
             <div className={`w-11 h-11 rounded-xl flex items-center justify-center transition-all duration-1000 ${isBioBotActive ? 'bg-slate-900 shadow-xl' : 'bg-accent/20'}`}>
               <Icon name={isBioBotActive ? "shield-check" : (peerId ? "users" : "brain")} size={22} className={isBioBotActive ? "text-white" : "text-accent"} />
             </div>
             <div>
               <h2 className={`font-black tracking-tight transition-all duration-1000 ${isBioBotActive ? 'text-slate-900 text-xl font-bold' : 'text-text-primary text-lg'}`}>
-                {isBioBotActive ? "BioBot Protocol" : (peerId ? peerName : "Titum AI")}
+                {isBioBotActive ? (peerId ? peerName : "BioBot Protocol") : (peerId ? peerName : "Titum AI")}
               </h2>
-              <p className={`text-[10px] uppercase tracking-[0.4em] font-mono font-black ${isBioBotActive ? 'text-slate-400 animate-pulse' : 'text-success'}`}>
-                {isBioBotActive ? "Encrypted Link" : (peerId ? "Linked" : "Online")}
+              <p className={`text-[10px] uppercase tracking-[0.4em] font-mono font-black ${isBioBotActive ? (peerId ? 'text-slate-900 shadow-[0_0_10px_rgba(15,23,42,0.1)]' : 'text-slate-400 animate-pulse') : 'text-success'}`}>
+                {isBioBotActive ? (peerId ? "Node Synchronized" : "Master Terminal") : (peerId ? "Linked" : "Online")}
               </p>
             </div>
           </div>
