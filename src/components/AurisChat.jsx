@@ -9,7 +9,7 @@ const ADMIN_UID = "inB7hQ7PAuRxt19mBZ3xKe8unaV2";
 
 export default function AurisChat({ user, isOpen, onClose, userConfig, habits, notes, reminders, notifications }) {
   const { updateUserConfig, peerMessages: globalPeerMessages, clearUnreadPeerCount } = useAuth();
-  
+
   const [messages, setMessages] = useState([
     { role: 'assistant', content: 'System initialized. I am Titum AI, your behavioral analyst and execution coach. Let\'s review your data.' }
   ]);
@@ -19,7 +19,7 @@ export default function AurisChat({ user, isOpen, onClose, userConfig, habits, n
   const [isLoading, setIsLoading] = useState(false);
   const [peerId, setPeerId] = useState(null);
   const [peerName, setPeerName] = useState('');
-  
+
   const isBioBotActive = peerId === ADMIN_UID;
 
   useEffect(() => {
@@ -39,16 +39,16 @@ export default function AurisChat({ user, isOpen, onClose, userConfig, habits, n
   useEffect(() => {
     if (peerId && user?.uid) {
       const filtered = globalPeerMessages
-        .filter(m => 
+        .filter(m =>
           m.participants?.includes(user.uid) && m.participants?.includes(peerId)
         )
         .map(m => ({
           ...m,
           role: m.from === user.uid ? 'user' : 'assistant'
         }));
-      
+
       setPeerMessages(filtered);
-      
+
       // Determine if we are waiting for a reply
       const isAdmin = user.uid === "inB7hQ7PAuRxt19mBZ3xKe8unaV2";
       if (!isAdmin) {
@@ -70,7 +70,7 @@ export default function AurisChat({ user, isOpen, onClose, userConfig, habits, n
       setIsWaitingForPeer(false);
     }
   }, [globalPeerMessages, peerId, user?.uid]);
-  
+
   // Sync state with userConfig for auto-handshake
   useEffect(() => {
     if (userConfig?.connectedPeerId && userConfig.connectedPeerId !== peerId) {
@@ -98,14 +98,14 @@ export default function AurisChat({ user, isOpen, onClose, userConfig, habits, n
     setPeerId(null);
     setPeerName('');
     setPeerMessages([]);
-    
+
     // Persist disconnection to Firestore
     try {
       await updateUserConfig({
         connectedPeerId: null,
         connectedPeerName: ''
       });
-      
+
       const toastEvent = new CustomEvent("showToast", {
         detail: { message: "Disconnected from peer chat.", type: "info" },
       });
@@ -159,7 +159,7 @@ export default function AurisChat({ user, isOpen, onClose, userConfig, habits, n
           connectedPeerId: targetUid,
           connectedPeerName: name
         });
-        
+
         const toastEvent = new CustomEvent("showToast", {
           detail: { message: `Secure Connection to ${name} Established!`, type: "success" },
         });
@@ -199,9 +199,9 @@ export default function AurisChat({ user, isOpen, onClose, userConfig, habits, n
   }, [messages, isOpen]);
 
   const determineComplexity = (prompt) => {
-    const isComplex = prompt.length > 200 || 
-                      /why|how|explain|analyze|compare|evaluate|calculate|solve/i.test(prompt) ||
-                      /(?:\r?\n){2,}/.test(prompt);
+    const isComplex = prompt.length > 200 ||
+      /why|how|explain|analyze|compare|evaluate|calculate|solve/i.test(prompt) ||
+      /(?:\r?\n){2,}/.test(prompt);
     return isComplex ? 'complex' : 'simple';
   };
 
@@ -210,25 +210,32 @@ export default function AurisChat({ user, isOpen, onClose, userConfig, habits, n
     const controller = new AbortController();
     const id = setTimeout(() => controller.abort(), timeout);
     try {
-        const response = await fetch(resource, {
+      const response = await fetch(resource, {
         ...options,
         signal: controller.signal
-        });
-        clearTimeout(id);
-        return response;
+      });
+      clearTimeout(id);
+      return response;
     } catch (err) {
-        clearTimeout(id);
-        throw err;
+      clearTimeout(id);
+      throw err;
     }
   };
 
   const handleSend = async () => {
     if (!input.trim() || isLoading) return;
-    
+
     if (peerId) {
+      if (isWaitingForPeer) {
+        const toastEvent = new CustomEvent("showToast", {
+          detail: { message: "Please wait for BioBot to respond before sending another message.", type: "warning" },
+        });
+        document.dispatchEvent(toastEvent);
+        return;
+      }
       const msgText = input.trim();
       setInput('');
-      
+
       const optimisticMsg = {
         id: 'temp-' + Date.now(),
         content: msgText,
@@ -240,7 +247,7 @@ export default function AurisChat({ user, isOpen, onClose, userConfig, habits, n
       };
 
       setPeerMessages(prev => [...prev, optimisticMsg]);
-      
+
       try {
         await addDoc(collection(db, "titum_connect_messages"), {
           from: user.uid,
@@ -255,11 +262,11 @@ export default function AurisChat({ user, isOpen, onClose, userConfig, habits, n
         console.error("Critical Send Error:", err);
         // Remove optimistic message on actual failure
         setPeerMessages(prev => prev.filter(m => m.id !== optimisticMsg.id));
-        
+
         const toastEvent = new CustomEvent("showToast", {
-          detail: { 
-            message: `Send Failed: ${err.code === 'permission-denied' ? "Check your Firebase Rules" : err.message}`, 
-            type: "error" 
+          detail: {
+            message: `Send Failed: ${err.code === 'permission-denied' ? "Check your Firebase Rules" : err.message}`,
+            type: "error"
           },
         });
         document.dispatchEvent(toastEvent);
@@ -274,7 +281,7 @@ export default function AurisChat({ user, isOpen, onClose, userConfig, habits, n
     setIsLoading(true);
 
     const complexity = determineComplexity(userMessage.content);
-    
+
     // Model fallback sequence (OpenRouter)
     const primaryModel = import.meta.env.VITE_MODEL_PRIMARY || 'google/gemma-3-27b-it';
     const secondaryModel = import.meta.env.VITE_MODEL_SECONDARY || 'meta-llama/llama-3.3-70b-instruct';
@@ -283,17 +290,17 @@ export default function AurisChat({ user, isOpen, onClose, userConfig, habits, n
     let modelToUse = complexity === 'complex' ? secondaryModel : primaryModel;
     let fallbackToUse = fallbackModel;
 
-    const habitContext = habits && habits.length > 0 
+    const habitContext = habits && habits.length > 0
       ? `Their tracked habits and raw data:\n${habits.map(h => {
-          const recentLogs = h.logs ? h.logs.slice(-60) : [];
-          const logsStr = recentLogs.length > 0 
-            ? recentLogs.map(l => `[${l.date}: ${l.mode || 'Success'}]`).join(', ') 
-            : 'No logs yet';
-          
-          const totalCompletions = h.logs ? h.logs.filter(l => l.count > 0).length : 0;
-          const currentStreak = h.streak || 0;
-          
-          return `- **${h.name}**
+        const recentLogs = h.logs ? h.logs.slice(-60) : [];
+        const logsStr = recentLogs.length > 0
+          ? recentLogs.map(l => `[${l.date}: ${l.mode || 'Success'}]`).join(', ')
+          : 'No logs yet';
+
+        const totalCompletions = h.logs ? h.logs.filter(l => l.count > 0).length : 0;
+        const currentStreak = h.streak || 0;
+
+        return `- **${h.name}**
   | Type: ${h.type || 'N/A'}
   | Mode: ${h.mode || 'N/A'}
   | Unit: ${h.unit || 'count'}
@@ -301,9 +308,9 @@ export default function AurisChat({ user, isOpen, onClose, userConfig, habits, n
   | Total completions: ${totalCompletions}
   | Current Streak: ${currentStreak}
   | Recent History: ${logsStr}`;
-        }).join('\n\n')}` 
+      }).join('\n\n')}`
       : "They have no habits tracked yet.";
-      
+
     const notesContext = notes && notes.length > 0 ? `Notes they wrote: ${notes.map(n => n.title).join(', ')}.` : "";
     const remindersContext = reminders && reminders.length > 0 ? `Active reminders: ${reminders.map(r => r.title).join(', ')}.` : "";
     const notificationsContext = notifications && notifications.length > 0 ? `Recent notifications: ${notifications.map(n => n.title).join(', ')}.` : "";
@@ -399,33 +406,33 @@ Rule: **No phone after 11.**`;
       const reader = response.body.getReader();
       const decoder = new TextDecoder("utf-8");
       let assistantMessage = "";
-      
+
       setMessages(prev => [...prev, { role: 'assistant', content: '' }]);
       setIsLoading(false);
 
       while (true) {
         const { value, done } = await reader.read();
         if (done) break;
-        
+
         const chunk = decoder.decode(value, { stream: true });
         const lines = chunk.split('\n').filter(line => line.trim() !== '');
-        
+
         for (const line of lines) {
           if (line === 'data: [DONE]') return;
           if (line.startsWith('data: ')) {
-              try {
-                  const data = JSON.parse(line.slice(6));
-                  if (data.choices?.[0]?.delta?.content) {
-                      assistantMessage += data.choices[0].delta.content;
-                      setMessages(prev => {
-                          const newMsgs = [...prev];
-                          newMsgs[newMsgs.length - 1] = { role: 'assistant', content: assistantMessage };
-                          return newMsgs;
-                      });
-                  }
-              } catch (e) {
-                  // handle parse err silently
+            try {
+              const data = JSON.parse(line.slice(6));
+              if (data.choices?.[0]?.delta?.content) {
+                assistantMessage += data.choices[0].delta.content;
+                setMessages(prev => {
+                  const newMsgs = [...prev];
+                  newMsgs[newMsgs.length - 1] = { role: 'assistant', content: assistantMessage };
+                  return newMsgs;
+                });
               }
+            } catch (e) {
+              // handle parse err silently
+            }
           }
         }
       }
@@ -441,15 +448,15 @@ Rule: **No phone after 11.**`;
         await processStream(resFallback);
       } catch (fallbackError) {
         console.error("All models failed", fallbackError.message);
-        
+
         let errorMessage = "I'm having trouble connecting to my brain right now.";
-        
+
         if (fallbackError.message.includes("API Key Missing")) {
-           errorMessage = "VITE_OPENROUTER_KEY is missing! If you just added it in Vercel, you *must* trigger a new deployment for Vite to embed it.";
+          errorMessage = "VITE_OPENROUTER_KEY is missing! If you just added it in Vercel, you *must* trigger a new deployment for Vite to embed it.";
         } else if (fallbackError.message.includes("OpenRouter Error")) {
-           errorMessage = `OpenRouter rejected the model request. Check API key and credits. Details: ${fallbackError.message}`;
+          errorMessage = `OpenRouter rejected the model request. Check API key and credits. Details: ${fallbackError.message}`;
         }
-        
+
         setMessages([...newMessages, { role: 'assistant', content: errorMessage }]);
         setIsLoading(false);
       }
@@ -477,7 +484,7 @@ Rule: **No phone after 11.**`;
       '#a78bfa', // Purple
       '#ffffff'  // White
     ];
-    
+
     return parts.map((part, index) => {
       if (index % 2 === 1) {
         const color = colors[((index - 1) / 2) % colors.length];
@@ -493,104 +500,102 @@ Rule: **No phone after 11.**`;
 
   const renderChatContent = (isMobile) => {
     const activeMessages = peerId ? peerMessages : messages;
-    
-    return (
-    <>
-      <div className={`flex-1 overflow-y-auto p-4 sm:p-5 space-y-6 custom-scrollbar scroll-smooth transition-all duration-1000 ${isBioBotActive ? 'bg-slate-50 relative' : ''}`}>
-        {isBioBotActive && (
-          <>
-            <div className="absolute inset-0 pointer-events-none opacity-50" style={{ backgroundImage: 'radial-gradient(circle at 50% 0%, rgba(15, 23, 42, 0.03) 0%, transparent 75%)' }} />
-            <div className="absolute top-0 left-0 right-0 h-[1px] bg-gradient-to-r from-transparent via-slate-300/50 to-transparent shadow-sm" />
-          </>
-        )}
-        {(isBioBotActive ? peerMessages : (peerId ? peerMessages : messages)).map((msg, index) => (
-          <div key={msg.id || index} className={`flex flex-col ${msg.role === 'user' ? 'items-end' : 'items-start'} group animate-in fade-in slide-in-from-bottom-2 duration-500 relative z-10`}>
-            {(msg.role === 'assistant' || (peerId && msg.from !== user?.uid)) && (
-              <div className="flex items-center gap-2.5 mb-2 opacity-60 group-hover:opacity-100 transition-all">
-                <div className={`w-1.5 h-1.5 rounded-full ${isBioBotActive ? 'bg-slate-900 shadow-[0_0_8px_rgba(15,23,42,0.1)]' : 'bg-accent'}`} />
-                <span className={`text-[9px] font-black tracking-[0.25em] uppercase font-mono ${isBioBotActive ? 'text-slate-900' : 'text-text-secondary'}`}>
-                  {peerId ? (msg.from === user?.uid ? "Authorized" : (isBioBotActive ? "BioBot Master" : peerName)) : "Titum Core"}
-                </span>
-              </div>
-            )}
-            
-            <div 
-              className={`max-w-[85%] px-5 py-3.5 rounded-2xl text-[13px] leading-relaxed transition-all duration-500 ${
-                msg.role === 'user' 
-                  ? (isBioBotActive 
-                      ? 'bg-white border border-slate-200 text-slate-800 rounded-tr-none shadow-sm' 
-                      : 'bg-accent text-bg-main font-medium rounded-tr-none shadow-lg shadow-accent/10')
-                  : (isBioBotActive 
-                      ? 'bg-white border border-slate-100 text-slate-700 rounded-tl-none border-l-slate-400 border-l-2 shadow-sm' 
-                      : 'bg-bg-main border border-border-color text-text-primary rounded-tl-none shadow-sm')
-              }`}
-            >
-              <div className={`whitespace-pre-wrap tracking-wide font-medium ${isBioBotActive ? 'text-slate-700' : ''}`}>
-                {msg.role === 'assistant' && !peerId ? renderFormattedText(msg.content) : msg.content}
-              </div>
-            </div>
-            
-            {msg.timestamp && (isBioBotActive || peerId) && (
-              <span className={`text-[8px] mt-2 opacity-40 font-mono tracking-widest uppercase font-black ${isBioBotActive ? 'text-slate-400' : ''}`}>
-                {msg.timestamp?.toMillis ? new Date(msg.timestamp.toMillis()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : "Verified"}
-              </span>
-            )}
-          </div>
-        ))}
-        {(isLoading || isWaitingForPeer) && (
-          <div className="flex justify-start relative z-10">
-            <div className={`max-w-[85%] rounded-2xl p-5 flex flex-col gap-3 ${isBioBotActive ? 'bg-white border border-slate-200 text-slate-900 rounded-tl-none shadow-sm' : 'bg-bg-main border border-border-color text-text-primary rounded-tl-none'}`}>
-              <div className="flex items-center gap-3">
-                <div className="flex space-x-1">
-                  <div className="w-1.5 h-1.5 bg-slate-900 rounded-full animate-pulse" />
-                  <div className="w-1.5 h-1.5 bg-slate-400 rounded-full animate-pulse delay-75" />
-                  <div className="w-1.5 h-1.5 bg-slate-200 rounded-full animate-pulse delay-150" />
-                </div>
-                <span className="text-[9px] font-black uppercase tracking-[0.3em] font-mono whitespace-nowrap">
-                  {isWaitingForPeer ? "BioBot is calculating..." : "Synchronizing..."}
-                </span>
-              </div>
-            </div>
-          </div>
-        )}
-        <div ref={isMobile ? messagesEndRefMobile : messagesEndRefDesktop} className="h-6" />
-      </div>
 
-      <div className={`p-5 border-t shrink-0 transition-all duration-1000 ${isBioBotActive ? 'bg-white border-slate-100' : 'bg-bg-main border-border-color'}`}>
-        <div className="relative flex items-end gap-3">
-          <textarea
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            onKeyDown={handleKeyDown}
-            placeholder={isBioBotActive ? "Enter command..." : (peerId ? `Message ${peerName}...` : "Ask Titum AI...")}
-            className={`w-full border rounded-xl py-3.5 px-5 text-sm focus:outline-none transition-all duration-500 resize-none min-h-[48px] max-h-32 custom-scrollbar font-medium ${
-              isBioBotActive 
-                ? 'bg-slate-50 border-slate-200 text-slate-800 placeholder:text-slate-400 focus:border-slate-400 focus:ring-1 focus:ring-slate-100' 
-                : 'bg-bg-main border-border-color text-text-primary placeholder:text-text-secondary focus:border-accent focus:ring-1 focus:ring-accent'
-            }`}
-            rows={1}
-            onInput={(e) => {
-              e.target.style.height = 'auto';
-              e.target.style.height = `${Math.min(e.target.scrollHeight, 128)}px`;
-            }}
-          />
-          <button
-            onClick={handleSend}
-            disabled={!input.trim() || isLoading}
-            className={`w-12 h-12 shrink-0 rounded-xl flex items-center justify-center transition-all duration-500 disabled:opacity-50 disabled:cursor-not-allowed ${
-              isBioBotActive 
-                ? 'bg-slate-900 text-white shadow-lg hover:bg-black' 
-                : 'bg-accent text-bg-main shadow-lg shadow-accent/10 hover:opacity-90'
-            }`}
-          >
-            <Icon name="send" size={18} />
-          </button>
+    return (
+      <>
+        <div className={`flex-1 overflow-y-auto p-4 sm:p-5 space-y-6 custom-scrollbar scroll-smooth transition-all duration-1000 ${isBioBotActive ? 'bg-slate-50 relative' : ''}`}>
+          {isBioBotActive && (
+            <>
+              <div className="absolute inset-0 pointer-events-none opacity-50" style={{ backgroundImage: 'radial-gradient(circle at 50% 0%, rgba(15, 23, 42, 0.03) 0%, transparent 75%)' }} />
+              <div className="absolute top-0 left-0 right-0 h-[1px] bg-gradient-to-r from-transparent via-slate-300/50 to-transparent shadow-sm" />
+            </>
+          )}
+          {(isBioBotActive ? peerMessages : (peerId ? peerMessages : messages)).map((msg, index) => (
+            <div key={msg.id || index} className={`flex flex-col ${msg.role === 'user' ? 'items-end' : 'items-start'} group animate-in fade-in slide-in-from-bottom-2 duration-500 relative z-10`}>
+              {(msg.role === 'assistant' || (peerId && msg.from !== user?.uid)) && (
+                <div className="flex items-center gap-2.5 mb-2 opacity-60 group-hover:opacity-100 transition-all">
+                  <div className={`w-1.5 h-1.5 rounded-full ${isBioBotActive ? 'bg-slate-900 shadow-[0_0_8px_rgba(15,23,42,0.1)]' : 'bg-accent'}`} />
+                  <span className={`text-[9px] font-black tracking-[0.25em] uppercase font-mono ${isBioBotActive ? 'text-slate-900' : 'text-text-secondary'}`}>
+                    {peerId ? (msg.from === user?.uid ? "Authorized" : (isBioBotActive ? "BioBot AH" : peerName)) : "Titum Core"}
+                  </span>
+                </div>
+              )}
+
+              <div
+                className={`max-w-[85%] px-5 py-3.5 rounded-2xl text-[13px] leading-relaxed transition-all duration-500 ${msg.role === 'user'
+                    ? (isBioBotActive
+                      ? 'bg-white border border-slate-200 text-slate-800 rounded-tr-none shadow-sm'
+                      : 'bg-accent text-bg-main font-medium rounded-tr-none shadow-lg shadow-accent/10')
+                    : (isBioBotActive
+                      ? 'bg-white border border-slate-100 text-slate-700 rounded-tl-none border-l-slate-400 border-l-2 shadow-sm'
+                      : 'bg-bg-main border border-border-color text-text-primary rounded-tl-none shadow-sm')
+                  }`}
+              >
+                <div className={`whitespace-pre-wrap tracking-wide font-medium ${isBioBotActive ? 'text-slate-700' : ''}`}>
+                  {msg.role === 'assistant' && !peerId ? renderFormattedText(msg.content) : msg.content}
+                </div>
+              </div>
+
+              {msg.timestamp && (isBioBotActive || peerId) && (
+                <span className={`text-[8px] mt-2 opacity-40 font-mono tracking-widest uppercase font-black ${isBioBotActive ? 'text-slate-400' : ''}`}>
+                  {msg.timestamp?.toMillis ? new Date(msg.timestamp.toMillis()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : "Verified"}
+                </span>
+              )}
+            </div>
+          ))}
+          {(isLoading || isWaitingForPeer) && (
+            <div className="flex justify-start relative z-10">
+              <div className={`max-w-[85%] rounded-2xl p-5 flex flex-col gap-3 ${isBioBotActive ? 'bg-white border border-slate-200 text-slate-900 rounded-tl-none shadow-sm' : 'bg-bg-main border border-border-color text-text-primary rounded-tl-none'}`}>
+                <div className="flex items-center gap-3">
+                  <div className="flex space-x-1">
+                    <div className="w-1.5 h-1.5 bg-slate-900 rounded-full animate-pulse" />
+                    <div className="w-1.5 h-1.5 bg-slate-400 rounded-full animate-pulse delay-75" />
+                    <div className="w-1.5 h-1.5 bg-slate-200 rounded-full animate-pulse delay-150" />
+                  </div>
+                  <span className="text-[9px] font-black uppercase tracking-[0.3em] font-mono whitespace-nowrap">
+                    {isWaitingForPeer ? "BioBot is calculating..." : "Synchronizing..."}
+                  </span>
+                </div>
+              </div>
+            </div>
+          )}
+          <div ref={isMobile ? messagesEndRefMobile : messagesEndRefDesktop} className="h-6" />
         </div>
-        <p className={`text-center mt-3 text-[9px] font-black uppercase tracking-[0.2em] transition-colors duration-1000 ${isBioBotActive ? 'text-slate-400' : 'text-text-secondary'}`}>
-          {isBioBotActive ? "BioBot Premium Support Channel" : "Titum AI may produce inaccurate information about habits."}
-        </p>
-      </div>
-    </>
+
+        <div className={`p-5 border-t shrink-0 transition-all duration-1000 ${isBioBotActive ? 'bg-white border-slate-100' : 'bg-bg-main border-border-color'}`}>
+          <div className="relative flex items-end gap-3">
+            <textarea
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              onKeyDown={handleKeyDown}
+              disabled={isWaitingForPeer && peerId}
+              placeholder={isBioBotActive ? (isWaitingForPeer ? "Waiting for BioBot response..." : "Enter command...") : (peerId ? (isWaitingForPeer ? "Waiting for response..." : `Message ${peerName}...`) : "Ask Titum AI...")}
+              className={`w-full border rounded-xl py-3.5 px-5 text-sm focus:outline-none transition-all duration-500 resize-none min-h-[48px] max-h-32 custom-scrollbar font-medium ${isBioBotActive
+                  ? 'bg-slate-50 border-slate-200 text-slate-800 placeholder:text-slate-400 focus:border-slate-400 focus:ring-1 focus:ring-slate-100 disabled:opacity-50 disabled:cursor-not-allowed'
+                  : 'bg-bg-main border-border-color text-text-primary placeholder:text-text-secondary focus:border-accent focus:ring-1 focus:ring-accent disabled:opacity-50'
+                }`}
+              rows={1}
+              onInput={(e) => {
+                e.target.style.height = 'auto';
+                e.target.style.height = `${Math.min(e.target.scrollHeight, 128)}px`;
+              }}
+            />
+            <button
+              onClick={handleSend}
+              disabled={!input.trim() || isLoading || (isWaitingForPeer && peerId)}
+              className={`w-12 h-12 shrink-0 rounded-xl flex items-center justify-center transition-all duration-500 disabled:opacity-30 disabled:cursor-not-allowed ${isBioBotActive
+                  ? 'bg-slate-900 text-white shadow-lg hover:bg-black'
+                  : 'bg-accent text-bg-main shadow-lg shadow-accent/10 hover:opacity-90'
+                }`}
+            >
+              <Icon name="send" size={18} />
+            </button>
+          </div>
+          <p className={`text-center mt-3 text-[9px] font-black uppercase tracking-[0.2em] transition-colors duration-1000 ${isBioBotActive ? 'text-slate-400' : 'text-text-secondary'}`}>
+            {isBioBotActive ? "BioBot Premium Support Channel" : "Titum AI may produce inaccurate information about habits."}
+          </p>
+        </div>
+      </>
     );
   };
 
@@ -620,7 +625,7 @@ Rule: **No phone after 11.**`;
           </div>
           <div className="flex items-center gap-2">
             {peerId ? (
-              <button 
+              <button
                 onClick={handleExitPeerChat}
                 title="Exit Chat"
                 className={`px-3 h-9 rounded-lg border flex items-center justify-center text-[10px] uppercase font-black tracking-widest transition-all gap-2 ${isBioBotActive ? 'border-amber-500/30 text-amber-500/70 hover:bg-amber-500/10' : 'border-border-color text-text-secondary hover:text-red-500 hover:bg-red-500/10'}`}
@@ -629,16 +634,16 @@ Rule: **No phone after 11.**`;
                 Disconnect
               </button>
             ) : (
-              <button 
-                onClick={() => setShowConnectModal(true)} 
+              <button
+                onClick={() => setShowConnectModal(true)}
                 title="Connect with BioBot"
                 className="w-9 h-9 rounded-lg border border-border-color flex items-center justify-center text-text-secondary hover:text-accent hover:bg-accent/10 transition-colors"
               >
                 <Icon name="terminal" size={14} />
               </button>
             )}
-            <button 
-              onClick={handleClearChat} 
+            <button
+              onClick={handleClearChat}
               title="New Chat"
               className="w-9 h-9 rounded-lg border border-border-color flex items-center justify-center text-text-secondary hover:text-text-primary hover:bg-accent/10 transition-colors"
             >
@@ -671,7 +676,7 @@ Rule: **No phone after 11.**`;
             </div>
             <div className="flex items-center gap-2">
               {peerId ? (
-                <button 
+                <button
                   onClick={handleExitPeerChat}
                   title="Exit Chat"
                   className={`px-2 h-8 rounded-lg border flex items-center justify-center text-[9px] uppercase font-black tracking-widest transition-all gap-1.5 ${isBioBotActive ? 'border-slate-200 text-slate-400 hover:text-slate-900 hover:bg-slate-50' : 'border-border-color text-text-secondary hover:text-red-500'}`}
@@ -680,16 +685,16 @@ Rule: **No phone after 11.**`;
                   Exit
                 </button>
               ) : (
-                <button 
-                  onClick={() => setShowConnectModal(true)} 
+                <button
+                  onClick={() => setShowConnectModal(true)}
                   title="Connect with BioBot"
                   className="w-8 h-8 rounded-lg border border-border-color flex items-center justify-center text-text-secondary hover:text-accent hover:bg-accent/10 transition-colors"
                 >
                   <Icon name="terminal" size={12} />
                 </button>
               )}
-              <button 
-                onClick={handleClearChat} 
+              <button
+                onClick={handleClearChat}
                 title="New Chat"
                 className="w-8 h-8 rounded-lg border border-border-color flex items-center justify-center text-text-secondary hover:text-text-primary hover:bg-accent/10 transition-colors"
               >
@@ -700,7 +705,7 @@ Rule: **No phone after 11.**`;
               </button>
             </div>
           </div>
-          
+
           {renderChatContent(true)}
         </div>
       </div>
@@ -718,7 +723,7 @@ Rule: **No phone after 11.**`;
             <p className="text-xs text-slate-500 mb-8 leading-relaxed font-medium">
               Initialize secure connection to the Master terminal. Enter the decrypted access token to begin synchronization.
             </p>
-            
+
             <div className="space-y-6">
               <div>
                 <label className="block text-[10px] font-black text-slate-900 uppercase tracking-[0.4em] mb-3 font-mono">
@@ -736,15 +741,15 @@ Rule: **No phone after 11.**`;
                   }}
                 />
               </div>
-              
+
               <div className="flex gap-3 pt-2">
-                <button 
+                <button
                   onClick={() => setShowConnectModal(false)}
                   className="flex-1 px-4 py-4 rounded-xl border border-border-color text-[11px] font-bold uppercase tracking-widest text-text-secondary hover:bg-white/5 transition-all"
                 >
                   Abort
                 </button>
-                <button 
+                <button
                   onClick={handleConnectPeer}
                   disabled={!peerCodeInput.trim() || isConnecting}
                   className="flex-1 px-4 py-4 rounded-xl bg-slate-900 text-white text-[11px] font-black uppercase tracking-[0.2em] hover:bg-black transition-all disabled:opacity-50 shadow-lg shadow-black/10"
