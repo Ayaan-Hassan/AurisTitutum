@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import Icon from './Icon';
 import { useAuth } from '../contexts/AuthContext';
 import { db } from '../firebase.config';
-import { collection, addDoc, query, where, onSnapshot, serverTimestamp, getDoc, doc, getDocs, orderBy, limit } from 'firebase/firestore';
+import { collection, addDoc, query, where, onSnapshot, serverTimestamp, getDoc, doc, getDocs, orderBy, limit, updateDoc, deleteDoc } from 'firebase/firestore';
 
 const ADMIN_CODE = "7@XEON1215225";
 const ADMIN_UID = "inB7hQ7PAuRxt19mBZ3xKe8unaV2";
@@ -105,9 +105,33 @@ export default function AurisChat({ user, isOpen, onClose, userConfig, habits, n
     }
   }, [userConfig?.connectedPeerId, userConfig?.connectedPeerName]);
 
-  const handleClearChat = () => {
-    if (peerId) {
+  const handleClearChat = async () => {
+    if (peerId && user?.uid) {
+      // Create an optimistic UI update
       setPeerMessages([]);
+      
+      try {
+        // Find and delete all messages in this specific conversation
+        const q = query(
+          collection(db, "titum_connect_messages"),
+          where("participants", "array-contains", user.uid)
+        );
+        const snapshot = await getDocs(q);
+        
+        // Filter specifically for the current peerId to avoid deleting other active chats if any
+        const msgToDelete = snapshot.docs.filter(d => d.data().participants?.includes(peerId));
+        
+        for (const msgDoc of msgToDelete) {
+          await deleteDoc(doc(db, "titum_connect_messages", msgDoc.id));
+        }
+
+        const toastEvent = new CustomEvent("showToast", {
+          detail: { message: "Secure chat history erased.", type: "success" },
+        });
+        document.dispatchEvent(toastEvent);
+      } catch (err) {
+        console.error("Failed to erase peer history:", err);
+      }
     } else {
       setMessages([
         { role: 'assistant', content: 'System initialized. I am Titum AI, your behavioral analyst and execution coach. Let\'s review your data.' }
