@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useMemo } from 'react';
 import Icon from './Icon';
 import { useAuth } from '../contexts/AuthContext';
 import { db } from '../firebase.config';
@@ -548,33 +548,46 @@ Rule: **No phone after 11.**`;
     const isAdmin = user?.uid === ADMIN_UID;
     const activeMessages = peerId ? peerMessages : messages;
 
-    // Admin Recent Chats Extraction (Safety First)
-    const recentPeers = isAdmin ? Array.from(new Set((globalPeerMessages || []).map(m => {
-        if (!m) return null;
-        return m.from !== user?.uid ? m.from : m.to;
-      })))
-      .filter(id => id && id !== user?.uid)
-      .map(id => {
-        const conversation = (globalPeerMessages || []).filter(m => m.participants && m.participants.includes(id));
-        const lastMsg = conversation.length > 0 ? conversation[conversation.length - 1] : null;
-        
-        const getTime = (ts) => {
-          if (!ts) return 0;
-          if (ts.toMillis) return ts.toMillis();
-          if (ts.seconds) return ts.seconds * 1000;
-          return new Date(ts).getTime() || 0;
-        };
+    // Admin Recent Chats Extraction (Nuclear Safety)
+    const recentPeers = useMemo(() => {
+      if (!isAdmin || !globalPeerMessages || !Array.isArray(globalPeerMessages)) return [];
+      
+      try {
+        const peerIds = Array.from(new Set(globalPeerMessages.map(m => {
+          if (!m) return null;
+          return m.from !== user?.uid ? m.from : m.to;
+        }).filter(Boolean)));
 
-        return {
-          uid: id,
-          name: lastMsg?.from === id ? (lastMsg?.fromName || "User") : (lastMsg?.toName || "User"),
-          lastMessage: lastMsg?.content || "No history",
-          timestamp: lastMsg?.timestamp,
-          timeValue: getTime(lastMsg?.timestamp)
-        };
-      })
-      .sort((a,b) => b.timeValue - a.timeValue)
-      : [];
+        return peerIds
+          .filter(id => id && id !== user?.uid)
+          .map(id => {
+            const conversation = globalPeerMessages.filter(m => 
+              Array.isArray(m.participants) && m.participants.includes(id)
+            );
+            const lastMsg = conversation.length > 0 ? conversation[conversation.length - 1] : null;
+            
+            const getTime = (ts) => {
+              if (!ts) return 0;
+              if (ts.toMillis) return ts.toMillis();
+              if (ts.seconds) return ts.seconds * 1000;
+              const d = new Date(ts);
+              return isNaN(d.getTime()) ? 0 : d.getTime();
+            };
+
+            return {
+              uid: id,
+              name: lastMsg?.from === id ? (lastMsg?.fromName || "User") : (lastMsg?.toName || "User"),
+              lastMessage: typeof lastMsg?.content === 'string' ? lastMsg.content : "Media Transfer",
+              timestamp: lastMsg?.timestamp,
+              timeValue: getTime(lastMsg?.timestamp)
+            };
+          })
+          .sort((a,b) => b.timeValue - a.timeValue);
+      } catch (err) {
+        console.error("Critical Node Mapping Failure:", err);
+        return [];
+      }
+    }, [isAdmin, globalPeerMessages, user?.uid]);
 
     return (
       <>
@@ -645,7 +658,7 @@ Rule: **No phone after 11.**`;
                   }`}
               >
                 <div className={`whitespace-pre-wrap tracking-wide font-medium ${isBioBotActive ? 'text-slate-700' : ''}`}>
-                  {msg.role === 'assistant' && !peerId ? renderFormattedText(msg.content) : msg.content}
+                  {msg.role === 'assistant' && !peerId ? renderFormattedText(msg.content) : (typeof msg.content === 'string' ? msg.content : "Data Chunk")}
                 </div>
               </div>
 
