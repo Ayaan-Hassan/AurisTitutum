@@ -8,9 +8,7 @@ const ADMIN_CODE = "7@XEON1215225";
 const ADMIN_UID = "inB7hQ7PAuRxt19mBZ3xKe8unaV2";
 
 export default function AurisChat({ user, isOpen, onClose, userConfig, habits, notes, reminders, notifications }) {
-  const auth = useAuth();
-  if (!auth) return null;
-  const { updateUserConfig, peerMessages: globalPeerMessages = [], clearUnreadPeerCount } = auth;
+  const { updateUserConfig, peerMessages: globalPeerMessages = [], clearUnreadPeerCount } = useAuth();
 
   const [messages, setMessages] = useState([
     { role: 'assistant', content: 'System initialized. I am Titum AI, your behavioral analyst and execution coach. Let\'s review your data.' }
@@ -546,50 +544,50 @@ Rule: **No phone after 11.**`;
     });
   };
 
+  // --- TOP-LEVEL hook: compute Admin's recent peer list ---
+  const isAdminUser = user?.uid === ADMIN_UID;
+  const recentPeers = useMemo(() => {
+    if (!isAdminUser || !Array.isArray(globalPeerMessages)) return [];
+    try {
+      const peerIds = Array.from(new Set(
+        globalPeerMessages.map(m => {
+          if (!m) return null;
+          return m.from !== user?.uid ? m.from : m.to;
+        }).filter(Boolean)
+      ));
+      const getTime = (ts) => {
+        if (!ts) return 0;
+        if (ts.toMillis) return ts.toMillis();
+        if (ts.seconds) return ts.seconds * 1000;
+        const d = new Date(ts);
+        return isNaN(d.getTime()) ? 0 : d.getTime();
+      };
+      return peerIds
+        .filter(id => id && id !== user?.uid)
+        .map(id => {
+          const conv = globalPeerMessages.filter(m =>
+            Array.isArray(m.participants) && m.participants.includes(id)
+          );
+          const lastMsg = conv.length > 0 ? conv[conv.length - 1] : null;
+          return {
+            uid: id,
+            name: lastMsg?.from === id ? (lastMsg?.fromName || 'User') : (lastMsg?.toName || 'User'),
+            lastMessage: typeof lastMsg?.content === 'string' ? lastMsg.content : 'Media Transfer',
+            timeValue: getTime(lastMsg?.timestamp)
+          };
+        })
+        .sort((a, b) => b.timeValue - a.timeValue);
+    } catch (err) {
+      console.error('Node mapping error:', err);
+      return [];
+    }
+  }, [isAdminUser, globalPeerMessages, user?.uid]);
+
   const renderChatContent = (isMobile) => {
     const isAdmin = user?.uid === ADMIN_UID;
     const activeMessages = peerId ? peerMessages : messages;
 
-    // Admin Recent Chats Extraction (Nuclear Safety)
-    const recentPeers = useMemo(() => {
-      if (!isAdmin || !globalPeerMessages || !Array.isArray(globalPeerMessages)) return [];
-      
-      try {
-        const peerIds = Array.from(new Set(globalPeerMessages.map(m => {
-          if (!m) return null;
-          return m.from !== user?.uid ? m.from : m.to;
-        }).filter(Boolean)));
-
-        return peerIds
-          .filter(id => id && id !== user?.uid)
-          .map(id => {
-            const conversation = globalPeerMessages.filter(m => 
-              Array.isArray(m.participants) && m.participants.includes(id)
-            );
-            const lastMsg = conversation.length > 0 ? conversation[conversation.length - 1] : null;
-            
-            const getTime = (ts) => {
-              if (!ts) return 0;
-              if (ts.toMillis) return ts.toMillis();
-              if (ts.seconds) return ts.seconds * 1000;
-              const d = new Date(ts);
-              return isNaN(d.getTime()) ? 0 : d.getTime();
-            };
-
-            return {
-              uid: id,
-              name: lastMsg?.from === id ? (lastMsg?.fromName || "User") : (lastMsg?.toName || "User"),
-              lastMessage: typeof lastMsg?.content === 'string' ? lastMsg.content : "Media Transfer",
-              timestamp: lastMsg?.timestamp,
-              timeValue: getTime(lastMsg?.timestamp)
-            };
-          })
-          .sort((a,b) => b.timeValue - a.timeValue);
-      } catch (err) {
-        console.error("Critical Node Mapping Failure:", err);
-        return [];
-      }
-    }, [isAdmin, globalPeerMessages, user?.uid]);
+    // recentPeers is computed at component top-level (see above useMemo)
 
     return (
       <div className={`flex flex-1 overflow-hidden transition-all duration-1000 ${isBioBotActive ? 'bg-slate-50' : ''}`}>
