@@ -493,7 +493,10 @@ Rule: **No phone after 11.**`;
 
   const renderChatContent = (isMobile) => {
     const activeMessages = peerId ? peerMessages : messages;
-         <div className={`flex-1 overflow-y-auto p-4 sm:p-5 space-y-6 custom-scrollbar scroll-smooth ${isBioBotActive ? 'bg-slate-50 relative' : ''}`}>
+    
+    return (
+    <>
+      <div className={`flex-1 overflow-y-auto p-4 sm:p-5 space-y-6 custom-scrollbar scroll-smooth ${isBioBotActive ? 'bg-slate-50 relative' : ''}`}>
         {isBioBotActive && (
           <>
             <div className="absolute inset-0 pointer-events-none opacity-40" style={{ backgroundImage: 'radial-gradient(circle at 50% 0%, rgba(6, 182, 212, 0.08) 0%, transparent 70%)' }} />
