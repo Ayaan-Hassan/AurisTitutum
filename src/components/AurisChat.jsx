@@ -548,19 +548,32 @@ Rule: **No phone after 11.**`;
     const isAdmin = user?.uid === ADMIN_UID;
     const activeMessages = peerId ? peerMessages : messages;
 
-    // Admin Recent Chats Extraction
-    const recentPeers = isAdmin ? Array.from(new Set(globalPeerMessages.map(m => m.from !== user?.uid ? m.from : m.to)))
+    // Admin Recent Chats Extraction (Safety First)
+    const recentPeers = isAdmin ? Array.from(new Set((globalPeerMessages || []).map(m => {
+        if (!m) return null;
+        return m.from !== user?.uid ? m.from : m.to;
+      })))
       .filter(id => id && id !== user?.uid)
       .map(id => {
-        const lastMsg = globalPeerMessages.filter(m => m.participants?.includes(id)).pop();
+        const conversation = (globalPeerMessages || []).filter(m => m.participants && m.participants.includes(id));
+        const lastMsg = conversation.length > 0 ? conversation[conversation.length - 1] : null;
+        
+        const getTime = (ts) => {
+          if (!ts) return 0;
+          if (ts.toMillis) return ts.toMillis();
+          if (ts.seconds) return ts.seconds * 1000;
+          return new Date(ts).getTime() || 0;
+        };
+
         return {
           uid: id,
           name: lastMsg?.from === id ? (lastMsg?.fromName || "User") : (lastMsg?.toName || "User"),
           lastMessage: lastMsg?.content || "No history",
-          timestamp: lastMsg?.timestamp
+          timestamp: lastMsg?.timestamp,
+          timeValue: getTime(lastMsg?.timestamp)
         };
       })
-      .sort((a,b) => (b.timestamp?.toMillis ? b.timestamp.toMillis() : 0) - (a.timestamp?.toMillis ? a.timestamp.toMillis() : 0))
+      .sort((a,b) => b.timeValue - a.timeValue)
       : [];
 
     return (

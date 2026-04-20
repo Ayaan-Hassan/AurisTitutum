@@ -72,9 +72,9 @@ import {
     Loader2,
     Hash,
     Maximize2,
-    Users,
     Share2,
-    Copy
+    Copy,
+    ChevronLeft
 } from 'lucide-react';
 
 
@@ -156,7 +156,8 @@ const Icon = ({ name, size = 18, className = "" }) => {
         'hash': Hash,
         'maximize-2': Maximize2,
         'terminal': Terminal,
-        'command': Command
+        'command': Command,
+        'chevron-left': ChevronLeft
     };
 
 
