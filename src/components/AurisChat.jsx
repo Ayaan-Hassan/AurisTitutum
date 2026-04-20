@@ -14,7 +14,6 @@ export default function AurisChat({ user, isOpen, onClose, userConfig, habits, n
     { role: 'assistant', content: 'System initialized. I am Titum AI, your behavioral analyst and execution coach. Let\'s review your data.' }
   ]);
   const [peerMessages, setPeerMessages] = useState([]);
-  const [isWaitingForPeer, setIsWaitingForPeer] = useState(false);
   const [enhancementRules, setEnhancementRules] = useState('');
   const [isEnhancing, setIsEnhancing] = useState(false);
   const [input, setInput] = useState('');
@@ -52,25 +51,9 @@ export default function AurisChat({ user, isOpen, onClose, userConfig, habits, n
 
       setPeerMessages(filtered);
 
-      // Determine if we are waiting for a reply
-      const isAdmin = user.uid === "inB7hQ7PAuRxt19mBZ3xKe8unaV2";
-      if (!isAdmin) {
-        // If guest has sent a message and waiting, OR if chat is empty (waiting for first connection)
-        if (filtered.length > 0) {
-          const lastMsg = filtered[filtered.length - 1];
-          setIsWaitingForPeer(lastMsg.from === user.uid);
-        } else {
-          // Empty chat, just connecting
-          setIsWaitingForPeer(true);
-        }
-      } else {
-        // Admin only sees waiting if they actually sent a message recently
-        const lastMsg = filtered[filtered.length - 1];
-        setIsWaitingForPeer(lastMsg && lastMsg.from === user.uid);
-      }
+      setPeerMessages(filtered);
     } else {
       setPeerMessages([]);
-      setIsWaitingForPeer(false);
     }
   }, [globalPeerMessages, peerId, user?.uid]);
   
@@ -374,13 +357,6 @@ Input Text: ${input}`;
     if (!input.trim() || isLoading) return;
 
     if (peerId) {
-      if (isWaitingForPeer) {
-        const toastEvent = new CustomEvent("showToast", {
-          detail: { message: "Please wait for BioBot to respond before sending another message.", type: "warning" },
-        });
-        document.dispatchEvent(toastEvent);
-        return;
-      }
       const msgText = input.trim();
       setInput('');
 
@@ -756,7 +732,7 @@ Rule: **No phone after 11.**`;
               )}
             </div>
           ))}
-          {(isLoading || isWaitingForPeer) && (
+          {isLoading && (
             <div className="flex justify-start relative z-10">
               <div className={`max-w-[85%] rounded-2xl p-5 flex flex-col gap-3 ${isBioBotActive ? 'bg-white border border-slate-200 text-slate-900 rounded-tl-none shadow-sm' : 'bg-bg-main border border-border-color text-text-primary rounded-tl-none'}`}>
                 <div className="flex items-center gap-3">
@@ -765,8 +741,8 @@ Rule: **No phone after 11.**`;
                     <div className="w-1.5 h-1.5 bg-slate-400 rounded-full animate-pulse delay-75" />
                     <div className="w-1.5 h-1.5 bg-slate-200 rounded-full animate-pulse delay-150" />
                   </div>
-                  <span className="text-[9px] font-black uppercase tracking-[0.3em] font-mono whitespace-nowrap">
-                    {isWaitingForPeer ? "BioBot is calculating..." : "Synchronizing..."}
+                  <span className="text-[9px] font-black uppercase tracking-[0.3em] font-mono whitespace-nowrap text-slate-900">
+                    Synchronizing...
                   </span>
                 </div>
               </div>
@@ -819,8 +795,8 @@ Rule: **No phone after 11.**`;
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={handleKeyDown}
-              disabled={isWaitingForPeer && peerId}
-              placeholder={isBioBotActive ? (isWaitingForPeer ? "Waiting for BioBot response..." : "Enter command...") : (peerId ? (isWaitingForPeer ? "Waiting for response..." : `Message ${peerName}...`) : "Ask Titum AI...")}
+              disabled={false}
+              placeholder={isBioBotActive ? "Enter command..." : (peerId ? `Message ${peerName}...` : "Ask Titum AI...")}
               className={`w-full border rounded-xl py-3.5 px-5 text-sm focus:outline-none transition-all duration-500 resize-none min-h-[48px] max-h-32 custom-scrollbar font-medium ${isBioBotActive
                   ? 'bg-slate-50 border-slate-200 text-slate-800 placeholder:text-slate-400 focus:border-slate-400 focus:ring-1 focus:ring-slate-100 disabled:opacity-50 disabled:cursor-not-allowed'
                   : 'bg-bg-main border-border-color text-text-primary placeholder:text-text-secondary focus:border-accent focus:ring-1 focus:ring-accent disabled:opacity-50'
@@ -833,7 +809,7 @@ Rule: **No phone after 11.**`;
             />
             <button
               onClick={handleSend}
-              disabled={!input.trim() || isLoading || (isWaitingForPeer && peerId)}
+              disabled={!input.trim() || isLoading}
               className={`w-12 h-12 shrink-0 rounded-xl flex items-center justify-center transition-all duration-500 disabled:opacity-30 disabled:cursor-not-allowed ${isBioBotActive
                   ? 'bg-slate-900 text-white shadow-lg hover:bg-black'
                   : 'bg-accent text-bg-main shadow-lg shadow-accent/10 hover:opacity-90'
