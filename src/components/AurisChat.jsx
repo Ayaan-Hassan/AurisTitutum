@@ -70,6 +70,24 @@ export default function AurisChat({ user, isOpen, onClose, userConfig, habits, n
       setIsWaitingForPeer(false);
     }
   }, [globalPeerMessages, peerId, user?.uid]);
+  
+  // Mark messages as read when chat is open
+  useEffect(() => {
+    if (isOpen && peerId && user?.uid) {
+      const unreadFromPeer = peerMessages.filter(m => m.from === peerId && !m.read);
+      if (unreadFromPeer.length > 0) {
+        unreadFromPeer.forEach(async (m) => {
+          try {
+            await updateDoc(doc(db, "titum_connect_messages", m.id), {
+              read: true
+            });
+          } catch (err) {
+            console.warn("Failed to mark message as read:", err);
+          }
+        });
+      }
+    }
+  }, [isOpen, peerId, user?.uid, peerMessages]);
 
   // Sync state with userConfig for auto-handshake
   useEffect(() => {
@@ -256,6 +274,7 @@ export default function AurisChat({ user, isOpen, onClose, userConfig, habits, n
           participants: [user.uid, peerId],
           content: msgText,
           timestamp: serverTimestamp(),
+          read: false,
           conversationId: user.uid < peerId ? `${user.uid}_${peerId}` : `${peerId}_${user.uid}`
         });
       } catch (err) {
