@@ -57,8 +57,8 @@ export default function AurisChat({ user, isOpen, onClose, userConfig, habits, n
           const lastMsg = filtered[filtered.length - 1];
           setIsWaitingForPeer(lastMsg.from === user.uid);
         } else {
-          // Empty chat, just connecting
-          setIsWaitingForPeer(true);
+          // Empty chat, allow first message
+          setIsWaitingForPeer(false);
         }
       } else {
         // Admin only sees waiting if they actually sent a message recently
