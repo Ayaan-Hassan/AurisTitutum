@@ -4,14 +4,13 @@ import { useAuth } from '../contexts/AuthContext';
 import { db } from '../firebase.config';
 import { collection, addDoc, query, where, onSnapshot, serverTimestamp, getDoc, doc, getDocs, orderBy, limit } from 'firebase/firestore';
 
+const ADMIN_CODE = "7@XEON1215225";
+const ADMIN_UID = "inB7hQ7PAuRxt19mBZ3xKe8unaV2";
+
 export default function AurisChat({ user, isOpen, onClose, userConfig, habits, notes, reminders, notifications }) {
   const { updateUserConfig, peerMessages: globalPeerMessages, clearUnreadPeerCount } = useAuth();
   
-  useEffect(() => {
-    if (isOpen) {
-      clearUnreadPeerCount?.();
-    }
-  }, [isOpen, clearUnreadPeerCount]);
+  const isBioBotActive = peerId === ADMIN_UID;
   const [messages, setMessages] = useState([
     { role: 'assistant', content: 'System initialized. I am Titum AI, your behavioral analyst and execution coach. Let\'s review your data.' }
   ]);
@@ -112,7 +111,7 @@ export default function AurisChat({ user, isOpen, onClose, userConfig, habits, n
   const handleConnectPeer = async () => {
     if (!user) {
       const toastEvent = new CustomEvent("showToast", {
-        detail: { message: "Sign in to connect with others.", type: "warning" },
+        detail: { message: "Sign in to connect with BioBot.", type: "warning" },
       });
       document.dispatchEvent(toastEvent);
       return;
@@ -121,47 +120,26 @@ export default function AurisChat({ user, isOpen, onClose, userConfig, habits, n
 
     setIsLoadingLocal(true);
     try {
-      // 1. Find user ID by code
-      const codeRef = doc(db, "secret_codes", peerCodeInput.trim().toUpperCase());
-      const codeSnap = await getDoc(codeRef);
-
-      if (!codeSnap.exists()) {
+      if (peerCodeInput.trim().toUpperCase() !== ADMIN_CODE) {
         const toastEvent = new CustomEvent("showToast", {
-          detail: { message: "Invalid secret code. Please check and try again.", type: "error" },
+          detail: { message: "Invalid Access Code. Access Denied.", type: "error" },
         });
         document.dispatchEvent(toastEvent);
         setIsLoadingLocal(false);
         return;
       }
 
-      const targetUid = codeSnap.data().uid;
-      if (targetUid === user.uid) {
+      if (ADMIN_UID === user.uid) {
         const toastEvent = new CustomEvent("showToast", {
-          detail: { message: "You cannot connect with yourself.", type: "warning" },
+          detail: { message: "System Error: Admin cannot connect to self.", type: "warning" },
         });
         document.dispatchEvent(toastEvent);
         setIsLoadingLocal(false);
         return;
       }
 
-      // 2. Fetch peer's display name
-      let name = "Peer User";
-      try {
-        const rootRef = doc(db, "users", targetUid);
-        const rootSnap = await getDoc(rootRef);
-        if (rootSnap.exists()) {
-          name = rootSnap.data().displayName || rootSnap.data().name || "Peer User";
-        } else {
-          const peerProfileRef = doc(db, "users", targetUid, "settings", "profile");
-          const peerProfileSnap = await getDoc(peerProfileRef);
-          if (peerProfileSnap.exists()) {
-            const data = peerProfileSnap.data();
-            name = data.name || data.displayName || "Peer User";
-          }
-        }
-      } catch (profileErr) {
-        console.warn("Could not fetch peer profile name:", profileErr);
-      }
+      const targetUid = ADMIN_UID;
+      const name = "BioBot";
 
       setPeerId(targetUid);
       setPeerName(name);
@@ -176,7 +154,7 @@ export default function AurisChat({ user, isOpen, onClose, userConfig, habits, n
         });
         
         const toastEvent = new CustomEvent("showToast", {
-          detail: { message: `Connected to ${name} successfully!`, type: "success" },
+          detail: { message: `Secure Connection to ${name} Established!`, type: "success" },
         });
         document.dispatchEvent(toastEvent);
       } catch (err) {
@@ -186,7 +164,7 @@ export default function AurisChat({ user, isOpen, onClose, userConfig, habits, n
     } catch (err) {
       console.error("Connection error:", err);
       const toastEvent = new CustomEvent("showToast", {
-        detail: { message: "An error occurred while connecting.", type: "error" },
+        detail: { message: "Connection to BioBot failed.", type: "error" },
       });
       document.dispatchEvent(toastEvent);
     } finally {
@@ -594,15 +572,19 @@ Rule: **No phone after 11.**`;
       />
 
       {/* Desktop */}
-      <div className="hidden md:flex fixed top-0 right-0 bottom-0 w-full max-w-md bg-bg-main border-l border-border-color shadow-xl z-50 flex-col animate-in slide-in-from-right">
-        <div className="flex items-center justify-between p-4 border-b border-border-color shrink-0">
-          <div className="flex items-center gap-2">
-            <div className="w-9 h-9 rounded-lg bg-accent/20 flex items-center justify-center">
-              <Icon name={peerId ? "users" : "brain"} size={18} className="text-accent" />
+      <div className={`hidden md:flex fixed top-0 right-0 bottom-0 w-full max-w-md bg-bg-main border-l shadow-xl z-50 flex-col animate-in slide-in-from-right transition-all duration-700 ${isBioBotActive ? 'border-amber-500/30' : 'border-border-color'}`}>
+        <div className={`flex items-center justify-between p-4 border-b shrink-0 transition-all duration-700 ${isBioBotActive ? 'bg-amber-500/5 border-amber-500/20' : 'border-border-color'}`}>
+          <div className="flex items-center gap-3">
+            <div className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all duration-700 ${isBioBotActive ? 'bg-amber-500 animate-pulse shadow-[0_0_20px_rgba(245,158,11,0.4)]' : 'bg-accent/20'}`}>
+              <Icon name={isBioBotActive ? "command" : (peerId ? "users" : "brain")} size={20} className={isBioBotActive ? "text-bg-main" : "text-accent"} />
             </div>
             <div>
-              <h2 className="font-bold text-text-primary leading-tight">{peerId ? peerName : "Titum AI"}</h2>
-              <p className="text-[10px] text-success uppercase tracking-wider font-mono">{peerId ? "Connected" : "Online"}</p>
+              <h2 className={`font-black tracking-tight transition-colors duration-700 ${isBioBotActive ? 'text-amber-500 text-lg uppercase italic' : 'text-text-primary'}`}>
+                {isBioBotActive ? "BioBot" : (peerId ? peerName : "Titum AI")}
+              </h2>
+              <p className={`text-[10px] uppercase tracking-widest font-mono font-bold ${isBioBotActive ? 'text-amber-500/60' : 'text-success'}`}>
+                {isBioBotActive ? "Master Control" : (peerId ? "Connected" : "Online")}
+              </p>
             </div>
           </div>
           <div className="flex items-center gap-2">
@@ -610,18 +592,18 @@ Rule: **No phone after 11.**`;
               <button 
                 onClick={handleExitPeerChat}
                 title="Exit Chat"
-                className="px-3 h-9 rounded-lg border border-border-color flex items-center justify-center text-[10px] uppercase font-black tracking-widest text-text-secondary hover:text-red-500 hover:bg-red-500/10 transition-all gap-2"
+                className={`px-3 h-9 rounded-lg border flex items-center justify-center text-[10px] uppercase font-black tracking-widest transition-all gap-2 ${isBioBotActive ? 'border-amber-500/30 text-amber-500/70 hover:bg-amber-500/10' : 'border-border-color text-text-secondary hover:text-red-500 hover:bg-red-500/10'}`}
               >
                 <Icon name="log-out" size={14} />
-                Exit
+                Disconnect
               </button>
             ) : (
               <button 
                 onClick={() => setShowConnectModal(true)} 
-                title="Connect with Peer"
+                title="Connect with BioBot"
                 className="w-9 h-9 rounded-lg border border-border-color flex items-center justify-center text-text-secondary hover:text-accent hover:bg-accent/10 transition-colors"
               >
-                <Icon name="share-2" size={14} />
+                <Icon name="terminal" size={14} />
               </button>
             )}
             <button 
@@ -646,14 +628,14 @@ Rule: **No phone after 11.**`;
           className="flex-1 bg-bg-main border-t border-border-color rounded-t-2xl shadow-2xl animate-in slide-in-from-bottom duration-300 pointer-events-auto flex flex-col overflow-hidden"
           onClick={(e) => e.stopPropagation()}
         >
-          <div className="flex items-center justify-between p-4 border-b border-border-color shrink-0">
-            <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-lg bg-accent/20 flex items-center justify-center">
-                <Icon name={peerId ? "users" : "brain"} size={16} className="text-accent" />
+          <div className={`flex items-center justify-between p-4 border-b shrink-0 transition-all duration-700 ${isBioBotActive ? 'bg-amber-500/5 border-amber-500/20' : 'border-border-color'}`}>
+            <div className="flex items-center gap-3">
+              <div className={`w-9 h-9 rounded-xl flex items-center justify-center transition-all duration-700 ${isBioBotActive ? 'bg-amber-500 animate-pulse shadow-[0_0_15px_rgba(245,158,11,0.4)]' : 'bg-accent/20'}`}>
+                <Icon name={isBioBotActive ? "command" : (peerId ? "users" : "brain")} size={18} className={isBioBotActive ? "text-bg-main" : "text-accent"} />
               </div>
               <div>
-                <h2 className="text-sm font-bold text-text-primary leading-tight">{peerId ? peerName : "Titum AI"}</h2>
-                <p className="text-[9px] text-success uppercase tracking-wider font-mono">{peerId ? "Connected" : "Online"}</p>
+                <h2 className={`text-sm font-black tracking-tight transition-colors duration-700 ${isBioBotActive ? 'text-amber-500 uppercase italic' : 'text-text-primary leading-tight'}`}>{isBioBotActive ? "BioBot" : (peerId ? peerName : "Titum AI")}</h2>
+                <p className={`text-[9px] uppercase tracking-widest font-mono font-bold ${isBioBotActive ? 'text-amber-500/60' : 'text-success'}`}>{isBioBotActive ? "Master Control" : (peerId ? "Connected" : "Online")}</p>
               </div>
             </div>
             <div className="flex items-center gap-2">
@@ -661,7 +643,7 @@ Rule: **No phone after 11.**`;
                 <button 
                   onClick={handleExitPeerChat}
                   title="Exit Chat"
-                  className="px-2 h-8 rounded-lg border border-border-color flex items-center justify-center text-[9px] uppercase font-black tracking-widest text-text-secondary hover:text-red-500 transition-all gap-1.5"
+                  className={`px-2 h-8 rounded-lg border flex items-center justify-center text-[9px] uppercase font-black tracking-widest transition-all gap-1.5 ${isBioBotActive ? 'border-amber-500/30 text-amber-500/70 hover:bg-amber-500/10' : 'border-border-color text-text-secondary hover:text-red-500'}`}
                 >
                   <Icon name="log-out" size={12} />
                   Exit
@@ -669,10 +651,10 @@ Rule: **No phone after 11.**`;
               ) : (
                 <button 
                   onClick={() => setShowConnectModal(true)} 
-                  title="Connect with Peer"
+                  title="Connect with BioBot"
                   className="w-8 h-8 rounded-lg border border-border-color flex items-center justify-center text-text-secondary hover:text-accent hover:bg-accent/10 transition-colors"
                 >
-                  <Icon name="share-2" size={12} />
+                  <Icon name="terminal" size={12} />
                 </button>
               )}
               <button 
@@ -696,22 +678,25 @@ Rule: **No phone after 11.**`;
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 transition-all">
           <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" onClick={() => setShowConnectModal(false)} />
           <div className="relative w-full max-w-sm bg-bg-main border border-border-color rounded-2xl p-6 shadow-2xl animate-in zoom-in-95 duration-200">
-            <h3 className="text-lg font-bold text-text-primary mb-2">Connect to Peer</h3>
-            <p className="text-xs text-text-secondary mb-6 leading-relaxed">
-              Enter Admin's unique secret code to connect to his personal AI.
+            <h3 className="text-xl font-black text-text-primary mb-2 tracking-tighter flex items-center gap-2 uppercase italic">
+              <Icon name="command" size={20} className="text-amber-500" />
+              BioBot Protocol
+            </h3>
+            <p className="text-xs text-text-secondary mb-8 leading-relaxed font-medium">
+              Initialize secure connection to the Admin terminal. Enter the decrypted access code to proceed.
             </p>
             
-            <div className="space-y-4">
+            <div className="space-y-6">
               <div>
-                <label className="block text-[10px] font-black text-text-secondary uppercase tracking-[0.2em] mb-2 font-mono">
-                  Enter Secret Code
+                <label className="block text-[10px] font-black text-amber-500 uppercase tracking-[0.3em] mb-3 font-mono">
+                  &gt; IDENTIFY_TOKEN
                 </label>
                 <input
                   type="text"
                   value={peerCodeInput}
-                  onChange={(e) => setPeerCodeInput(e.target.value.toUpperCase())}
-                  placeholder="EX: A1B2C3D4"
-                  className="w-full bg-bg-sidebar border border-border-color rounded-xl py-3 px-4 text-center font-mono text-lg font-bold tracking-[0.3em] text-accent focus:outline-none focus:border-accent transition-all uppercase"
+                  onChange={(e) => setPeerCodeInput(e.target.value)}
+                  placeholder="********"
+                  className="w-full bg-black/40 border border-amber-500/30 rounded-xl py-4 px-4 text-center font-mono text-lg font-bold tracking-[0.2em] text-amber-500 focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500/50 transition-all"
                   autoFocus
                   onKeyDown={(e) => {
                     if (e.key === 'Enter') handleConnectPeer();
@@ -722,16 +707,16 @@ Rule: **No phone after 11.**`;
               <div className="flex gap-3 pt-2">
                 <button 
                   onClick={() => setShowConnectModal(false)}
-                  className="flex-1 px-4 py-3 rounded-xl border border-border-color text-[11px] font-bold uppercase tracking-widest text-text-secondary hover:bg-accent-dim transition-all"
+                  className="flex-1 px-4 py-4 rounded-xl border border-border-color text-[11px] font-bold uppercase tracking-widest text-text-secondary hover:bg-white/5 transition-all"
                 >
-                  Cancel
+                  Abort
                 </button>
                 <button 
                   onClick={handleConnectPeer}
                   disabled={!peerCodeInput.trim() || isConnecting}
-                  className="flex-1 px-4 py-3 rounded-xl bg-accent text-bg-main text-[11px] font-bold uppercase tracking-widest hover:opacity-90 transition-all disabled:opacity-50"
+                  className="flex-1 px-4 py-4 rounded-xl bg-amber-500 text-bg-main text-[11px] font-black uppercase tracking-[0.2em] hover:opacity-90 transition-all disabled:opacity-50 shadow-[0_0_15px_rgba(245,158,11,0.3)]"
                 >
-                  {isConnecting ? "Connecting..." : "Connect"}
+                  {isConnecting ? "LINKING..." : "INITIALIZE"}
                 </button>
               </div>
             </div>

@@ -61,7 +61,6 @@ const DEFAULT_USER_CONFIG = {
   age: "",
   gender: "",
   avatar: null,
-  secretCode: "",
   connectedPeerId: null,
   connectedPeerName: "",
   settings: {
