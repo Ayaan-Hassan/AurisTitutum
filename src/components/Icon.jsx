@@ -72,6 +72,7 @@ import {
     Loader2,
     Hash,
     Maximize2,
+    Users,
     Share2,
     Copy,
     ChevronLeft
