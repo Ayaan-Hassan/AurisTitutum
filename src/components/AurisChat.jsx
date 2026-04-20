@@ -15,6 +15,8 @@ export default function AurisChat({ user, isOpen, onClose, userConfig, habits, n
   ]);
   const [peerMessages, setPeerMessages] = useState([]);
   const [isWaitingForPeer, setIsWaitingForPeer] = useState(false);
+  const [enhancementRules, setEnhancementRules] = useState('');
+  const [isEnhancing, setIsEnhancing] = useState(false);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [peerId, setPeerId] = useState(null);
@@ -264,6 +266,59 @@ export default function AurisChat({ user, isOpen, onClose, userConfig, habits, n
     } catch (err) {
       clearTimeout(id);
       throw err;
+    }
+  };
+
+  const handleEnhance = async () => {
+    if (!input.trim() || isEnhancing) return;
+
+    setIsEnhancing(true);
+    try {
+      const prompt = `You are a text enhancement system. 
+Your task is to:
+1. Fix all spelling and grammatical errors.
+2. Lengthen the text if required to make it more comprehensive and professional.
+3. Transform the tone to be ROBOTIC or AI-like.
+4. Adhere to these additional rules: ${enhancementRules || "None"}
+
+Respond ONLY with the enhanced text. Do not include any preamble, quotes, or explanations.
+
+Input Text: ${input}`;
+
+      const response = await fetchWithTimeout("https://openrouter.ai/api/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${import.meta.env.VITE_OPENROUTER_KEY}`,
+          "Content-Type": "application/json",
+          "HTTP-Referer": window.location.href,
+          "X-Title": "BioBot Enhancement",
+        },
+        body: JSON.stringify({
+          model: import.meta.env.VITE_MODEL_SECONDARY || "meta-llama/llama-3.3-70b-instruct",
+          messages: [
+            { role: "user", content: prompt }
+          ]
+        })
+      });
+
+      if (!response.ok) throw new Error("Enhancement failed");
+
+      const data = await response.json();
+      const enhancedText = data.choices[0].message?.content?.trim() || input;
+      setInput(enhancedText);
+
+      const toastEvent = new CustomEvent("showToast", {
+        detail: { message: "Transmission Enhanced.", type: "success" },
+      });
+      document.dispatchEvent(toastEvent);
+    } catch (err) {
+      console.error("Enhancement error:", err);
+      const toastEvent = new CustomEvent("showToast", {
+        detail: { message: "Enhancement Failed. System limit reached?", type: "error" },
+      });
+      document.dispatchEvent(toastEvent);
+    } finally {
+      setIsEnhancing(false);
     }
   };
 
@@ -546,6 +601,7 @@ Rule: **No phone after 11.**`;
 
   const renderChatContent = (isMobile) => {
     const activeMessages = peerId ? peerMessages : messages;
+    const isAdmin = user?.uid === ADMIN_UID || user?.uid === import.meta.env.VITE_ADMIN_UID;
 
     return (
       <>
@@ -609,6 +665,44 @@ Rule: **No phone after 11.**`;
         </div>
 
         <div className={`p-5 border-t shrink-0 transition-all duration-1000 ${isBioBotActive ? 'bg-white border-slate-100' : 'bg-bg-main border-border-color'}`}>
+          {isAdmin && peerId && (
+            <div className="mb-4 animate-in slide-in-from-bottom-3 duration-500">
+              <div className="flex flex-col gap-2">
+                <div className="flex items-center justify-between px-1">
+                  <span className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] font-mono flex items-center gap-2">
+                    <div className="w-1.5 h-1.5 bg-slate-400 rounded-full animate-pulse" />
+                    BioBot Override Processor
+                  </span>
+                </div>
+                <div className="flex gap-2">
+                  <div className="flex-1 relative group">
+                    <input
+                      type="text"
+                      value={enhancementRules}
+                      onChange={(e) => setEnhancementRules(e.target.value)}
+                      placeholder="Custom Logic Rules (e.g. 'theme: funny', 'tone: aggressive')"
+                      className={`w-full py-2 px-4 rounded-xl text-[10px] font-bold uppercase tracking-widest placeholder:text-slate-300 focus:outline-none focus:ring-2 focus:ring-slate-100 transition-all duration-300 border ${isBioBotActive ? 'bg-slate-50 border-slate-200 text-slate-600 focus:border-slate-300' : 'bg-bg-main border-border-color text-text-secondary focus:border-accent'}`}
+                    />
+                    <div className="absolute right-3 top-1/2 -translate-y-1/2 opacity-20 group-hover:opacity-100 transition-opacity">
+                      <Icon name="command" size={10} />
+                    </div>
+                  </div>
+                  <button
+                    onClick={handleEnhance}
+                    disabled={!input.trim() || isEnhancing}
+                    className="h-10 px-4 rounded-xl bg-slate-900 text-white text-[10px] font-black uppercase tracking-[0.2em] flex items-center gap-2 hover:bg-black active:scale-95 transition-all disabled:opacity-20 shadow-lg shadow-black/10"
+                  >
+                    {isEnhancing ? (
+                      <div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                    ) : (
+                      <Icon name="sparkles" size={12} />
+                    )}
+                    {isEnhancing ? "Syncing..." : "Enhance"}
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
           <div className="relative flex items-end gap-3">
             <textarea
               value={input}
