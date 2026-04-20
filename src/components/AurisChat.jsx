@@ -660,14 +660,14 @@ Rule: **No phone after 11.**`;
           className="flex-1 bg-bg-main border-t border-border-color rounded-t-2xl shadow-2xl animate-in slide-in-from-bottom duration-300 pointer-events-auto flex flex-col overflow-hidden"
           onClick={(e) => e.stopPropagation()}
         >
-          <div className={`flex items-center justify-between p-4 border-b shrink-0 transition-all duration-700 ${isBioBotActive ? 'bg-amber-500/5 border-amber-500/20' : 'border-border-color'}`}>
+          <div className={`flex items-center justify-between p-4 border-b shrink-0 transition-all duration-1000 ${isBioBotActive ? 'bg-[#020617] border-white/5' : 'border-border-color'}`}>
             <div className="flex items-center gap-3">
-              <div className={`w-9 h-9 rounded-xl flex items-center justify-center transition-all duration-700 ${isBioBotActive ? 'bg-amber-500 animate-pulse shadow-[0_0_15px_rgba(245,158,11,0.4)]' : 'bg-accent/20'}`}>
-                <Icon name={isBioBotActive ? "command" : (peerId ? "users" : "brain")} size={18} className={isBioBotActive ? "text-bg-main" : "text-accent"} />
+              <div className={`w-9 h-9 rounded-xl flex items-center justify-center transition-all duration-1000 ${isBioBotActive ? 'bg-sky-500 shadow-lg shadow-sky-500/20' : 'bg-accent/20'}`}>
+                <Icon name={isBioBotActive ? "shield-check" : (peerId ? "users" : "brain")} size={18} className={isBioBotActive ? "text-white" : "text-accent"} />
               </div>
               <div>
-                <h2 className={`text-sm font-black tracking-tight transition-colors duration-700 ${isBioBotActive ? 'text-amber-500 uppercase italic' : 'text-text-primary leading-tight'}`}>{isBioBotActive ? "BioBot" : (peerId ? peerName : "Titum AI")}</h2>
-                <p className={`text-[9px] uppercase tracking-widest font-mono font-bold ${isBioBotActive ? 'text-amber-500/60' : 'text-success'}`}>{isBioBotActive ? "Master Control" : (peerId ? "Connected" : "Online")}</p>
+                <h2 className={`text-sm font-black tracking-tight transition-all duration-1000 ${isBioBotActive ? 'text-sky-100 uppercase italic' : 'text-text-primary leading-tight'}`}>{isBioBotActive ? "BioBot Master" : (peerId ? peerName : "Titum AI")}</h2>
+                <p className={`text-[9px] uppercase tracking-[0.3em] font-mono font-black ${isBioBotActive ? 'text-sky-500 animate-pulse' : 'text-success'}`}>{isBioBotActive ? "Active Link" : (peerId ? "Connected" : "Online")}</p>
               </div>
             </div>
             <div className="flex items-center gap-2">
@@ -675,7 +675,7 @@ Rule: **No phone after 11.**`;
                 <button 
                   onClick={handleExitPeerChat}
                   title="Exit Chat"
-                  className={`px-2 h-8 rounded-lg border flex items-center justify-center text-[9px] uppercase font-black tracking-widest transition-all gap-1.5 ${isBioBotActive ? 'border-amber-500/30 text-amber-500/70 hover:bg-amber-500/10' : 'border-border-color text-text-secondary hover:text-red-500'}`}
+                  className={`px-2 h-8 rounded-lg border flex items-center justify-center text-[9px] uppercase font-black tracking-widest transition-all gap-1.5 ${isBioBotActive ? 'border-white/10 text-slate-400 hover:text-white hover:bg-white/5' : 'border-border-color text-text-secondary hover:text-red-500'}`}
                 >
                   <Icon name="log-out" size={12} />
                   Exit
@@ -709,26 +709,28 @@ Rule: **No phone after 11.**`;
       {showConnectModal && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 transition-all">
           <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" onClick={() => setShowConnectModal(false)} />
-          <div className="relative w-full max-w-sm bg-bg-main border border-border-color rounded-2xl p-6 shadow-2xl animate-in zoom-in-95 duration-200">
-            <h3 className="text-xl font-black text-text-primary mb-2 tracking-tighter flex items-center gap-2 uppercase italic">
-              <Icon name="command" size={20} className="text-amber-500" />
+          <div className="relative w-full max-w-sm bg-[#020617] border border-white/5 rounded-2xl p-6 shadow-2xl animate-in zoom-in-95 duration-200">
+            <h3 className="text-xl font-black text-slate-100 mb-2 tracking-tighter flex items-center gap-3 uppercase">
+              <div className="w-8 h-8 rounded-lg bg-sky-500 flex items-center justify-center shadow-lg shadow-sky-500/20">
+                <Icon name="command" size={16} className="text-white" />
+              </div>
               BioBot Protocol
             </h3>
-            <p className="text-xs text-text-secondary mb-8 leading-relaxed font-medium">
-              Initialize secure connection to the Admin terminal. Enter the decrypted access code to proceed.
+            <p className="text-xs text-slate-400 mb-8 leading-relaxed font-medium">
+              Initialize secure connection to the Master terminal. Enter the decrypted access token to begin synchronization.
             </p>
             
             <div className="space-y-6">
               <div>
-                <label className="block text-[10px] font-black text-amber-500 uppercase tracking-[0.3em] mb-3 font-mono">
+                <label className="block text-[10px] font-black text-sky-500/80 uppercase tracking-[0.4em] mb-3 font-mono">
                   &gt; IDENTIFY_TOKEN
                 </label>
                 <input
                   type="text"
                   value={peerCodeInput}
                   onChange={(e) => setPeerCodeInput(e.target.value)}
-                  placeholder="********"
-                  className="w-full bg-black/40 border border-amber-500/30 rounded-xl py-4 px-4 text-center font-mono text-lg font-bold tracking-[0.2em] text-amber-500 focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500/50 transition-all"
+                  placeholder="EX: ABC-123"
+                  className="w-full bg-slate-900/50 border border-white/10 rounded-xl py-4 px-4 text-center font-mono text-lg font-bold tracking-[0.2em] text-white placeholder:text-slate-700 focus:outline-none focus:border-sky-500/50 focus:ring-1 focus:ring-sky-500/20 transition-all"
                   autoFocus
                   onKeyDown={(e) => {
                     if (e.key === 'Enter') handleConnectPeer();
@@ -746,9 +748,9 @@ Rule: **No phone after 11.**`;
                 <button 
                   onClick={handleConnectPeer}
                   disabled={!peerCodeInput.trim() || isConnecting}
-                  className="flex-1 px-4 py-4 rounded-xl bg-amber-500 text-bg-main text-[11px] font-black uppercase tracking-[0.2em] hover:opacity-90 transition-all disabled:opacity-50 shadow-[0_0_15px_rgba(245,158,11,0.3)]"
+                  className="flex-1 px-4 py-4 rounded-xl bg-sky-600 text-white text-[11px] font-black uppercase tracking-[0.2em] hover:bg-sky-500 transition-all disabled:opacity-50 shadow-lg shadow-sky-500/20"
                 >
-                  {isConnecting ? "LINKING..." : "INITIALIZE"}
+                  {isConnecting ? "SYNCING..." : "INITIALIZE"}
                 </button>
               </div>
             </div>
