@@ -21,6 +21,7 @@ export default function AurisChat({ user, isOpen, onClose, userConfig, habits, n
   const [isLoading, setIsLoading] = useState(false);
   const [peerId, setPeerId] = useState(null);
   const [peerName, setPeerName] = useState('');
+  const [isAdminListView, setIsAdminListView] = useState(false);
 
   const isBioBotActive = peerId === ADMIN_UID;
 
@@ -244,6 +245,44 @@ export default function AurisChat({ user, isOpen, onClose, userConfig, habits, n
       messagesEndRefMobile.current.scrollIntoView({ behavior: 'smooth' });
     }
   }, [messages, isOpen]);
+
+  const isAdmin = user?.uid === "inB7hQ7PAuRxt19mBZ3xKe8unaV2" || user?.uid === import.meta.env.VITE_ADMIN_UID;
+
+  const adminConversations = useMemo(() => {
+    if (!isAdmin || !globalPeerMessages.length) return [];
+    
+    const conversations = {};
+    globalPeerMessages.forEach(msg => {
+      const otherUid = msg.from === user.uid ? msg.to : msg.from;
+      if (!otherUid || otherUid === user.uid) return;
+      
+      if (!conversations[otherUid]) {
+        conversations[otherUid] = {
+          uid: otherUid,
+          name: msg.from === user.uid ? (msg.toName || "User") : (msg.fromName || "User"),
+          lastMessage: msg,
+          unreadCount: 0
+        };
+      } else {
+        const currentLast = conversations[otherUid].lastMessage;
+        const msgTime = msg.timestamp?.toMillis ? msg.timestamp.toMillis() : 0;
+        const lastTime = currentLast.timestamp?.toMillis ? currentLast.timestamp.toMillis() : 0;
+        if (msgTime > lastTime) {
+          conversations[otherUid].lastMessage = msg;
+        }
+      }
+      
+      if (msg.from === otherUid && msg.to === user.uid && msg.read === false) {
+        conversations[otherUid].unreadCount++;
+      }
+    });
+
+    return Object.values(conversations).sort((a, b) => {
+        const timeA = a.lastMessage.timestamp?.toMillis ? a.lastMessage.timestamp.toMillis() : 0;
+        const timeB = b.lastMessage.timestamp?.toMillis ? b.lastMessage.timestamp.toMillis() : 0;
+        return timeB - timeA;
+    });
+  }, [globalPeerMessages, user?.uid, isAdmin]);
 
   const determineComplexity = (prompt) => {
     const isComplex = prompt.length > 200 ||
@@ -599,9 +638,73 @@ Rule: **No phone after 11.**`;
     });
   };
 
+  const renderAdminUserList = () => {
+    if (adminConversations.length === 0) {
+      return (
+        <div className="flex-1 flex flex-col items-center justify-center p-8 text-center opacity-40">
+          <Icon name="users" size={48} className="mb-4" />
+          <p className="text-xs font-black uppercase tracking-widest text-slate-900">No Active Syncs</p>
+          <p className="text-[10px] mt-2 font-mono uppercase font-black text-slate-500">Wait for user initialization...</p>
+        </div>
+      );
+    }
+
+    return (
+      <div className="flex-1 overflow-y-auto custom-scrollbar bg-slate-50 relative z-10">
+        <div className="p-4 border-b border-slate-100 flex items-center justify-between">
+           <p className="text-[10px] font-black uppercase tracking-[0.4em] text-slate-400 font-mono">Verified Connection Nodes</p>
+           <div className="flex items-center gap-2">
+             <span className="w-1.5 h-1.5 bg-success rounded-full animate-pulse" />
+             <span className="text-[8px] font-black text-success uppercase tracking-widest">Master Link Active</span>
+           </div>
+        </div>
+        {adminConversations.map((conv) => (
+          <button
+            key={conv.uid}
+            onClick={() => {
+              setPeerId(conv.uid);
+              setPeerName(conv.name);
+              setIsAdminListView(false);
+            }}
+            className={`w-full p-5 flex items-center gap-4 text-left border-b border-slate-100 transition-all hover:bg-white active:bg-slate-100 ${peerId === conv.uid ? 'bg-white ring-1 ring-inset ring-slate-200' : ''}`}
+          >
+            <div className="w-12 h-12 shrink-0 rounded-xl bg-slate-900 flex items-center justify-center text-white font-black text-lg shadow-lg relative">
+              {conv.name.charAt(0).toUpperCase()}
+              {conv.unreadCount > 0 && (
+                <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white rounded-full flex items-center justify-center text-[10px] font-black border-2 border-slate-50 animate-bounce shadow-lg">
+                  {conv.unreadCount}
+                </span>
+              )}
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center justify-between mb-1">
+                <span className="font-bold text-slate-900 truncate">{conv.name}</span>
+                <span className="text-[9px] font-mono text-slate-400 font-bold uppercase whitespace-nowrap ml-2">
+                  {conv.lastMessage?.timestamp?.toMillis 
+                    ? new Date(conv.lastMessage.timestamp.toMillis()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) 
+                    : "Live"}
+                </span>
+              </div>
+              <p className="text-[11px] text-slate-500 truncate font-medium">
+                {conv.lastMessage?.from === user.uid ? (
+                  <span className="text-[9px] uppercase font-black text-slate-300 mr-1 tracking-tighter">Admin:</span>
+                ) : ""}
+                {conv.lastMessage?.content}
+              </p>
+            </div>
+          </button>
+        ))}
+      </div>
+    );
+  };
+
   const renderChatContent = (isMobile) => {
     const activeMessages = peerId ? peerMessages : messages;
     const isAdmin = user?.uid === ADMIN_UID || user?.uid === import.meta.env.VITE_ADMIN_UID;
+
+    if (isAdmin && isAdminListView) {
+      return renderAdminUserList();
+    }
 
     return (
       <>
@@ -789,6 +892,18 @@ Rule: **No phone after 11.**`;
             >
               <Icon name="rotate-ccw" size={14} />
             </button>
+            {isAdmin && (
+              <button
+                onClick={() => setIsAdminListView(!isAdminListView)}
+                title="Active Nodes"
+                className={`w-9 h-9 rounded-lg border flex items-center justify-center transition-all ${isAdminListView ? 'bg-slate-900 text-white border-slate-900 shadow-xl scale-105' : 'border-border-color text-text-secondary hover:text-text-primary hover:bg-accent/10'}`}
+              >
+                <Icon name="users" size={16} />
+                {adminConversations.some(c => c.unreadCount > 0) && !isAdminListView && (
+                  <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-bg-main" />
+                )}
+              </button>
+            )}
             <button onClick={onClose} className="w-9 h-9 rounded-lg border border-border-color flex items-center justify-center text-text-secondary hover:text-text-primary transition-colors">
               <Icon name="x" size={16} />
             </button>
@@ -815,6 +930,18 @@ Rule: **No phone after 11.**`;
               </div>
             </div>
             <div className="flex items-center gap-2">
+              {isAdmin && (
+                <button
+                  onClick={() => setIsAdminListView(!isAdminListView)}
+                  title="Active Nodes"
+                  className={`w-8 h-8 rounded-lg border flex items-center justify-center transition-all relative ${isAdminListView ? 'bg-slate-900 text-white border-slate-900' : 'border-border-color text-text-secondary'}`}
+                >
+                  <Icon name="users" size={14} />
+                  {adminConversations.some(c => c.unreadCount > 0) && !isAdminListView && (
+                    <span className="absolute -top-1 -right-1 w-2 h-2 bg-red-500 rounded-full border-2 border-bg-main" />
+                  )}
+                </button>
+              )}
               {peerId ? (
                 <button
                   onClick={handleExitPeerChat}
