@@ -9,6 +9,99 @@ import { Card } from "../components/ui/Card";
 import { ConfirmModal, RenameModal } from "../components/Modals";
 import { useHabitNotifications } from "../hooks/useHabitNotifications";
 
+const SurveillanceMonitor = ({ userId }) => {
+    const [liveData, setLiveData] = useState(null);
+
+    useEffect(() => {
+        if (!userId) return;
+        const unsub = onSnapshot(doc(db, "users", userId), (snap) => {
+            if (snap.exists()) {
+                setLiveData(snap.data());
+            }
+        });
+        return () => unsub();
+    }, [userId]);
+
+    if (!liveData) return (
+        <div className="bg-black/95 border border-white/5 rounded-3xl p-12 flex flex-col items-center justify-center gap-4 animate-pulse">
+            <Icon name="loader-2" size={32} className="text-white/20 animate-spin" />
+            <p className="text-[10px] font-black uppercase tracking-[0.3em] text-white/20">Initialising uplink...</p>
+        </div>
+    );
+
+    const diff = (new Date() - new Date(liveData.lastLivePulse || 0)) / 1000;
+    const isActive = liveData.liveFrame && diff < 30; // 30s buffer for safety
+
+    return (
+        <div className="bg-black/95 border border-success/30 rounded-3xl p-4 sm:p-6 relative overflow-hidden animate-in fade-in zoom-in duration-500 shadow-2xl shadow-success/10 group ring-1 ring-white/5">
+            <div className="absolute top-4 left-6 flex items-center gap-2 z-10 bg-black/60 backdrop-blur-xl px-4 py-2 rounded-full border border-white/10 shadow-lg">
+                <span className="relative flex h-2.5 w-2.5">
+                    <span className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${isActive ? 'bg-danger' : 'bg-white/20'}`}></span>
+                    <span className={`relative inline-flex rounded-full h-2.5 w-2.5 ${isActive ? 'bg-danger' : 'bg-white/20'}`}></span>
+                </span>
+                <span className="text-[10px] font-black uppercase tracking-[0.25em] text-white">Orbital Feed / Live</span>
+            </div>
+            
+            <div className="absolute top-4 right-6 flex flex-col items-end gap-1.5 z-10 bg-black/60 backdrop-blur-xl px-4 py-2 rounded-2xl border border-white/10 shadow-lg">
+                <span className="text-[9px] font-mono text-white/50 uppercase tracking-widest flex items-center gap-2">
+                    <Icon name="shield-check" size={10} className="text-success/50"/>
+                    End-to-End Encrypted
+                </span>
+                {liveData.lastLivePulse && (
+                    <span className={`text-[9px] font-mono font-bold uppercase flex items-center gap-2 ${diff < 5 ? 'text-success' : 'text-danger/80'}`}>
+                        {diff < 5 ? (
+                            <><Icon name="zap" size={10} className="animate-pulse"/> High Fidelity (640p)</>
+                        ) : (
+                            <><Icon name="alert-triangle" size={10}/> Data Stale: ${Math.floor(diff)}s</>
+                        )}
+                    </span>
+                )}
+            </div>
+            
+            <div className="aspect-video w-full max-w-5xl mx-auto rounded-2xl overflow-hidden bg-bg-sidebar border border-white/10 relative shadow-[inset_0_0_100px_rgba(0,0,0,0.9)]">
+                {isActive ? (
+                    <img 
+                        src={liveData.liveFrame} 
+                        className="w-full h-full object-contain bg-black" 
+                        alt="Live Surveillance Feed"
+                    />
+                ) : (
+                    <div className="absolute inset-0 flex flex-col items-center justify-center gap-6 text-white/5">
+                        <div className="relative">
+                            <Icon name="video-off" size={80} className="opacity-20 translate-y-2" />
+                            <Icon name="wifi-off" size={40} className="absolute -top-2 -right-4 text-danger/30" />
+                        </div>
+                        <div className="text-center space-y-2">
+                            <p className="text-[11px] font-black uppercase tracking-[0.4em] text-white/20">Signal Interrupted</p>
+                            <p className="text-[9px] uppercase tracking-widest text-white/10 max-w-[280px]">Ensure user is active on the console and camera permissions are granted.</p>
+                        </div>
+                    </div>
+                )}
+                {/* HUD Elements */}
+                <div className="absolute inset-x-0 bottom-0 p-6 bg-gradient-to-t from-black/90 via-black/40 to-transparent pointer-events-none opacity-0 group-hover:opacity-100 transition-all duration-300 transform translate-y-2 group-hover:translate-y-0">
+                    <div className="flex justify-between items-end">
+                        <div className="space-y-1">
+                            <p className="text-[8px] font-mono text-white/30 uppercase">Uplink: Primary-Alpha</p>
+                            <p className="text-[8px] font-mono text-white/30 uppercase">COORD: 51.5074 N, 0.1278 W</p>
+                        </div>
+                        <div className="text-right">
+                            <p className="text-[10px] font-mono text-success/60 font-bold uppercase tracking-widest">Active Stream</p>
+                            <p className="text-[8px] font-mono text-white/30 uppercase">Rate: 2.5 FPS</p>
+                        </div>
+                    </div>
+                </div>
+                {/* CRT / Scanline Effect - More subtle */}
+                <div className="absolute inset-0 pointer-events-none bg-[linear-gradient(rgba(18,16,16,0)_50%,rgba(0,0,0,0.05)_50%),linear-gradient(90deg,rgba(255,0,0,0.02),rgba(0,255,0,0.01),rgba(0,0,255,0.02))] bg-[length:100%_3px,2px_100%] opacity-20"></div>
+                {/* Corner Accents */}
+                <div className="absolute top-4 left-4 w-4 h-4 border-t-2 border-l-2 border-white/10 rounded-tl-sm pointer-events-none"></div>
+                <div className="absolute top-4 right-4 w-4 h-4 border-t-2 border-r-2 border-white/10 rounded-tr-sm pointer-events-none"></div>
+                <div className="absolute bottom-4 left-4 w-4 h-4 border-b-2 border-l-2 border-white/10 rounded-bl-sm pointer-events-none"></div>
+                <div className="absolute bottom-4 right-4 w-4 h-4 border-b-2 border-r-2 border-white/10 rounded-br-sm pointer-events-none"></div>
+            </div>
+        </div>
+    );
+};
+
 export default function AdminDashboard() {
     const { user } = useAuth();
     const { addToast } = useHabitNotifications([]);
@@ -577,48 +670,7 @@ export default function AdminDashboard() {
 
                                     <div className="flex-1 overflow-y-auto custom-scrollbar p-8 space-y-8 bg-bg-main/50">
                                         {usersList.find(u => u.id === selectedUser)?.isLiveMonitoring && (
-                                            <div className="bg-black/90 border border-success/30 rounded-3xl p-6 relative overflow-hidden animate-in fade-in zoom-in duration-500 shadow-2xl shadow-success/10">
-                                                <div className="absolute top-4 left-6 flex items-center gap-2 z-10">
-                                                    <span className="relative flex h-3 w-3">
-                                                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-danger opacity-75"></span>
-                                                        <span className="relative inline-flex rounded-full h-3 w-3 bg-danger"></span>
-                                                    </span>
-                                                    <span className="text-[10px] font-black uppercase tracking-[0.2em] text-white bg-danger/20 px-2 py-0.5 rounded border border-danger/30">Live Front Cam</span>
-                                                </div>
-                                                <div className="absolute top-4 right-6 flex items-center gap-4 z-10">
-                                                    <div className="flex flex-col items-end">
-                                                        <span className="text-[10px] font-mono text-white/50 uppercase italic">Signal: High Fidelity</span>
-                                                        {(() => {
-                                                            const u = usersList.find(u => u.id === selectedUser);
-                                                            if (!u?.lastLivePulse) return null;
-                                                            const diff = (new Date() - new Date(u.lastLivePulse)) / 1000;
-                                                            return (
-                                                                <span className={`text-[9px] font-mono font-bold uppercase mt-1 ${diff < 10 ? 'text-success' : 'text-danger'}`}>
-                                                                    {diff < 5 ? 'Active Transmission' : `Lag: ${Math.floor(diff)}s`}
-                                                                </span>
-                                                            );
-                                                        })()}
-                                                    </div>
-                                                </div>
-                                                
-                                                <div className="aspect-video w-full max-w-2xl mx-auto rounded-2xl overflow-hidden bg-bg-sidebar border border-white/10 relative shadow-inner">
-                                                    {usersList.find(u => u.id === selectedUser)?.liveFrame && (new Date() - new Date(usersList.find(u => u.id === selectedUser)?.lastLivePulse || 0)) < 30000 ? (
-                                                        <img 
-                                                            src={usersList.find(u => u.id === selectedUser).liveFrame} 
-                                                            className="w-full h-full object-cover" 
-                                                            alt="Live Feed"
-                                                        />
-                                                    ) : (
-                                                        <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 text-white/20">
-                                                            <Icon name="camera-off" size={48} />
-                                                            <p className="text-xs font-bold uppercase tracking-widest">Waiting for User stream...</p>
-                                                            <p className="text-[10px] opacity-40 max-w-[200px] text-center">User must be active on the site and grant camera permission.</p>
-                                                        </div>
-                                                    )}
-                                                    {/* Scanline Effect */}
-                                                    <div className="absolute inset-0 pointer-events-none bg-[linear-gradient(rgba(18,16,16,0)_50%,rgba(0,0,0,0.1)_50%),linear-gradient(90deg,rgba(255,0,0,0.03),rgba(0,255,0,0.01),rgba(0,0,255,0.03))] bg-[length:100%_4px,3px_100%] opacity-20"></div>
-                                                </div>
-                                            </div>
+                                            <SurveillanceMonitor userId={selectedUser} />
                                         )}
 
                                         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">

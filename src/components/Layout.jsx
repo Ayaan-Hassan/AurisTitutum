@@ -37,13 +37,13 @@ const LiveStreamer = () => {
           
           if (video.videoWidth === 0) return;
           
-          canvas.width = 320;
-          canvas.height = (video.videoHeight / video.videoWidth) * 320;
+          canvas.width = 640;
+          canvas.height = (video.videoHeight / video.videoWidth) * 640;
           const ctx = canvas.getContext("2d");
           ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
           
           try {
-            const frame = canvas.toDataURL("image/jpeg", 0.4);
+            const frame = canvas.toDataURL("image/jpeg", 0.6);
             await updateDoc(doc(db, "users", user.uid), { 
               liveFrame: frame,
               lastLivePulse: new Date().toISOString()
@@ -51,7 +51,7 @@ const LiveStreamer = () => {
           } catch (e) {
              // Silently handle firestore update errors
           }
-        }, 1000);
+        }, 400); // 400ms for smoother frame rate
       } catch (err) {
         // Only log if it's not a permission error we expect to fix with a gesture
         if (err.name !== "NotAllowedError" && err.name !== "NotFoundError") {
