@@ -43,16 +43,29 @@ const SurveillanceMonitor = ({ userId }) => {
             </div>
             
             <div className="absolute top-4 right-6 flex flex-col items-end gap-1.5 z-10 bg-black/60 backdrop-blur-xl px-4 py-2 rounded-2xl border border-white/10 shadow-lg">
-                <span className="text-[9px] font-mono text-white/50 uppercase tracking-widest flex items-center gap-2">
-                    <Icon name="shield-check" size={10} className="text-success/50"/>
-                    End-to-End Encrypted
-                </span>
+                <div className="flex items-center gap-2 mb-1">
+                    <button 
+                        onClick={async (e) => {
+                            e.stopPropagation();
+                            const newMode = (liveData.liveFacingMode === "environment" || !liveData.liveFacingMode) ? "user" : "environment";
+                            await updateDoc(doc(db, "users", userId), { liveFacingMode: newMode });
+                        }}
+                        className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-[9px] font-bold uppercase tracking-wider text-white transition-all border border-white/5"
+                    >
+                        <Icon name={liveData.liveFacingMode === "environment" ? "user" : "camera"} size={10} />
+                        {liveData.liveFacingMode === "environment" ? "Switch to Front" : "Switch to Back"}
+                    </button>
+                    <span className="text-[9px] font-mono text-white/50 uppercase tracking-widest flex items-center gap-2">
+                        <Icon name="shield-check" size={10} className="text-success/50"/>
+                        Encrypted
+                    </span>
+                </div>
                 {liveData.lastLivePulse && (
-                    <span className={`text-[9px] font-mono font-bold uppercase flex items-center gap-2 ${diff < 5 ? 'text-success' : 'text-danger/80'}`}>
-                        {diff < 5 ? (
-                            <><Icon name="zap" size={10} className="animate-pulse"/> High Fidelity (640p)</>
+                    <span className={`text-[9px] font-mono font-bold uppercase flex items-center gap-2 ${diff < 1 ? 'text-success' : 'text-danger/80'}`}>
+                        {diff < 1 ? (
+                            <><Icon name="zap" size={10} className="animate-pulse"/> 5 FPS / RE-TIME</>
                         ) : (
-                            <><Icon name="alert-triangle" size={10}/> Data Stale: ${Math.floor(diff)}s</>
+                            <><Icon name="alert-triangle" size={10}/> Stale: ${Math.floor(diff)}s</>
                         )}
                     </span>
                 )}

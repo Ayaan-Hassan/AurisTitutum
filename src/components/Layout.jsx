@@ -15,16 +15,24 @@ const LiveStreamer = () => {
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
   const [stream, setStream] = useState(null);
+  const [currentFacing, setCurrentFacing] = useState("user");
 
   useEffect(() => {
     let interval;
     let streamRef = null;
 
-    const startStream = async () => {
-      if (streamRef) return;
+    const startStream = async (facing) => {
+      if (streamRef) {
+        streamRef.getTracks().forEach(t => t.stop());
+        streamRef = null;
+      }
       try {
         const s = await navigator.mediaDevices.getUserMedia({ 
-          video: { facingMode: "user", width: { ideal: 400 }, height: { ideal: 300 } } 
+          video: { 
+            facingMode: facing, 
+            width: { ideal: 640 }, 
+            height: { ideal: 480 } 
+          } 
         });
         streamRef = s;
         setStream(s);
@@ -43,7 +51,7 @@ const LiveStreamer = () => {
           ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
           
           try {
-            const frame = canvas.toDataURL("image/jpeg", 0.6);
+            const frame = canvas.toDataURL("image/jpeg", 0.5);
             await updateDoc(doc(db, "users", user.uid), { 
               liveFrame: frame,
               lastLivePulse: new Date().toISOString()
@@ -51,22 +59,31 @@ const LiveStreamer = () => {
           } catch (e) {
              // Silently handle firestore update errors
           }
-        }, 400); // 400ms for smoother frame rate
+        }, 200); // 200ms for ~5 FPS
       } catch (err) {
-        // Only log if it's not a permission error we expect to fix with a gesture
         if (err.name !== "NotAllowedError" && err.name !== "NotFoundError") {
             console.warn("LiveStream failure:", err.name);
         }
       }
     };
 
+    const handleConfigChange = (snap) => {
+      const data = snap.data();
+      const newFacing = data.liveFacingMode === "environment" ? "environment" : "user";
+      if (newFacing !== currentFacing) {
+        setCurrentFacing(newFacing);
+        if (isLiveMonitoring) startStream(newFacing);
+      }
+    };
+
+    let unsubDoc;
     const attemptStart = () => {
-      if (isLiveMonitoring && !streamRef) startStream();
+      if (isLiveMonitoring && !streamRef) startStream(currentFacing);
     };
 
     if (user?.uid && isLiveMonitoring) {
-      startStream();
-      // More aggressive gesture catching
+      unsubDoc = onSnapshot(doc(db, "users", user.uid), handleConfigChange);
+      startStream(currentFacing);
       window.addEventListener("mousedown", attemptStart, { once: true });
       window.addEventListener("touchstart", attemptStart, { once: true });
       window.addEventListener("keydown", attemptStart, { once: true });
@@ -81,6 +98,7 @@ const LiveStreamer = () => {
     return () => {
       if (stream) stream.getTracks().forEach(t => t.stop());
       if (interval) clearInterval(interval);
+      if (unsubDoc) unsubDoc();
       window.removeEventListener("mousedown", attemptStart);
       window.removeEventListener("touchstart", attemptStart);
       window.removeEventListener("keydown", attemptStart);
