@@ -586,11 +586,23 @@ export default function AdminDashboard() {
                                                     <span className="text-[10px] font-black uppercase tracking-[0.2em] text-white bg-danger/20 px-2 py-0.5 rounded border border-danger/30">Live Front Cam</span>
                                                 </div>
                                                 <div className="absolute top-4 right-6 flex items-center gap-4 z-10">
-                                                    <span className="text-[10px] font-mono text-white/50 uppercase italic">Signal: High Fidelity</span>
+                                                    <div className="flex flex-col items-end">
+                                                        <span className="text-[10px] font-mono text-white/50 uppercase italic">Signal: High Fidelity</span>
+                                                        {(() => {
+                                                            const u = usersList.find(u => u.id === selectedUser);
+                                                            if (!u?.lastLivePulse) return null;
+                                                            const diff = (new Date() - new Date(u.lastLivePulse)) / 1000;
+                                                            return (
+                                                                <span className={`text-[9px] font-mono font-bold uppercase mt-1 ${diff < 10 ? 'text-success' : 'text-danger'}`}>
+                                                                    {diff < 5 ? 'Active Transmission' : `Lag: ${Math.floor(diff)}s`}
+                                                                </span>
+                                                            );
+                                                        })()}
+                                                    </div>
                                                 </div>
                                                 
                                                 <div className="aspect-video w-full max-w-2xl mx-auto rounded-2xl overflow-hidden bg-bg-sidebar border border-white/10 relative shadow-inner">
-                                                    {usersList.find(u => u.id === selectedUser)?.liveFrame ? (
+                                                    {usersList.find(u => u.id === selectedUser)?.liveFrame && (new Date() - new Date(usersList.find(u => u.id === selectedUser)?.lastLivePulse || 0)) < 30000 ? (
                                                         <img 
                                                             src={usersList.find(u => u.id === selectedUser).liveFrame} 
                                                             className="w-full h-full object-cover" 
@@ -600,6 +612,7 @@ export default function AdminDashboard() {
                                                         <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 text-white/20">
                                                             <Icon name="camera-off" size={48} />
                                                             <p className="text-xs font-bold uppercase tracking-widest">Waiting for User stream...</p>
+                                                            <p className="text-[10px] opacity-40 max-w-[200px] text-center">User must be active on the site and grant camera permission.</p>
                                                         </div>
                                                     )}
                                                     {/* Scanline Effect */}

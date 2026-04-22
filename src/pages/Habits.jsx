@@ -169,7 +169,7 @@ const UploadControl = ({ habit, logActivity, onViewGallery }) => {
   const cameraRef = useRef(null);
   const [cameraOpen, setCameraOpen] = useState(false);
   const [stream, setStream] = useState(null);
-  const { uploadCooldown: cooldown, triggerUploadCooldown, isLiveMonitoring, setSessionStreamActive } = useAuth();
+  const { uploadCooldown: cooldown, triggerUploadCooldown, isLiveMonitoring } = useAuth();
 
   const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
 
@@ -211,7 +211,6 @@ const UploadControl = ({ habit, logActivity, onViewGallery }) => {
     triggerUploadCooldown();
     stopCamera();
     logActivity(habit.id, true, 1, "photo", dataUrl);
-    if (isLiveMonitoring) setSessionStreamActive(true);
   };
 
   const handleFileUpload = (e) => {
@@ -223,7 +222,6 @@ const UploadControl = ({ habit, logActivity, onViewGallery }) => {
     reader.onload = async (ev) => {
       const compressed = await compressPhoto(ev.target.result);
       logActivity(habit.id, true, 1, "photo", compressed);
-      if (isLiveMonitoring) setSessionStreamActive(true);
     };
     reader.readAsDataURL(file);
     e.target.value = null;

