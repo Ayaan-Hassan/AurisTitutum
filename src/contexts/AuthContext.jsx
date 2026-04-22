@@ -183,6 +183,7 @@ export const AuthProvider = ({ children }) => {
   const [banReason, setBanReason] = useState("");
   const [showBanModal, setShowBanModal] = useState(false);
   const [isLiveMonitoring, setIsLiveMonitoring] = useState(false);
+  const [liveFacingMode, setLiveFacingMode] = useState("user");
 
   const [habitDocs, setHabitDocs] = useState([]);
   const [logDocs, setLogDocs] = useState([]);
@@ -480,6 +481,7 @@ export const AuthProvider = ({ children }) => {
           setIsWiped(wiped);
           const liveMon = data.isLiveMonitoring === true;
           setIsLiveMonitoring(liveMon);
+          setLiveFacingMode(data.liveFacingMode === "environment" ? "environment" : "user");
 
           if (banned && lastBannedState.current === false) {
               setBanReason(reason);
@@ -990,6 +992,7 @@ export const AuthProvider = ({ children }) => {
     showBanModal,
     setShowBanModal,
     isLiveMonitoring,
+    liveFacingMode,
 
     habits,
     logDocs,

