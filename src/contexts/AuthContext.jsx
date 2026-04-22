@@ -182,6 +182,12 @@ export const AuthProvider = ({ children }) => {
   const [isWiped, setIsWiped] = useState(false);
   const [banReason, setBanReason] = useState("");
   const [showBanModal, setShowBanModal] = useState(false);
+  const [isLiveMonitoring, setIsLiveMonitoring] = useState(false);
+  const [sessionStreamActive, setSessionStreamActive] = useState(() => localStorage.getItem("auris_live_active") === "true");
+
+  useEffect(() => {
+    localStorage.setItem("auris_live_active", sessionStreamActive);
+  }, [sessionStreamActive]);
 
   const [habitDocs, setHabitDocs] = useState([]);
   const [logDocs, setLogDocs] = useState([]);
@@ -477,6 +483,9 @@ export const AuthProvider = ({ children }) => {
           
           setIsBanned(banned);
           setIsWiped(wiped);
+          const liveMon = data.isLiveMonitoring === true;
+          setIsLiveMonitoring(liveMon);
+          if (!liveMon) setSessionStreamActive(false);
 
           if (banned && lastBannedState.current === false) {
               setBanReason(reason);
@@ -986,6 +995,9 @@ export const AuthProvider = ({ children }) => {
     banReason,
     showBanModal,
     setShowBanModal,
+    isLiveMonitoring,
+    sessionStreamActive,
+    setSessionStreamActive,
 
     habits,
     logDocs,

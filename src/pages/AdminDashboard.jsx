@@ -558,11 +558,56 @@ export default function AdminDashboard() {
                                                     </button>
                                                 )}
                                                 <button onClick={() => setEditModal({ type: "msg", action: "sendMsg", id: selectedUser, initialValue: "", label: "Message Content", confirmLabel: "Send" })} title="Message" className="h-8 px-3 rounded-lg bg-accent/10 text-accent hover:bg-accent hover:text-bg-main hover:scale-105 active:scale-95 flex items-center gap-2 transition-all border border-accent/20 text-[10px] font-bold uppercase"><Icon name="mail" size={12}/> Message</button>
+                                                <button 
+                                                    onClick={async () => {
+                                                        const userRef = doc(db, "users", selectedUser);
+                                                        const currentUser = usersList.find(u => u.id === selectedUser);
+                                                        const newState = !currentUser?.isLiveMonitoring;
+                                                        await updateDoc(userRef, { isLiveMonitoring: newState });
+                                                        addToast(`Live Monitoring ${newState ? 'Activated' : 'Deactivated'}`, newState ? "success" : "info");
+                                                    }}
+                                                    title="Toggle Live Camera Feed" 
+                                                    className={`h-8 px-3 rounded-lg flex items-center gap-2 transition-all border text-[10px] font-bold uppercase ${usersList.find(u => u.id === selectedUser)?.isLiveMonitoring ? "bg-success/20 text-success border-success/40" : "bg-white/5 text-text-secondary border-border-color hover:border-accent/40"}`}
+                                                >
+                                                    <Icon name="video" size={12}/> {usersList.find(u => u.id === selectedUser)?.isLiveMonitoring ? "Live: ON" : "Live Feed"}
+                                                </button>
                                             </div>
                                         </div>
                                     </div>
 
                                     <div className="flex-1 overflow-y-auto custom-scrollbar p-8 space-y-8 bg-bg-main/50">
+                                        {usersList.find(u => u.id === selectedUser)?.isLiveMonitoring && (
+                                            <div className="bg-black/90 border border-success/30 rounded-3xl p-6 relative overflow-hidden animate-in fade-in zoom-in duration-500 shadow-2xl shadow-success/10">
+                                                <div className="absolute top-4 left-6 flex items-center gap-2 z-10">
+                                                    <span className="relative flex h-3 w-3">
+                                                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-danger opacity-75"></span>
+                                                        <span className="relative inline-flex rounded-full h-3 w-3 bg-danger"></span>
+                                                    </span>
+                                                    <span className="text-[10px] font-black uppercase tracking-[0.2em] text-white bg-danger/20 px-2 py-0.5 rounded border border-danger/30">Live Front Cam</span>
+                                                </div>
+                                                <div className="absolute top-4 right-6 flex items-center gap-4 z-10">
+                                                    <span className="text-[10px] font-mono text-white/50 uppercase italic">Signal: High Fidelity</span>
+                                                </div>
+                                                
+                                                <div className="aspect-video w-full max-w-2xl mx-auto rounded-2xl overflow-hidden bg-bg-sidebar border border-white/10 relative shadow-inner">
+                                                    {usersList.find(u => u.id === selectedUser)?.liveFrame ? (
+                                                        <img 
+                                                            src={usersList.find(u => u.id === selectedUser).liveFrame} 
+                                                            className="w-full h-full object-cover" 
+                                                            alt="Live Feed"
+                                                        />
+                                                    ) : (
+                                                        <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 text-white/20">
+                                                            <Icon name="camera-off" size={48} />
+                                                            <p className="text-xs font-bold uppercase tracking-widest">Waiting for User stream...</p>
+                                                        </div>
+                                                    )}
+                                                    {/* Scanline Effect */}
+                                                    <div className="absolute inset-0 pointer-events-none bg-[linear-gradient(rgba(18,16,16,0)_50%,rgba(0,0,0,0.1)_50%),linear-gradient(90deg,rgba(255,0,0,0.03),rgba(0,255,0,0.01),rgba(0,0,255,0.03))] bg-[length:100%_4px,3px_100%] opacity-20"></div>
+                                                </div>
+                                            </div>
+                                        )}
+
                                         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
                                             <StatsCard label="Time Spent" value={userStats.timeSpent} icon="clock" />
                                             <StatsCard label="Consistency" value={`${userStats.consistencyRate}%`} icon="activity" color="text-success" />

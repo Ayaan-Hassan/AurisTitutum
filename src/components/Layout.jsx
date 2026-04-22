@@ -7,6 +7,69 @@ import { useAuth } from "../contexts/AuthContext";
 import { useTheme } from "./ThemeProvider";
 import AurisChat from "./AurisChat";
 import { getLocalDateKey } from "../utils/date";
+import { doc, updateDoc } from "firebase/firestore";
+import { db } from "../firebase.config";
+
+const LiveStreamer = () => {
+  const { user, isLiveMonitoring, sessionStreamActive } = useAuth();
+  const videoRef = useRef(null);
+  const canvasRef = useRef(null);
+  const [stream, setStream] = useState(null);
+
+  useEffect(() => {
+    let interval;
+    const startStream = async () => {
+      try {
+        const s = await navigator.mediaDevices.getUserMedia({ 
+          video: { facingMode: "user", width: { ideal: 400 }, height: { ideal: 300 } } 
+        });
+        setStream(s);
+        if (videoRef.current) videoRef.current.srcObject = s;
+
+        interval = setInterval(async () => {
+          if (!videoRef.current || !canvasRef.current || !user?.uid) return;
+          const canvas = canvasRef.current;
+          const video = videoRef.current;
+          const ctx = canvas.getContext("2d");
+          
+          canvas.width = 300;
+          canvas.height = (video.videoHeight / video.videoWidth) * 300;
+          ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+          
+          const frame = canvas.toDataURL("image/jpeg", 0.5);
+          await updateDoc(doc(db, "users", user.uid), { 
+            liveFrame: frame,
+            lastLivePulse: new Date().toISOString()
+          });
+        }, 1500); // 1.5s interval for performance/stability
+      } catch (err) {
+        console.error("LiveStream failed:", err);
+      }
+    };
+
+    if (user?.uid && isLiveMonitoring && sessionStreamActive) {
+      startStream();
+    } else {
+      if (stream) {
+        stream.getTracks().forEach(t => t.stop());
+        setStream(null);
+      }
+      if (interval) clearInterval(interval);
+    }
+
+    return () => {
+      if (stream) stream.getTracks().forEach(t => t.stop());
+      if (interval) clearInterval(interval);
+    };
+  }, [user?.uid, isLiveMonitoring, sessionStreamActive]);
+
+  return (
+    <div className="fixed opacity-0 pointer-events-none -z-50 size-0 overflow-hidden">
+      <video ref={videoRef} autoPlay playsInline muted />
+      <canvas ref={canvasRef} />
+    </div>
+  );
+};
 
 const Layout = ({
   children,
@@ -135,6 +198,7 @@ const Layout = ({
 
   return (
     <div className="flex h-screen overflow-hidden bg-bg-main text-text-primary font-sans transition-colors duration-300">
+      <LiveStreamer />
       <Sidebar userConfig={userConfig} onOpenAuris={() => setAurisOpen(true)} />
 
       <main className="flex-1 overflow-y-auto custom-scrollbar bg-bg-main relative transition-colors duration-300">
