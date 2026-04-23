@@ -278,7 +278,7 @@ const DashboardRatingControl = ({ habit, logActivity }) => {
 };
 
 // ─── Day Detail Popup ──────────────────────────────────────────────────────
-const DayDetailPopup = ({ dateStr, habits, onClose }) => {
+const DayDetailPopup = ({ dateStr, habits, notes, onClose }) => {
   const [visibleCount, setVisibleCount] = useState(15);
   const formatted = dateStr ? new Date(dateStr + "T12:00:00").toLocaleDateString("en-US", {
     weekday: "long", year: "numeric", month: "long", day: "numeric"
@@ -307,8 +307,21 @@ const DayDetailPopup = ({ dateStr, habits, onClose }) => {
         }
       });
     });
+    // Add notes to entries
+    (notes || []).forEach(n => {
+      if (n.date === dateStr) {
+        all.push({ 
+          habit: n.title, 
+          emoji: "📝", 
+          type: "Note", 
+          display: n.body, 
+          time: "NOTE", 
+          isNote: true 
+        });
+      }
+    });
     return all;
-  }, [dateStr, habits]);
+  }, [dateStr, habits, notes]);
 
   const paginatedEntries = useMemo(() => {
     return entries.slice(0, visibleCount);
@@ -371,7 +384,7 @@ const DayDetailPopup = ({ dateStr, habits, onClose }) => {
                     <span style={{ filter: "grayscale(1) brightness(1.2)", fontSize: "1.1rem" }}>{e.emoji}</span>
                   ) : (e.type === "Good" ? <Icon name="check" size={18}/> : <Icon name="x" size={18}/>)}
                 </div>
-                <div className={`flex-1 min-w-0 p-4 rounded-2xl border transition-all shadow-sm ${e.type === "Good" ? "bg-success/5 border-success/20 hover:border-success/40 hover:bg-success/10" : "bg-danger/5 border-danger/20 hover:border-danger/40 hover:bg-danger/10"}`}>
+                <div className={`flex-1 min-w-0 p-4 rounded-2xl border transition-all shadow-sm ${e.isNote ? "bg-accent/5 border-accent/20 hover:border-accent/40 hover:bg-accent/10" : e.type === "Good" ? "bg-success/5 border-success/20 hover:border-success/40 hover:bg-success/10" : "bg-danger/5 border-danger/20 hover:border-danger/40 hover:bg-danger/10"}`}>
                   <div className="flex items-start justify-between gap-3 mb-1">
                     <p className="text-sm font-bold text-text-primary truncate">{e.habit}</p>
                     {e.time && <span className="text-[10px] font-mono font-bold text-text-secondary px-2 py-0.5 rounded-md bg-black/20 shrink-0">{e.time}</span>}
@@ -414,7 +427,7 @@ const DayDetailPopup = ({ dateStr, habits, onClose }) => {
 };
 
 // ─── Main Dashboard ──────────────────────────────────────────────────────────
-const Dashboard = ({ habits, logActivity, insights, dataLoading }) => {
+const Dashboard = ({ habits, notes, logActivity, insights, dataLoading }) => {
   useEffect(() => {
     localStorage.setItem("auris_visited_dashboard", "true");
     localStorage.setItem("auris_returning_operator", "true");
@@ -485,8 +498,18 @@ const Dashboard = ({ habits, logActivity, insights, dataLoading }) => {
         }
       });
     });
+    // Mark dates with notes
+    (notes || []).forEach(n => {
+      if (n.date) {
+        if (!colors[n.date]) {
+          colors[n.date] = "note-only";
+        } else if (colors[n.date] !== "white") {
+          colors[n.date] = "mixed-note";
+        }
+      }
+    });
     return colors;
-  }, [habits]);
+  }, [habits, notes]);
 
   const anyActivityDates = useMemo(() => {
     const set = new Set();
@@ -506,6 +529,12 @@ const Dashboard = ({ habits, logActivity, insights, dataLoading }) => {
       days.push(getLocalDateKey(new Date(y, m, d)));
     return days;
   }, [calendarMonth]);
+
+  const datesWithNotes = useMemo(() => {
+    const set = new Set();
+    (notes || []).forEach(n => { if (n.date) set.add(n.date); });
+    return set;
+  }, [notes]);
 
   const todayKey = getLocalDateKey();
 
@@ -793,6 +822,8 @@ const Dashboard = ({ habits, logActivity, insights, dataLoading }) => {
             const dayNum = dateStr ? new Date(dateStr + "T12:00:00").getDate() : "";
 
             let themeClass = "bg-bg-main/50 border border-border-color text-text-secondary";
+            const isDatedNote = dateStr && datesWithNotes.has(dateStr);
+
             if (dateStr) {
                if (isToday) {
                  if (hasGood) themeClass = "bg-[#4ade80] text-black border border-[#4ade80] shadow-sm cursor-pointer hover:opacity-90";
@@ -813,11 +844,17 @@ const Dashboard = ({ habits, logActivity, insights, dataLoading }) => {
               <div
                 key={i}
                 id={isToday ? "tour-today-cell" : undefined}
-                className={cellClass}
-                onClick={() => dateStr && hasAny && setSelectedDay(dateStr)}
-                title={dateStr && hasAny ? "Click to see logs" : undefined}
+                className={`${cellClass} relative group cursor-pointer`}
+                onClick={() => dateStr && (hasAny || isDatedNote) && setSelectedDay(dateStr)}
+                title={dateStr && (hasAny || isDatedNote) ? "Click to see details" : undefined}
               >
-                {dayNum}
+                <span className="relative z-10">{dayNum}</span>
+                {isDatedNote && (
+                  <div className={`absolute bottom-1 w-1 h-1 rounded-full ${hasAny ? 'bg-white' : 'bg-accent'} active:scale-150 transition-all`} />
+                )}
+                {isDatedNote && !hasAny && (
+                   <div className="absolute inset-0 border border-accent/20 rounded-lg pointer-events-none group-hover:border-accent/50 transition-colors" />
+                )}
               </div>
             );
           })}
@@ -829,6 +866,7 @@ const Dashboard = ({ habits, logActivity, insights, dataLoading }) => {
         <DayDetailPopup
           dateStr={selectedDay}
           habits={habits}
+          notes={notes}
           onClose={() => setSelectedDay(null)}
         />
       )}

@@ -22,10 +22,12 @@ const Notes = ({ notes, setNotes, setFeatureLockConfig }) => {
     const [editTitle, setEditTitle] = useState('');
     const [editBody, setEditBody] = useState('');
     const [editColor, setEditColor] = useState('default');
+    const [editDate, setEditDate] = useState('');
 
     const [newTitle, setNewTitle] = useState('');
     const [newBody, setNewBody] = useState('');
     const [newColor, setNewColor] = useState('default');
+    const [newDate, setNewDate] = useState('');
     const [showAdd, setShowAdd] = useState(false);
 
     const [deleteTarget, setDeleteTarget] = useState(null);
@@ -62,6 +64,7 @@ const Notes = ({ notes, setNotes, setFeatureLockConfig }) => {
             title: newTitle.trim() || 'Untitled',
             body: newBody.trim(),
             color: newColor,
+            date: newDate || null,
             pinned: false,
             createdAt: new Date().toISOString(),
             updatedAt: new Date().toISOString(),
@@ -77,6 +80,7 @@ const Notes = ({ notes, setNotes, setFeatureLockConfig }) => {
         setNewTitle('');
         setNewBody('');
         setNewColor('default');
+        setNewDate('');
         setShowAdd(false);
     };
 
@@ -85,6 +89,7 @@ const Notes = ({ notes, setNotes, setFeatureLockConfig }) => {
         setEditTitle(note.title);
         setEditBody(note.body);
         setEditColor(note.color || 'default');
+        setEditDate(note.date || '');
     };
 
     const saveEdit = async () => {
@@ -97,6 +102,7 @@ const Notes = ({ notes, setNotes, setFeatureLockConfig }) => {
             title: editTitle.trim() || 'Untitled', 
             body: editBody.trim(), 
             color: editColor, 
+            date: editDate || null,
             updatedAt: new Date().toISOString() 
         };
 
@@ -200,6 +206,18 @@ const Notes = ({ notes, setNotes, setFeatureLockConfig }) => {
                         rows={5}
                         className="w-full bg-bg-main/50 backdrop-blur-sm border border-border-color p-3.5 rounded-xl text-sm leading-relaxed text-text-primary placeholder:text-text-secondary/50 outline-none focus:border-accent resize-none transition-all"
                     />
+                    <div className="flex items-center gap-2">
+                        <div className="relative flex-1">
+                            <Icon name="calendar" size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-text-secondary opacity-50" />
+                            <input 
+                                type="date" 
+                                value={newDate}
+                                onChange={e => setNewDate(e.target.value)}
+                                className="w-full bg-bg-main/30 border border-border-color pl-9 pr-3 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest text-text-primary outline-none focus:border-accent"
+                            />
+                        </div>
+                        <p className="text-[10px] font-mono text-text-secondary uppercase tracking-tighter opacity-40">Optional: Mark on calendar</p>
+                    </div>
                     <div className="flex items-center justify-between border-t border-border-color/50 pt-4">
                         <div className="flex gap-2">
                             {NOTE_COLORS.filter(c => c.id !== 'admin-white').map(c => (
@@ -247,6 +265,15 @@ const Notes = ({ notes, setNotes, setFeatureLockConfig }) => {
                                             rows={5}
                                             className="w-full flex-1 bg-bg-main/50 backdrop-blur-sm border border-border-color/80 p-3 rounded-xl text-sm text-text-primary outline-none focus:border-accent resize-none transition-all"
                                         />
+                                        <div className="relative">
+                                            <Icon name="calendar" size={12} className="absolute left-3 top-1/2 -translate-y-1/2 text-text-secondary opacity-50" />
+                                            <input 
+                                                type="date" 
+                                                value={editDate}
+                                                onChange={e => setEditDate(e.target.value)}
+                                                className="w-full bg-bg-main/30 border border-border-color pl-8 pr-2 py-2 rounded-lg text-[10px] font-bold text-text-primary outline-none focus:border-accent"
+                                            />
+                                        </div>
                                         <div className="flex items-center justify-between pt-2">
                                             <div className="flex gap-1.5">
                                                 {NOTE_COLORS.filter(c => c.id !== 'admin-white').map(c => (
@@ -280,6 +307,12 @@ const Notes = ({ notes, setNotes, setFeatureLockConfig }) => {
                                                 </button>
                                             </div>
                                         </div>
+                                        {note.date && (
+                                            <div className="flex items-center gap-1.5 mb-2 px-2 py-1 rounded-lg bg-white/5 border border-white/5 w-fit">
+                                                <Icon name="calendar" size={10} className="text-accent" />
+                                                <span className="text-[9px] font-black uppercase tracking-widest text-accent">{note.date}</span>
+                                            </div>
+                                        )}
                                         {note.body && (
                                             <div
                                                 className="flex-1 mb-4 cursor-pointer group/body"

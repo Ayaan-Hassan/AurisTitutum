@@ -826,6 +826,7 @@ function AppContent() {
                     element={
                       <Dashboard
                         habits={displayHabits}
+                        notes={displayNotes}
                         setHabits={user ? authContext.replaceHabitsState : setHabits}
                         logActivity={logActivity}
                         insights={dailyInsight}
@@ -839,6 +840,7 @@ function AppContent() {
                     element={
                       <Dashboard
                         habits={displayHabits}
+                        notes={displayNotes}
                         setHabits={user ? authContext.replaceHabitsState : setHabits}
                         logActivity={logActivity}
                         insights={dailyInsight}
