@@ -24,7 +24,7 @@ import {
 const getTodayStr = () => new Date().toISOString().split('T')[0];
 const getTomorrowStr = () => new Date(Date.now() + 86400000).toISOString().split('T')[0];
 
-const TARGET_DATE = new Date("2026-03-23T13:14:08Z"); // 60 hours from 2026-03-21T01:14:08+05:30 (ISO 2026-03-20T19:44:08Z, so +60h = 2026-03-23T07:44:08Z UTC or 2026-03-23T13:14:08 IST)
+const TARGET_DATE = new Date("2026-12-31T23:59:59Z"); // Set to far future to lock the hub
 
 const SocialEngine = () => {
   const todayDateStr = getTodayStr();
@@ -158,7 +158,7 @@ const SocialEngine = () => {
     return `${h.toString().padStart(2, "0")}:${m.toString().padStart(2, "0")}:${s.toString().padStart(2, "0")}`;
   };
 
-  const isLive = timeLeft <= 0 || isAdmin;
+  const isLive = timeLeft <= 0; // Strictly locked until timer ends
 
   const filteredServers = useMemo(() => {
     return servers.filter(s => {
