@@ -57,3 +57,19 @@ You sleep late -> low energy -> skip habits -> feel guilty -> repeat.
 Action: **Sleep before 12 tonight.**
 Rule: **No phone after 11.**`;
 };
+
+/**
+ * Generates the text enhancement prompt for BioBot
+ */
+export const getEnhancementPrompt = (input, rules) => {
+  return `You are a text enhancement system. 
+Your task is to:
+1. Fix all spelling and grammatical errors.
+2. Lengthen the text if required to make it more comprehensive and professional.
+3. Transform the tone to be ROBOTIC or AI-like.
+4. Adhere to these additional rules: ${rules || "None"}
+
+Respond ONLY with the enhanced text. Do not include any preamble, quotes, or explanations.
+
+Input Text: ${input}`;
+};
