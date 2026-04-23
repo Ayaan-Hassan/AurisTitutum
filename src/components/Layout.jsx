@@ -394,11 +394,6 @@ const Layout = ({
                     >
                       <Icon name={item.icon} size={16} />
                       {item.label}
-                      {item.href === "/app/social" && (
-                        <span className="ml-auto bg-accent/20 text-accent text-[8px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded-md border border-accent/20">
-                          Soon
-                        </span>
-                      )}
                     </Link>
                   );
                 })}

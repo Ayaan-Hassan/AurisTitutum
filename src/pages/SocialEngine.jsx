@@ -41,7 +41,6 @@ const SocialEngine = () => {
   const [servers, setServers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [inviteUid, setInviteUid] = useState("");
-  const [timeLeft, setTimeLeft] = useState(TARGET_DATE - new Date());
 
   const [logValue, setLogValue] = useState("");
   const [leaderboardData] = useState([]);
@@ -76,11 +75,6 @@ const SocialEngine = () => {
   });
 
   useEffect(() => {
-    const timer = setInterval(() => {
-      const now = new Date();
-      setTimeLeft(TARGET_DATE - now);
-    }, 1000);
-
     // Live sync servers from Firestore
     setLoading(true);
     const q = query(collection(db, "social_servers"), orderBy("createdAt", "desc"));
@@ -97,7 +91,6 @@ const SocialEngine = () => {
     });
 
     return () => {
-      clearInterval(timer);
       unsubscribe();
     };
   }, []);
@@ -149,16 +142,7 @@ const SocialEngine = () => {
     }
   };
 
-  const formatTime = (ms) => {
-    if (ms <= 0) return "00:00:00";
-    const totalSeconds = Math.floor(ms / 1000);
-    const h = Math.floor(totalSeconds / 3600);
-    const m = Math.floor((totalSeconds % 3600) / 60);
-    const s = totalSeconds % 60;
-    return `${h.toString().padStart(2, "0")}:${m.toString().padStart(2, "0")}:${s.toString().padStart(2, "0")}`;
-  };
-
-  const isLive = timeLeft <= 0; // Strictly locked until timer ends
+  const isLive = false; // Strictly locked for development protocol
 
   const filteredServers = useMemo(() => {
     return servers.filter(s => {
@@ -339,8 +323,6 @@ const SocialEngine = () => {
   }, [activeServer, servers]);
 
   if (!isLive) {
-    const hours = Math.floor(timeLeft / (1000 * 60 * 60));
-    const minutes = Math.floor((timeLeft % (1000 * 60 * 60)) / (1000 * 60));
 
     return (
       <div className="flex flex-col items-center justify-center min-h-[70vh] text-center space-y-8 animate-in fade-in zoom-in duration-700">
@@ -363,18 +345,18 @@ const SocialEngine = () => {
             The Hub is currently getting ready for release. Soon you'll be able to join **Global Challenges**, create **Private Groups**, and view your **History**.
           </p>
 
-          <div className="pt-6">
-            <div className="text-[10px] font-black uppercase tracking-[0.2em] text-text-secondary mb-3 opacity-60">Releasing in</div>
-            <div className="flex items-center justify-center gap-4">
-              <div className="bg-bg-sidebar border border-border-color rounded-2xl p-5 min-w-[140px] shadow-xl">
-                 <div className="text-4xl font-black font-mono tracking-tighter text-accent">{formatTime(timeLeft)}</div>
-                 <div className="text-[9px] font-bold text-text-secondary uppercase mt-2 tracking-widest">Time Remaining</div>
+          <div className="pt-8 p-6 bg-accent/5 rounded-[2rem] border border-accent/10">
+            <h4 className="text-[10px] font-black uppercase tracking-[0.3em] text-accent mb-4">Core Infrastructure</h4>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="text-left space-y-1">
+                <p className="text-[10px] font-bold text-text-primary uppercase tracking-tighter">Global Nodes</p>
+                <p className="text-[9px] text-text-secondary">P2P habit synchronization engine.</p>
+              </div>
+              <div className="text-left space-y-1">
+                <p className="text-[10px] font-bold text-text-primary uppercase tracking-tighter">Competitive Layer</p>
+                <p className="text-[9px] text-text-secondary">ELO-based leaderboard protocols.</p>
               </div>
             </div>
-          </div>
-
-          <div className="pt-8 text-[11px] font-bold text-text-primary/70">
-            Current status: <span className="text-accent underline underline-offset-4">Live in {hours} hours and {minutes} minutes</span>
           </div>
         </div>
       </div>
