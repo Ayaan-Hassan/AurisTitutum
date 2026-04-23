@@ -356,6 +356,9 @@ function AppContent() {
   const cloudStateReadyRef = useRef(false);
   const cloudSaveTimerRef = useRef(null);
   const skipNextCloudSaveRef = useRef(false);
+  const [activeUndo, setActiveUndo] = useState(null);
+  const undoTimerRef = useRef(null);
+  const undoVisibilityTimerRef = useRef(null);
   const isSavingToCloudRef = useRef(false);
 
   // Track the state that is currently synced with the cloud
@@ -665,6 +668,23 @@ function AppContent() {
         return { ...h, logs: updatedLogs, totalLogs: updatedTotal };
       }),
     );
+
+    // Undo Pop-up Logic
+    if (increment) {
+        if (undoTimerRef.current) clearTimeout(undoTimerRef.current);
+        if (undoVisibilityTimerRef.current) clearTimeout(undoVisibilityTimerRef.current);
+        
+        undoTimerRef.current = setTimeout(() => {
+            setActiveUndo({ id, amount: amt, unit: unit || "", photoData, todayKey, timestamp });
+            
+            undoVisibilityTimerRef.current = setTimeout(() => {
+                setActiveUndo(null);
+            }, 5000); // Visible for 5 seconds
+        }, 1000); // Appears 1 second after log
+    } else {
+        // If they manually undo, hide the auto-undo popup
+        setActiveUndo(null);
+    }
   }, [user, authContext]);
 
   const handleAvatarUpload = (e) => {
@@ -1227,6 +1247,38 @@ function AppContent() {
           message={activeSystemMsg} 
           onClear={() => setActiveSystemMsg(null)} 
         />
+      )}
+      {activeUndo && (
+        <div className="fixed bottom-24 left-1/2 -translate-x-1/2 z-[150] animate-in fade-in slide-in-from-bottom-4 duration-500">
+          <div className="glass-card bg-bg-sidebar/80 backdrop-blur-xl border border-white/10 px-5 py-3 rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.3)] flex items-center gap-5 border-t-white/20">
+            <div className="flex flex-col">
+               <span className="text-[10px] font-black uppercase tracking-[0.34em] text-text-secondary leading-none mb-1.5 flex items-center gap-1.5">
+                 <div className="w-1 h-1 rounded-full bg-accent animate-pulse" />
+                 Log Recorded
+               </span>
+               <span className="text-[9px] text-text-primary/40 font-mono tracking-tighter uppercase font-bold">
+                Buffer status: active
+               </span>
+            </div>
+            <div className="w-px h-8 bg-white/10 mx-1" />
+            <button 
+              onClick={() => {
+                const { id, amount, unit, photoData, todayKey, timestamp } = activeUndo;
+                logActivity(id, false, amount, unit, photoData, todayKey, timestamp);
+                setActiveUndo(null);
+              }}
+              className="px-4 py-2 bg-accent/10 border border-accent/20 rounded-xl text-[10px] font-black text-accent uppercase tracking-widest hover:bg-accent hover:text-bg-main transition-all active:scale-95"
+            >
+              Undo Log
+            </button>
+            <button 
+              onClick={() => setActiveUndo(null)} 
+              className="w-8 h-8 rounded-lg flex items-center justify-center text-text-secondary hover:text-text-primary hover:bg-white/5 transition-colors"
+            >
+              <Icon name="x" size={14} />
+            </button>
+          </div>
+        </div>
       )}
     </>
   );
