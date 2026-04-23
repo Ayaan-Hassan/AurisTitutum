@@ -834,6 +834,7 @@ const Dashboard = ({ habits, notes, logActivity, insights, dataLoading }) => {
                  if (hasGood) themeClass = "bg-[#4ade80] text-black border border-[#4ade80] shadow-sm cursor-pointer hover:opacity-80";
                  else if (hasBad) themeClass = "bg-[#ef4444] text-white border border-[#ef4444] shadow-sm cursor-pointer hover:opacity-80";
                  else if (hasMixed) themeClass = "bg-black dark:bg-white text-white dark:text-bg-main border border-black dark:border-white shadow-sm cursor-pointer hover:opacity-80";
+                 else if (isDatedNote) themeClass = "bg-accent/10 border border-accent/40 text-text-primary hover:bg-accent/20";
                  else themeClass = "bg-bg-main/50 border border-border-color text-text-secondary hover:border-text-secondary";
                }
             }
@@ -850,10 +851,17 @@ const Dashboard = ({ habits, notes, logActivity, insights, dataLoading }) => {
               >
                 <span className="relative z-10">{dayNum}</span>
                 {isDatedNote && (
-                  <div className={`absolute bottom-1 w-1 h-1 rounded-full ${hasAny ? 'bg-white' : 'bg-accent'} active:scale-150 transition-all`} />
+                  <>
+                    {/* Bookmark corner effect */}
+                    <div className="absolute top-0 right-0 w-3 h-3 overflow-hidden rounded-tr-lg">
+                      <div className={`absolute top-0 right-0 w-4 h-4 ${hasAny ? (hasBad ? 'bg-white/40' : 'bg-black/20') : 'bg-accent'} rotate-45 translate-x-2 -translate-y-2`} />
+                    </div>
+                    {/* Pulsing indicator for maximum visibility */}
+                    <div className={`absolute bottom-1 w-1.5 h-1.5 rounded-full ${hasAny ? 'bg-white' : 'bg-accent'} shadow-[0_0_8px_rgba(var(--accent-rgb),0.6)] animate-pulse`} />
+                  </>
                 )}
                 {isDatedNote && !hasAny && (
-                   <div className="absolute inset-0 border border-accent/20 rounded-lg pointer-events-none group-hover:border-accent/50 transition-colors" />
+                   <div className="absolute inset-0 border-2 border-accent/30 rounded-lg pointer-events-none" />
                 )}
               </div>
             );
