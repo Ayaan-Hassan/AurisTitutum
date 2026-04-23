@@ -503,6 +503,22 @@ function AppContent() {
     const todayKey = customDate || getLocalDateKey(now);
     const timestamp = customTime || now.toLocaleTimeString([], { hour12: false });
 
+    // --- Undo Pop-up Logic (Internal Trigger) ---
+    if (increment) {
+        if (undoTimerRef.current) clearTimeout(undoTimerRef.current);
+        if (undoVisibilityTimerRef.current) clearTimeout(undoVisibilityTimerRef.current);
+        
+        undoTimerRef.current = setTimeout(() => {
+            setActiveUndo({ id, amount: amt, unit: unit || "", photoData, todayKey, timestamp });
+            
+            undoVisibilityTimerRef.current = setTimeout(() => {
+                setActiveUndo(null);
+            }, 5000); 
+        }, 500); // Trigger after 500ms for a snappier feel
+    } else {
+        setActiveUndo(null);
+    }
+
     // Handle User Sync Mode
     if (user) {
       const habitObj = authContext.habits.find(h => h.id === id);
@@ -668,23 +684,6 @@ function AppContent() {
         return { ...h, logs: updatedLogs, totalLogs: updatedTotal };
       }),
     );
-
-    // Undo Pop-up Logic
-    if (increment) {
-        if (undoTimerRef.current) clearTimeout(undoTimerRef.current);
-        if (undoVisibilityTimerRef.current) clearTimeout(undoVisibilityTimerRef.current);
-        
-        undoTimerRef.current = setTimeout(() => {
-            setActiveUndo({ id, amount: amt, unit: unit || "", photoData, todayKey, timestamp });
-            
-            undoVisibilityTimerRef.current = setTimeout(() => {
-                setActiveUndo(null);
-            }, 5000); // Visible for 5 seconds
-        }, 1000); // Appears 1 second after log
-    } else {
-        // If they manually undo, hide the auto-undo popup
-        setActiveUndo(null);
-    }
   }, [user, authContext]);
 
   const handleAvatarUpload = (e) => {
