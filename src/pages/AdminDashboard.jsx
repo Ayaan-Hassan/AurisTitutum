@@ -363,10 +363,16 @@ export default function AdminDashboard() {
         const now = new Date();
 
         usersList.forEach(u => {
+            // Count all active days separately for DAU
+            const days = Array.isArray(u.activeDays) ? u.activeDays : (u.createdAt ? [u.createdAt.split('T')[0]] : []);
+            
+            days.forEach(day => {
+                dateCounts[day] = (dateCounts[day] || 0) + 1;
+            });
+
+            // Hour counts (still based on creation for "New Today" context)
             const d = u.createdAt ? new Date(u.createdAt) : new Date();
-            const dateK = d.toISOString().split('T')[0];
             const hourK = d.getHours();
-            dateCounts[dateK] = (dateCounts[dateK] || 0) + 1;
             if (d.toDateString() === now.toDateString()) {
                 hourCounts[hourK] = (hourCounts[hourK] || 0) + 1;
             }

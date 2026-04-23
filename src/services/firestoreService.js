@@ -10,6 +10,7 @@ import {
   increment,
   writeBatch,
   serverTimestamp,
+  arrayUnion,
 } from "firebase/firestore";
 import { db, isFirebaseConfigured } from "../firebase.config";
 
@@ -62,23 +63,40 @@ export const getUserSubDocRef = (uid, subcollection, docId) => {
 
 export const ensureUserDocument = async ({ uid, email, displayName }) => {
   if (!uid) throw new Error("Missing uid");
-  const createdAt = new Date().toISOString();
-  await setDoc(
-    getUserDocRef(uid),
-    {
-      createdAt,
+  const userRef = getUserDocRef(uid);
+  const snap = await getDoc(userRef);
+  const now = new Date().toISOString();
+  
+  if (!snap.exists()) {
+    await setDoc(userRef, {
+      createdAt: now,
       email: email || "",
       displayName: displayName || "",
-      updatedAt: createdAt,
-    },
-    { merge: true },
-  );
+      updatedAt: now,
+      activeDays: [now.split('T')[0]]
+    });
+  } else {
+    // Only update profile info if it's missing or changed, but NEVER overwrite createdAt
+    const data = snap.data();
+    await updateDoc(userRef, {
+      updatedAt: now,
+      email: data.email || email || "",
+      displayName: data.displayName || displayName || "",
+      activeDays: arrayUnion(now.split('T')[0])
+    });
+  }
 };
 
 export const updateUserPresence = async (uid, isOnline, addSeconds = 0) => {
   try {
     if (!uid) return;
-    const updates = { isOnline, lastActive: new Date().toISOString() };
+    const now = new Date();
+    const today = now.toISOString().split('T')[0];
+    const updates = { 
+      isOnline, 
+      lastActive: now.toISOString(),
+      activeDays: arrayUnion(today)
+    };
     if (addSeconds > 0) {
       updates.exactTimeSpent = increment(addSeconds);
     }
