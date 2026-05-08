@@ -21,6 +21,7 @@ export const USER_SUBCOLLECTIONS = {
   notes: "notes",
   reminders: "reminders",
   settings: "settings",
+  behavioralMemory: "behavioral_memory",
 };
 
 const LEGACY_STORAGE_KEYS = {

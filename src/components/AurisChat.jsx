@@ -3,16 +3,17 @@ import Icon from './Icon';
 import { useAuth } from '../contexts/AuthContext';
 import { db } from '../firebase.config';
 import { collection, addDoc, query, where, onSnapshot, serverTimestamp, getDoc, doc, getDocs, orderBy, limit, updateDoc, deleteDoc } from 'firebase/firestore';
-import { getTitumSystemPrompt, getEnhancementPrompt } from '../config/aiInstructions';
+import { getTitumSystemPrompt, getEnhancementPrompt, getMemorySynthesisPrompt } from '../config/aiInstructions';
+import { processMemorySynthesis, calculateMomentumScores } from '../services/memoryService';
 
 const ADMIN_CODE = "7@XEON1215225";
 const ADMIN_UID = "inB7hQ7PAuRxt19mBZ3xKe8unaV2";
 
 export default function AurisChat({ user, isOpen, onClose, userConfig, habits, notes, reminders, notifications }) {
-  const { updateUserConfig, peerMessages: globalPeerMessages, clearUnreadPeerCount } = useAuth();
+  const { updateUserConfig, peerMessages: globalPeerMessages, clearUnreadPeerCount, behavioralMemory, addBehavioralMemory, deleteBehavioralMemory, logDocs } = useAuth();
 
   const [messages, setMessages] = useState([
-    { role: 'assistant', content: 'System initialized. I am Titum AI, your behavioral analyst and execution coach. Let\'s review your data.' }
+    { role: 'assistant', content: 'Protocol Titum-V1 initialized. Connection stable. I have loaded your longitudinal behavioral data and momentum forecasts. Awaiting input.' }
   ]);
   const [peerMessages, setPeerMessages] = useState([]);
   const [enhancementRules, setEnhancementRules] = useState('');
@@ -22,6 +23,7 @@ export default function AurisChat({ user, isOpen, onClose, userConfig, habits, n
   const [peerId, setPeerId] = useState(null);
   const [peerName, setPeerName] = useState('');
   const [isAdminListView, setIsAdminListView] = useState(false);
+  const [conversationWordCount, setConversationWordCount] = useState(0);
 
   const isBioBotActive = peerId === ADMIN_UID;
 
@@ -121,7 +123,7 @@ export default function AurisChat({ user, isOpen, onClose, userConfig, habits, n
       }
     } else {
       setMessages([
-        { role: 'assistant', content: 'System initialized. I am Titum AI, your behavioral analyst and execution coach. Let\'s review your data.' }
+        { role: 'assistant', content: 'Protocol Titum-V1 initialized. Connection stable. I have loaded your longitudinal behavioral data and momentum forecasts. Awaiting input.' }
       ]);
     }
   };
@@ -398,6 +400,11 @@ export default function AurisChat({ user, isOpen, onClose, userConfig, habits, n
     setIsLoading(true);
 
     const complexity = determineComplexity(userMessage.content);
+    
+    // Track conversation fatigue
+    const newWordCount = conversationWordCount + input.split(' ').length;
+    setConversationWordCount(newWordCount);
+    const isFatigued = newWordCount > 500; // Threshold for fatigue
 
     // Model fallback sequence (OpenRouter)
     const primaryModel = import.meta.env.VITE_MODEL_PRIMARY || 'google/gemma-3-27b-it';
@@ -428,13 +435,30 @@ export default function AurisChat({ user, isOpen, onClose, userConfig, habits, n
       }).join('\n\n')}`
       : "They have no habits tracked yet.";
 
-    const notesContext = notes && notes.length > 0 ? `Notes they wrote: ${notes.map(n => n.title).join(', ')}.` : "";
+    const notesContext = notes && notes.length > 0 
+      ? `Notes Analysis:\n${notes.slice(-10).map(n => `- ${n.title}: ${n.content?.substring(0, 100)}${n.content?.length > 100 ? '...' : ''} ${n.metadata ? `[Behavioral Meta: ${n.metadata}]` : ''}`).join('\n')}`
+      : "No notes available for behavioral analysis.";
     const remindersContext = reminders && reminders.length > 0 ? `Active reminders: ${reminders.map(r => r.title).join(', ')}.` : "";
     const notificationsContext = notifications && notifications.length > 0 ? `Recent notifications: ${notifications.map(n => n.title).join(', ')}.` : "";
 
     const userNameContext = userConfig && userConfig.name ? `The user's name is ${userConfig.name}.` : "";
+    
+    const behavioralMemoryContext = behavioralMemory && behavioralMemory.length > 0
+      ? `LONG-TERM BEHAVIORAL MEMORY:\n${behavioralMemory.map(m => `- [${m.type}] ${m.summary} (Confidence: ${m.confidence || 'N/A'}, Observed: ${m.lastObserved || 'N/A'})`).join('\n')}`
+      : "No long-term behavioral patterns recorded yet.";
 
-    const systemPrompt = getTitumSystemPrompt(userNameContext, habitContext, notesContext, remindersContext, notificationsContext);
+    const behavioralStateContext = userConfig?.behavioralState 
+      ? `CURRENT BEHAVIORAL STATE: ${userConfig.behavioralState.toUpperCase()}\nIntervention Mode: ${userConfig.interventionMode || 'Standard'}\nReasoning: ${userConfig.behavioralStateReason || 'Statistical trend analysis.'}`
+      : "CURRENT BEHAVIORAL STATE: UNDETERMINED";
+
+    const momentumScores = calculateMomentumScores(habits, logDocs, behavioralMemory);
+    const momentumScoresContext = `INTERNAL BEHAVIORAL METRICS:
+- Execution Momentum: ${(momentumScores.executionMomentum * 100).toFixed(1)}%
+- Behavioral Stability: ${(momentumScores.behavioralStability * 100).toFixed(1)}%
+- Collapse Probability: ${(momentumScores.collapseProbability * 100).toFixed(1)}%
+- Recovery Strength: ${(momentumScores.recoveryStrength * 100).toFixed(1)}%`;
+
+    const systemPrompt = getTitumSystemPrompt(userNameContext, habitContext, notesContext, remindersContext, notificationsContext, behavioralMemoryContext, behavioralStateContext, momentumScoresContext, isFatigued);
 
     const attemptFetch = async (model) => {
       if (!import.meta.env.VITE_OPENROUTER_KEY) {
@@ -502,9 +526,83 @@ export default function AurisChat({ user, isOpen, onClose, userConfig, habits, n
       }
     };
 
+    const synthesizeMemory = async (history) => {
+      try {
+        const memoryPrompt = getMemorySynthesisPrompt(
+          history.map(m => `[${m.role}] ${m.content}`).join('\n'),
+          behavioralMemory.map(m => `- ${m.summary}`).join('\n')
+        );
+
+        const response = await fetchWithTimeout("https://openrouter.ai/api/v1/chat/completions", {
+          method: "POST",
+          headers: {
+            "Authorization": `Bearer ${import.meta.env.VITE_OPENROUTER_KEY}`,
+            "Content-Type": "application/json",
+            "HTTP-Referer": window.location.href,
+            "X-Title": "Titum Memory Synthesis",
+          },
+          body: JSON.stringify({
+            model: import.meta.env.VITE_MODEL_FALLBACK || "mistralai/mistral-7b-instruct",
+            messages: [{ role: "user", content: memoryPrompt }]
+          })
+        });
+
+        if (!response.ok) return;
+        const data = await response.json();
+        const content = data.choices[0].message?.content;
+        const jsonStart = content.indexOf('{');
+        const jsonEnd = content.lastIndexOf('}') + 1;
+        if (jsonStart === -1 || jsonEnd === -1) return;
+        
+        const synthesis = JSON.parse(content.slice(jsonStart, jsonEnd));
+        
+        // Process memories using Elite Intelligence Service (Decay, Reinforcement, Contradictions)
+        await processMemorySynthesis(synthesis, behavioralMemory, addBehavioralMemory, deleteBehavioralMemory);
+
+        // Store Advice History
+        if (synthesis.advice_history) {
+           for (const advice of (Array.isArray(synthesis.advice_history) ? synthesis.advice_history : [synthesis.advice_history])) {
+            await addBehavioralMemory({
+              type: "advice_history",
+              summary: `Advice: ${advice.adviceGiven} | User: ${advice.userResponse}`,
+              adviceDetails: advice,
+              lastObserved: new Date().toISOString()
+            });
+          }
+        }
+
+        // Store Execution Friction
+        if (synthesis.execution_friction) {
+          const friction = synthesis.execution_friction;
+          await addBehavioralMemory({
+            type: "execution_friction",
+            summary: `Friction: ${friction.type} - ${friction.description}`,
+            frictionDetails: friction,
+            lastObserved: new Date().toISOString()
+          });
+        }
+
+        // Update State Metadata in userConfig
+        if (synthesis.behavioral_state?.suggested_state) {
+          await updateUserConfig({
+            behavioralState: synthesis.behavioral_state.suggested_state,
+            interventionMode: synthesis.behavioral_state.intervention_mode,
+            behavioralStateReason: synthesis.behavioral_state.reasoning
+          });
+        }
+
+      } catch (err) {
+        console.warn("Memory synthesis failed:", err);
+      }
+    };
+
     try {
       let res = await attemptFetch(modelToUse);
       await processStream(res);
+      // Synthesize memory every few messages or at end of interaction
+      if (newMessages.length % 2 === 0) {
+        synthesizeMemory(newMessages);
+      }
     } catch (error) {
       console.warn(`Request with ${modelToUse} failed:`, error.message);
       try {

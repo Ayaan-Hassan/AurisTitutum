@@ -191,6 +191,7 @@ export const AuthProvider = ({ children }) => {
   const [notes, setNotes] = useState([]);
   const [reminders, setRemindersState] = useState([]);
   const [settingsDocs, setSettingsDocs] = useState([]);
+  const [behavioralMemory, setBehavioralMemory] = useState([]);
   
   const sessionStartTime = useRef(new Date());
   const lastBannedState = useRef(false);
@@ -213,6 +214,7 @@ export const AuthProvider = ({ children }) => {
     setNotes([]);
     setRemindersState([]);
     setSettingsDocs([]);
+    setBehavioralMemory([]);
   };
 
   const stopAllListeners = () => {
@@ -401,6 +403,7 @@ export const AuthProvider = ({ children }) => {
       USER_SUBCOLLECTIONS.notes,
       USER_SUBCOLLECTIONS.reminders,
       USER_SUBCOLLECTIONS.settings,
+      USER_SUBCOLLECTIONS.behavioralMemory,
     ]);
 
     const markLoaded = (collectionId) => {
@@ -468,6 +471,16 @@ export const AuthProvider = ({ children }) => {
           markLoaded(USER_SUBCOLLECTIONS.settings);
         },
         (err) => onListenerError(USER_SUBCOLLECTIONS.settings, err),
+      ),
+      subscribeToUserSubcollection(
+        uid,
+        USER_SUBCOLLECTIONS.behavioralMemory,
+        (docs) => {
+          if (authCycleRef.current !== cycleId) return;
+          setBehavioralMemory(docs.sort((a, b) => String(b.lastObserved || b.createdAt || "").localeCompare(String(a.lastObserved || a.createdAt || ""))));
+          markLoaded(USER_SUBCOLLECTIONS.behavioralMemory);
+        },
+        (err) => onListenerError(USER_SUBCOLLECTIONS.behavioralMemory, err),
       ),
       onSnapshot(doc(db, "users", uid), (snap) => {
           if (authCycleRef.current !== cycleId) return;
@@ -971,6 +984,21 @@ export const AuthProvider = ({ children }) => {
     return queueWrite(() => clearUserLogs(user.uid));
   };
 
+  const addBehavioralMemory = async (payload) => {
+    if (!user?.uid) return;
+    const id = payload.id || `${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+    return queueWrite(() => upsertCollectionDoc(user.uid, USER_SUBCOLLECTIONS.behavioralMemory, id, {
+      ...payload,
+      id,
+      lastObserved: payload.lastObserved || new Date().toISOString()
+    }, true));
+  };
+
+  const deleteBehavioralMemory = async (id) => {
+    if (!user?.uid) return;
+    return queueWrite(() => deleteCollectionDoc(user.uid, USER_SUBCOLLECTIONS.behavioralMemory, id));
+  };
+
 
   const loading = authLoading || dataLoading;
 
@@ -1017,6 +1045,9 @@ export const AuthProvider = ({ children }) => {
     deleteNote,
     upsertReminder,
     deleteReminder,
+    behavioralMemory,
+    addBehavioralMemory,
+    deleteBehavioralMemory,
     uploadCooldown,
     triggerUploadCooldown,
     peerMessages,

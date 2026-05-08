@@ -503,6 +503,13 @@ function AppContent() {
     const todayKey = customDate || getLocalDateKey(now);
     const timestamp = customTime || now.toLocaleTimeString([], { hour12: false });
 
+    // Detailed Temporal Metadata for Phase 1 Behavioral Upgrade
+    const exactTimestamp = now.toISOString();
+    const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    const timezoneOffset = now.getTimezoneOffset();
+    const localTimestamp = now.toString();
+    const isOverride = !!(customDate || customTime);
+
     // --- Undo Pop-up Logic (Internal Trigger) ---
     if (increment) {
         if (undoTimerRef.current) clearTimeout(undoTimerRef.current);
@@ -533,7 +540,16 @@ function AppContent() {
           unit: unit || habitObj.unit || "",
           mode: habitObj.mode,
           type: habitObj.type,
-          photoData: photoData
+          photoData: photoData,
+          // Persistent Behavioral Metadata
+          exactTimestamp,
+          timezone,
+          timezoneOffset,
+          localTimestamp,
+          createdAt: exactTimestamp,
+          updatedAt: exactTimestamp,
+          isOverride,
+          completionDelayMs: 0, // Placeholder for future target-time logic
         });
       } else {
         // Find the most recent log for this habit on this date to remove
