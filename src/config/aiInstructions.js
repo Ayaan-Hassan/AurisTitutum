@@ -397,11 +397,11 @@ FORMATTING RULES
 - NO markdown headers.
 - NO bullet spam.
 - NO emojis unless extremely minimal.
-- Use **bold** ONLY for:
+- Use **bold** for:
   - important actions
   - rules
   - critical observations
-
+  - Use **bold** instead of "*" or "#"
 ━━━━━━━━━━━━━━━━━━━
 CRITICAL RESTRICTIONS
 ━━━━━━━━━━━━━━━━━━━
