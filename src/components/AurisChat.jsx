@@ -436,7 +436,7 @@ export default function AurisChat({ user, isOpen, onClose, userConfig, habits, n
       : "They have no habits tracked yet.";
 
     const notesContext = notes && notes.length > 0 
-      ? `Notes Analysis:\n${notes.slice(-10).map(n => `- ${n.title}: ${n.content?.substring(0, 100)}${n.content?.length > 100 ? '...' : ''} ${n.metadata ? `[Behavioral Meta: ${n.metadata}]` : ''}`).join('\n')}`
+      ? `Notes Analysis:\n${notes.slice(-20).map(n => `- ${n.title}${n.isLocked ? ' [LOCKED]' : ''}: ${n.isLocked ? '[ACCESS RESTRICTED: THIS NOTE IS LOCKED BY USER]' : (n.body?.substring(0, 150) + (n.body?.length > 150 ? '...' : ''))} ${n.metadata ? `[Behavioral Meta: ${n.metadata}]` : ''}`).join('\n')}`
       : "No notes available for behavioral analysis.";
     const remindersContext = reminders && reminders.length > 0 ? `Active reminders: ${reminders.map(r => r.title).join(', ')}.` : "";
     const notificationsContext = notifications && notifications.length > 0 ? `Recent notifications: ${notifications.map(n => n.title).join(', ')}.` : "";

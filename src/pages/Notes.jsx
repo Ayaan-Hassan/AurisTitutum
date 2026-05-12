@@ -34,6 +34,10 @@ const Notes = ({ notes, setNotes, setFeatureLockConfig }) => {
     const [search, setSearch] = useState('');
     const [filterPinned, setFilterPinned] = useState(false);
     const [expandedNoteId, setExpandedNoteId] = useState(null);
+    const [lockTargetId, setLockTargetId] = useState(null);
+    const [passcodeInput, setPasscodeInput] = useState('');
+    const [passcodeError, setPasscodeError] = useState(false);
+    const [showLockSetup, setShowLockSetup] = useState(null); // { id, title }
 
     const sortedNotes = useMemo(() => {
         // Sort explicitly: By pinned first, then by latest updated
@@ -66,6 +70,8 @@ const Notes = ({ notes, setNotes, setFeatureLockConfig }) => {
             color: newColor,
             date: newDate || null,
             pinned: false,
+            isLocked: false,
+            passcode: '',
             createdAt: new Date().toISOString(),
             updatedAt: new Date().toISOString(),
         };
@@ -125,6 +131,62 @@ const Notes = ({ notes, setNotes, setFeatureLockConfig }) => {
         } else {
             setNotes(prev => prev.map(n => n.id === id ? updated : n));
         }
+    };
+
+    const handleLockSubmit = async () => {
+        if (!lockTargetId || !passcodeInput.trim()) return;
+        
+        const note = notes.find(n => n.id === lockTargetId);
+        if (!note) return;
+
+        if (showLockSetup) {
+            // Setting up lock
+            const updated = { 
+                ...note, 
+                isLocked: true, 
+                passcode: passcodeInput.trim(), 
+                updatedAt: new Date().toISOString() 
+            };
+            if (user) await upsertNote(updated);
+            else setNotes(prev => prev.map(n => n.id === lockTargetId ? updated : n));
+            
+            setShowLockSetup(null);
+            setLockTargetId(null);
+            setPasscodeInput('');
+        } else {
+            // Unlocking to view/edit
+            if (note.passcode === passcodeInput.trim()) {
+                setExpandedNoteId(lockTargetId);
+                setLockTargetId(null);
+                setPasscodeInput('');
+                setPasscodeError(false);
+            } else {
+                setPasscodeError(true);
+                setTimeout(() => setPasscodeError(false), 2000);
+            }
+        }
+    };
+
+    const toggleLock = (note) => {
+        if (note.isLocked) {
+            // Prompt to unlock
+            setLockTargetId(note.id);
+            setShowLockSetup(null);
+        } else {
+            // Setup lock
+            setLockTargetId(note.id);
+            setShowLockSetup(note);
+        }
+    };
+
+    const removeLock = async (id) => {
+        const note = notes.find(n => n.id === id);
+        if (!note) return;
+        const updated = { ...note, isLocked: false, passcode: '', updatedAt: new Date().toISOString() };
+        if (user) await upsertNote(updated);
+        else setNotes(prev => prev.map(n => n.id === id ? updated : n));
+        setLockTargetId(null);
+        setPasscodeInput('');
     };
 
     const formatDate = (iso) => {
@@ -299,10 +361,13 @@ const Notes = ({ notes, setNotes, setFeatureLockConfig }) => {
                                                 <button onClick={() => togglePin(note.id)} className={`w-8 h-8 rounded-md flex items-center justify-center transition-colors ${note.pinned ? 'text-amber-400 bg-amber-400/10' : 'text-text-secondary hover:text-text-primary hover:bg-white/5'}`}>
                                                     <Icon name="pin" size={14} className={note.pinned ? 'fill-amber-400/30' : ''} />
                                                 </button>
-                                                <button onClick={() => startEdit(note)} className="w-8 h-8 rounded-md flex items-center justify-center text-text-secondary hover:text-accent hover:bg-accent/10 transition-colors">
+                                                <button onClick={() => toggleLock(note)} className={`w-8 h-8 rounded-md flex items-center justify-center transition-colors ${note.isLocked ? 'text-accent bg-accent/10' : 'text-text-secondary hover:text-accent hover:bg-accent/10'}`}>
+                                                    <Icon name="lock" size={14} />
+                                                </button>
+                                                <button onClick={() => note.isLocked ? toggleLock(note) : startEdit(note)} className="w-8 h-8 rounded-md flex items-center justify-center text-text-secondary hover:text-accent hover:bg-accent/10 transition-colors">
                                                     <Icon name="pencil" size={14} />
                                                 </button>
-                                                <button onClick={() => setDeleteTarget(note.id)} className="w-8 h-8 rounded-md flex items-center justify-center text-text-secondary hover:text-danger hover:bg-danger/10 transition-colors">
+                                                <button onClick={() => note.isLocked ? toggleLock(note) : setDeleteTarget(note.id)} className="w-8 h-8 rounded-md flex items-center justify-center text-text-secondary hover:text-danger hover:bg-danger/10 transition-colors">
                                                     <Icon name="trash" size={14} />
                                                 </button>
                                             </div>
@@ -315,12 +380,20 @@ const Notes = ({ notes, setNotes, setFeatureLockConfig }) => {
                                         )}
                                         {note.body && (
                                             <div
-                                                className="flex-1 mb-4 cursor-pointer group/body"
-                                                onClick={() => setExpandedNoteId(note.id)}
-                                                title="Click to expand"
+                                                className={`flex-1 mb-4 cursor-pointer group/body relative overflow-hidden rounded-xl ${note.isLocked ? 'cursor-lock' : ''}`}
+                                                onClick={() => note.isLocked ? toggleLock(note) : setExpandedNoteId(note.id)}
+                                                title={note.isLocked ? "Enter passcode to unlock" : "Click to expand"}
                                             >
+                                                {note.isLocked && (
+                                                    <div className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-black/5 backdrop-blur-sm transition-all group-hover/body:backdrop-blur-md">
+                                                        <div className="w-10 h-10 rounded-full bg-bg-main/80 border border-border-color flex items-center justify-center text-accent shadow-lg mb-2">
+                                                            <Icon name="lock" size={16} />
+                                                        </div>
+                                                        <p className="text-[9px] font-black uppercase tracking-widest text-text-primary opacity-60">Locked Node</p>
+                                                    </div>
+                                                )}
                                                 <p 
-                                                    className={`text-[13px] leading-relaxed whitespace-pre-wrap line-clamp-6 transition-colors ${note.adminCreated ? 'text-black font-medium' : 'text-text-secondary/90 group-hover/body:text-text-primary'}`}
+                                                    className={`text-[13px] leading-relaxed whitespace-pre-wrap line-clamp-6 transition-all duration-500 ${note.adminCreated ? 'text-black font-medium' : 'text-text-secondary/90 group-hover/body:text-text-primary'} ${note.isLocked ? 'blur-[6px] select-none scale-95 opacity-40' : ''}`}
                                                 >
                                                     {note.body}
                                                 </p>
@@ -426,6 +499,70 @@ const Notes = ({ notes, setNotes, setFeatureLockConfig }) => {
             )}
 
 
+            {lockTargetId && (
+                <div className="fixed inset-0 z-[300] bg-black/80 backdrop-blur-xl flex items-center justify-center p-4 animate-in fade-in duration-300">
+                    <div className="w-full max-w-sm glass-card p-8 rounded-[2.5rem] border-white/10 shadow-2xl relative overflow-hidden">
+                        <div className="absolute -top-24 -right-24 w-48 h-48 bg-accent/10 rounded-full blur-[80px]" />
+                        
+                        <div className="flex flex-col items-center text-center relative z-10">
+                            <div className={`w-16 h-16 rounded-2xl bg-accent/10 border border-accent/20 flex items-center justify-center text-accent mb-6 ${passcodeError ? 'animate-shake bg-danger/10 border-danger/20 text-danger' : ''}`}>
+                                <Icon name={showLockSetup ? "shield-check" : "lock"} size={32} />
+                            </div>
+                            
+                            <h3 className="text-xl font-bold tracking-tight text-text-primary mb-2 uppercase">
+                                {showLockSetup ? "Secure Node" : "Restricted Access"}
+                            </h3>
+                            <p className="text-[10px] font-black uppercase tracking-[0.3em] text-text-secondary mb-8">
+                                {showLockSetup ? `Set passcode for: ${showLockSetup.title}` : "Input authorization credentials"}
+                            </p>
+
+                            <div className="w-full space-y-4">
+                                <div className="relative">
+                                    <input
+                                        type="password"
+                                        placeholder="Enter dial code..."
+                                        value={passcodeInput}
+                                        onChange={e => setPasscodeInput(e.target.value)}
+                                        className={`w-full bg-black/40 border p-5 rounded-2xl text-center text-xl font-mono tracking-[1em] outline-none transition-all ${passcodeError ? 'border-danger/50 text-danger' : 'border-white/10 focus:border-accent text-accent'}`}
+                                        autoFocus
+                                        onKeyDown={e => e.key === 'Enter' && handleLockSubmit()}
+                                    />
+                                    {passcodeError && (
+                                        <p className="absolute -bottom-6 left-0 right-0 text-[9px] font-black text-danger uppercase tracking-widest animate-in fade-in slide-in-from-top-1">
+                                            Invalid Credentials
+                                        </p>
+                                    )}
+                                </div>
+
+                                <div className="grid grid-cols-2 gap-3 pt-6">
+                                    <button 
+                                        onClick={() => { setLockTargetId(null); setShowLockSetup(null); setPasscodeInput(''); }}
+                                        className="py-4 rounded-xl border border-white/5 bg-white/5 text-[10px] font-black uppercase tracking-widest text-text-secondary hover:text-text-primary transition-all"
+                                    >
+                                        Cancel
+                                    </button>
+                                    <button 
+                                        onClick={handleLockSubmit}
+                                        disabled={!passcodeInput.trim()}
+                                        className="py-4 rounded-xl bg-accent text-bg-main text-[10px] font-black uppercase tracking-widest hover:opacity-90 active:scale-95 transition-all disabled:opacity-30"
+                                    >
+                                        {showLockSetup ? "Initialize" : "Authorize"}
+                                    </button>
+                                </div>
+
+                                {lockTargetId && !showLockSetup && (
+                                    <button 
+                                        onClick={() => removeLock(lockTargetId)}
+                                        className="text-[9px] font-black uppercase tracking-[0.2em] text-text-secondary/40 hover:text-danger transition-colors mt-4"
+                                    >
+                                        Emergency Reset Lock
+                                    </button>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };
