@@ -180,15 +180,7 @@ const Notes = ({ notes, setNotes, setFeatureLockConfig }) => {
         }
     };
 
-    const removeLock = async (id) => {
-        const note = notes.find(n => n.id === id);
-        if (!note) return;
-        const updated = { ...note, isLocked: false, passcode: '', updatedAt: new Date().toISOString() };
-        if (user) await upsertNote(updated);
-        else setNotes(prev => prev.map(n => n.id === id ? updated : n));
-        setLockTargetId(null);
-        setPasscodeInput('');
-    };
+
 
     const formatDate = (iso) => {
         try {
@@ -558,14 +550,7 @@ const Notes = ({ notes, setNotes, setFeatureLockConfig }) => {
                                     </button>
                                 </div>
 
-                                {lockTargetId && !showLockSetup && (
-                                    <button 
-                                        onClick={() => removeLock(lockTargetId)}
-                                        className="text-[9px] font-black uppercase tracking-[0.2em] text-text-secondary/40 hover:text-danger transition-colors mt-4"
-                                    >
-                                        Emergency Reset Lock
-                                    </button>
-                                )}
+
                             </div>
                         </div>
                     </div>
