@@ -152,6 +152,7 @@ const Notes = ({ notes, setNotes, setFeatureLockConfig }) => {
             
             setShowLockSetup(null);
             setLockTargetId(null);
+            setExpandedNoteId(null);
             setPasscodeInput('');
         } else {
             // Unlocking to view/edit

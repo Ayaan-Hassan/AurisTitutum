@@ -113,6 +113,8 @@ const normalizeNote = (note = {}) => {
     color: note?.color || "default",
     date: note?.date || null,
     pinned: !!note?.pinned,
+    isLocked: !!note?.isLocked,
+    passcode: note?.passcode || "",
     adminCreated: !!note?.adminCreated,
     createdAt: note?.createdAt || now,
     updatedAt: note?.updatedAt || now,
