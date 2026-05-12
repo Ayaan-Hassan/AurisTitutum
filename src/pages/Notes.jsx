@@ -357,7 +357,14 @@ const Notes = ({ notes, setNotes, setFeatureLockConfig }) => {
                                 ) : (
                                     <>
                                         <div className="flex items-start justify-between gap-3 mb-3">
-                                            <h4 className={`text-base font-bold line-clamp-2 leading-tight flex-1 ${note.adminCreated ? 'text-black' : 'text-text-primary'}`}>{note.title}</h4>
+                                            <h4 className={`text-base font-bold line-clamp-2 leading-tight flex-1 ${note.adminCreated ? 'text-black' : 'text-text-primary'}`}>
+                                                {note.isLocked ? (
+                                                    <span className="flex items-center gap-2 opacity-40 italic">
+                                                        <Icon name="shield-lock" size={14} />
+                                                        Encrypted Node
+                                                    </span>
+                                                ) : note.title}
+                                            </h4>
                                             <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity shrink-0 bg-bg-main/60 backdrop-blur-md rounded-lg p-0.5 border border-border-color/50 shadow-sm">
                                                 <button onClick={() => togglePin(note.id)} className={`w-8 h-8 rounded-md flex items-center justify-center transition-colors ${note.pinned ? 'text-amber-400 bg-amber-400/10' : 'text-text-secondary hover:text-text-primary hover:bg-white/5'}`}>
                                                     <Icon name="pin" size={14} className={note.pinned ? 'fill-amber-400/30' : ''} />
