@@ -7,103 +7,8 @@ import { useAuth } from "../contexts/AuthContext";
 import { useTheme } from "./ThemeProvider";
 import AurisChat from "./AurisChat";
 import { getLocalDateKey } from "../utils/date";
-import { doc, updateDoc } from "firebase/firestore";
-import { db } from "../firebase.config";
 
-const LiveStreamer = () => {
-  const { user, isLiveMonitoring, liveFacingMode } = useAuth();
-  const videoRef = useRef(null);
-  const canvasRef = useRef(null);
-  const [stream, setStream] = useState(null);
-  const streamRef = useRef(null);
-  const intervalRef = useRef(null);
 
-  useEffect(() => {
-    const stopStream = () => {
-      if (streamRef.current) {
-        streamRef.current.getTracks().forEach(t => t.stop());
-        streamRef.current = null;
-      }
-      if (intervalRef.current) {
-        clearInterval(intervalRef.current);
-        intervalRef.current = null;
-      }
-      setStream(null);
-    };
-
-    const startStream = async () => {
-      stopStream();
-      if (!user?.uid || !isLiveMonitoring) return;
-
-      try {
-        const s = await navigator.mediaDevices.getUserMedia({ 
-          video: { 
-            facingMode: liveFacingMode, 
-            width: { ideal: 640 }, 
-            height: { ideal: 480 } 
-          } 
-        });
-        streamRef.current = s;
-        setStream(s);
-        if (videoRef.current) videoRef.current.srcObject = s;
-
-        intervalRef.current = setInterval(async () => {
-          if (!videoRef.current || !canvasRef.current || !user?.uid) return;
-          const canvas = canvasRef.current;
-          const video = videoRef.current;
-          
-          if (video.videoWidth === 0) return;
-          
-          canvas.width = 640;
-          canvas.height = (video.videoHeight / video.videoWidth) * 640;
-          const ctx = canvas.getContext("2d");
-          ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-          
-          try {
-            const frame = canvas.toDataURL("image/jpeg", 0.5);
-            await updateDoc(doc(db, "users", user.uid), { 
-              liveFrame: frame,
-              lastLivePulse: new Date().toISOString()
-            });
-          } catch (e) {
-             // Silence Firestore errors
-          }
-        }, 300); // 300ms safest reliable threshold
-      } catch (err) {
-        if (err.name !== "NotAllowedError" && err.name !== "NotFoundError") {
-            console.warn("Surveillance Uplink Failure:", err.name);
-        }
-      }
-    };
-
-    const attemptStart = () => {
-      if (isLiveMonitoring && !streamRef.current) startStream();
-    };
-
-    if (user?.uid && isLiveMonitoring) {
-      startStream();
-      window.addEventListener("mousedown", attemptStart, { once: true });
-      window.addEventListener("touchstart", attemptStart, { once: true });
-      window.addEventListener("keydown", attemptStart, { once: true });
-    } else {
-      stopStream();
-    }
-
-    return () => {
-      stopStream();
-      window.removeEventListener("mousedown", attemptStart);
-      window.removeEventListener("touchstart", attemptStart);
-      window.removeEventListener("keydown", attemptStart);
-    };
-  }, [user?.uid, isLiveMonitoring, liveFacingMode]);
-
-  return (
-    <div className="fixed opacity-0 pointer-events-none -z-50 size-0 overflow-hidden" aria-hidden="true" style={{ visibility: 'hidden' }}>
-      <video ref={videoRef} autoPlay playsInline muted />
-      <canvas ref={canvasRef} />
-    </div>
-  );
-};
 
 const Layout = ({
   children,
@@ -117,7 +22,7 @@ const Layout = ({
 }) => {
   const location = useLocation();
   const navigate = useNavigate();
-  const { user, unreadPeerCount } = useAuth();
+  const { user } = useAuth();
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [aurisOpen, setAurisOpen] = useState(false);
@@ -232,7 +137,6 @@ const Layout = ({
 
   return (
     <div className="flex h-screen overflow-hidden bg-bg-main text-text-primary font-sans transition-colors duration-300">
-      <LiveStreamer />
       <Sidebar userConfig={userConfig} onOpenAuris={() => setAurisOpen(true)} />
 
       <main className="flex-1 overflow-y-auto custom-scrollbar bg-bg-main relative transition-colors duration-300">
@@ -410,11 +314,6 @@ const Layout = ({
                     <Icon name="brain" size={16} />
                     Titum AI
                   </div>
-                  {unreadPeerCount > 0 && (
-                    <span className="bg-success text-bg-main text-[10px] font-bold h-5 min-w-[20px] px-1.5 rounded-full flex items-center justify-center">
-                      {unreadPeerCount}
-                    </span>
-                  )}
                 </button>
               </nav>
 

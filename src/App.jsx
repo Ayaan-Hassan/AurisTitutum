@@ -579,7 +579,7 @@ function AppContent() {
         <div
           className="fixed inset-0 bg-black/60 backdrop-blur-md flex items-center justify-center z-[100] p-4 animate-in fade-in duration-300"
           onClick={(e) =>
-            displayHabits.length > 0 && e.target === e.currentTarget && setShowAddModal(false)
+            e.target === e.currentTarget && setShowAddModal(false)
           }
         >
           <div className="glass-card modal-enter w-full max-w-md rounded-[2rem] shadow-[0_32px_64px_-16px_rgba(0,0,0,0.5)] border-white/10 relative overflow-hidden flex flex-col transition-all duration-300">
@@ -600,7 +600,7 @@ function AppContent() {
                     ))}
                   </div>
                 </div>
-                {displayHabits.length > 0 && (
+                {(
                   <button
                     onClick={() => setShowAddModal(false)}
                     className="w-10 h-10 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center text-text-secondary hover:text-text-primary hover:bg-white/10 transition-all group"
@@ -947,6 +947,12 @@ function AppContent() {
 const BannedMessageModal = () => {
     const { logout, banReason } = useAuth();
     
+    const handleAcknowledge = async () => {
+        await logout();
+        // Hard redirect clears all React state and sends user to login
+        window.location.href = '/';
+    };
+
     return (
         <div className="fixed inset-0 z-[200] bg-black/95 backdrop-blur-2xl flex items-center justify-center p-4 text-center animate-in fade-in duration-500">
             <div className="glass-card w-full max-w-sm p-10 rounded-[3rem] border-white/10 relative overflow-hidden shadow-2xl">
@@ -959,8 +965,8 @@ const BannedMessageModal = () => {
                     {banReason || "Your account is temporarily suspended due to a violation of our community guidelines or security protocols."}
                 </p>
                 <button
-                    onClick={() => logout()}
-                    className="w-full py-4 rounded-2xl bg-white/5 text-text-secondary text-[11px] font-black uppercase tracking-[0.2em] transition-all hover:bg-white/10 hover:text-danger active:scale-95"
+                    onClick={handleAcknowledge}
+                    className="w-full py-4 rounded-2xl bg-red-600 text-white text-[11px] font-black uppercase tracking-[0.2em] transition-all hover:bg-red-700 active:scale-95 shadow-lg shadow-red-900/30"
                 >
                     Acknowledge & Leave
                 </button>
@@ -1070,21 +1076,46 @@ const AdminMessageModal = ({ message, onClear }) => {
 };
 
 const WipeMessageModal = () => {
+    const { user } = useAuth();
+
+    const handleAcknowledge = async () => {
+        // Store acknowledgment in localStorage so it never shows again after refresh
+        if (user?.uid) {
+            localStorage.setItem(`auris_wipe_ack_${user.uid}`, 'true');
+        }
+        // Clear the isWiped flag in Firestore so the modal doesn't re-appear
+        try {
+            const { db } = await import('./firebase.config');
+            const { doc: fsDoc, updateDoc } = await import('firebase/firestore');
+            if (user?.uid) {
+                await updateDoc(fsDoc(db, 'users', user.uid), { isWiped: false });
+            }
+        } catch (e) {
+            // Non-fatal if Firestore write fails, localStorage already set
+        }
+        window.location.reload();
+    };
+
+    // Don't re-show if already acknowledged this session
+    if (user?.uid && localStorage.getItem(`auris_wipe_ack_${user.uid}`)) {
+        return null;
+    }
+
     return (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-bg-main/95 backdrop-blur-2xl animate-in fade-in duration-500">
             <div className="w-full max-w-md bg-card-bg border border-border-color rounded-[2.5rem] p-10 shadow-2xl text-center relative overflow-hidden">
-                <div className="absolute -top-10 -right-10 w-40 h-40 bg-danger/10 blur-3xl rounded-full" />
+                <div className="absolute -top-10 -right-10 w-40 h-40 bg-red-600/10 blur-3xl rounded-full" />
                 <div className="relative z-10 flex flex-col items-center">
-                    <div className="w-20 h-20 rounded-[2rem] bg-danger/10 flex items-center justify-center text-danger mb-8 border border-danger/20">
-                        <Icon name="refresh-cw" size={40} className="animate-spin" />
+                    <div className="w-20 h-20 rounded-[2rem] bg-red-600/10 flex items-center justify-center text-red-400 mb-8 border border-red-600/20">
+                        <Icon name="refresh-cw" size={40} />
                     </div>
                     <h3 className="text-2xl font-bold tracking-tighter text-text-primary mb-4 uppercase">Data Environment Reset</h3>
                     <p className="text-sm text-text-secondary leading-relaxed mb-8 opacity-80">
                         The administrator has performed a complete system wipe on your workspace. All habits, logs, and stored configurations have been permanently erased.
                     </p>
                     <button 
-                        onClick={() => window.location.reload()}
-                        className="w-full py-4 bg-danger text-white text-[10px] font-black uppercase tracking-[0.2em] rounded-2xl hover:bg-danger/90 active:scale-95 transition-all shadow-2xl shadow-danger/20"
+                        onClick={handleAcknowledge}
+                        className="w-full py-4 bg-red-600 text-white text-[10px] font-black uppercase tracking-[0.2em] rounded-2xl hover:bg-red-700 active:scale-95 transition-all shadow-2xl shadow-red-900/20"
                     >
                         Acknowledge & Refresh
                     </button>

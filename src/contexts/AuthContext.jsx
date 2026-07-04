@@ -184,8 +184,7 @@ export const AuthProvider = ({ children }) => {
   const [isWiped, setIsWiped] = useState(false);
   const [banReason, setBanReason] = useState("");
   const [showBanModal, setShowBanModal] = useState(false);
-  const [isLiveMonitoring, setIsLiveMonitoring] = useState(false);
-  const [liveFacingMode, setLiveFacingMode] = useState("user");
+
 
   const [habitDocs, setHabitDocs] = useState([]);
   const [logDocs, setLogDocs] = useState([]);
@@ -248,81 +247,8 @@ export const AuthProvider = ({ children }) => {
     return mergeUserIdentityIntoConfig(normalizeUserConfig(profile), user);
   }, [settingsMap.profile, user]);
 
-  const [peerMessages, setPeerMessages] = useState([]);
-  const [unreadPeerCount, setUnreadPeerCount] = useState(0);
 
-  const clearUnreadPeerCount = () => setUnreadPeerCount(0);
 
-  // ... (rest of the provider logic)
-
-  // Global Listener for Titum Connect Peer Messages
-  useEffect(() => {
-    if (!user?.uid) {
-      setPeerMessages([]);
-      return;
-    }
-
-    const q = query(
-      collection(db, "titum_connect_messages"),
-      where("participants", "array-contains", user.uid)
-    );
-
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      let messages = snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      }));
-      
-      // Sort locally to avoid index requirement
-      messages.sort((a, b) => {
-        // Robust timestamp handling: Use server toMillis, then Date string, then Date.now() for optimistic/new messages
-        const timeA = a.timestamp?.toMillis ? a.timestamp.toMillis() : (a.timestamp ? new Date(a.timestamp).getTime() : Date.now() + 1000);
-        const timeB = b.timestamp?.toMillis ? b.timestamp.toMillis() : (b.timestamp ? new Date(b.timestamp).getTime() : Date.now() + 1000);
-        return timeA - timeB;
-      });
-      
-      // Auto-Handshake Detection
-      if (messages.length > 0) {
-        const lastMsg = messages[messages.length - 1];
-        
-        // Only trigger if message is from someone else and it's fresh (30s)
-        const isRecent = lastMsg.timestamp && (Date.now() - lastMsg.timestamp.toMillis() < 30000);
-        
-        if (lastMsg.from !== user?.uid && isRecent) {
-          // If we aren't connected to ANYONE, or if we were connected to something else 
-          // but this message is specifically coming into our channel, auto-handshake if appropriate.
-          if (!userConfig?.connectedPeerId) {
-             console.log("Auto-connecting to sender:", lastMsg.fromName);
-             updateUserConfig({
-               connectedPeerId: lastMsg.from,
-               connectedPeerName: lastMsg.fromName || "Peer User"
-             }).catch(e => console.error("Auto-handshake failed:", e));
-             
-             const toastEvent = new CustomEvent("showToast", {
-               detail: { message: `New message from ${lastMsg.fromName || "Peer User"}! Connection established.`, type: "success" },
-             });
-             document.dispatchEvent(toastEvent);
-          } else if (lastMsg.from !== userConfig.connectedPeerId) {
-            // Just a notification if we are busy with someone else
-            const toastEvent = new CustomEvent("showToast", {
-              detail: { message: `Incoming message from ${lastMsg.fromName || "Peer User"}...`, type: "info" },
-            });
-            document.dispatchEvent(toastEvent);
-          }
-        }
-      }
-      
-      setPeerMessages(messages);
-      
-      // Calculate unread count (messages NOT from us, meant FOR us, and explicitly unread)
-      const unreadCount = messages.filter(m => m.from !== user?.uid && m.to === user?.uid && m.read === false).length;
-      setUnreadPeerCount(unreadCount);
-    }, (err) => {
-      console.error("Global Peer Listener Error:", err);
-    });
-
-    return () => unsubscribe();
-  }, [user?.uid, userConfig?.connectedPeerId]);
 
 
   const replaceHabitsAndLogs = async (uid, nextHabitsArg) => {
@@ -502,9 +428,7 @@ export const AuthProvider = ({ children }) => {
           
           setIsBanned(banned);
           setIsWiped(wiped);
-          const liveMon = data.isLiveMonitoring === true;
-          setIsLiveMonitoring(liveMon);
-          setLiveFacingMode(data.liveFacingMode === "environment" ? "environment" : "user");
+
 
           if (banned && lastBannedState.current === false) {
               setBanReason(reason);
@@ -890,8 +814,20 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  const checkOnlineStatus = () => {
+    if (!navigator.onLine) {
+      const toastEvent = new CustomEvent("showToast", {
+        detail: { message: "You are offline. Action aborted to prevent data mismatch.", type: "error" }
+      });
+      document.dispatchEvent(toastEvent);
+      return false;
+    }
+    return true;
+  };
+
   const updateUserConfig = async (updater) => {
     if (!user?.uid) return;
+    if (!checkOnlineStatus()) return;
     
     const nextConfig = typeof updater === "function" 
       ? updater(userConfig) 
@@ -910,21 +846,25 @@ export const AuthProvider = ({ children }) => {
 
   const replaceHabitsState = async (nextHabits) => {
     if (!user?.uid) return;
+    if (!checkOnlineStatus()) return;
     return queueWrite(() => replaceHabitsAndLogs(user.uid, nextHabits));
   };
 
   const replaceNotesState = async (nextNotes) => {
     if (!user?.uid) return;
+    if (!checkOnlineStatus()) return;
     return queueWrite(() => replaceNotes(user.uid, nextNotes));
   };
 
   const replaceRemindersState = async (nextReminders) => {
     if (!user?.uid) return;
+    if (!checkOnlineStatus()) return;
     return queueWrite(() => replaceUserReminders(user.uid, nextReminders));
   };
 
   const addHabit = async (payload) => {
     if (!user?.uid) return;
+    if (!checkOnlineStatus()) return;
     // Optimistic: update cache via syncService, then write to Firestore
     const habit = { ...payload, updatedAt: new Date().toISOString() };
     syncService.enqueue({ type: 'upsert', uid: user.uid, collection: USER_SUBCOLLECTIONS.habits, id: String(habit.id), payload: habit });
@@ -933,18 +873,21 @@ export const AuthProvider = ({ children }) => {
 
   const updateHabit = async (habitId, payload) => {
     if (!user?.uid) return;
+    if (!checkOnlineStatus()) return;
     syncService.enqueue({ type: 'upsert', uid: user.uid, collection: USER_SUBCOLLECTIONS.habits, id: String(habitId), payload: { ...payload, id: String(habitId) } });
     return queueWrite(() => serviceUpdateHabit(user.uid, habitId, payload));
   };
 
   const deleteHabit = async (habitId) => {
     if (!user?.uid) return;
+    if (!checkOnlineStatus()) return;
     syncService.enqueue({ type: 'delete', uid: user.uid, collection: USER_SUBCOLLECTIONS.habits, id: String(habitId) });
     return queueWrite(() => serviceDeleteHabit(user.uid, habitId));
   };
 
   const addLog = async (payload) => {
     if (!user?.uid) return;
+    if (!checkOnlineStatus()) return;
     const id = String(payload?.id || `${payload?.habitId || "habit"}_${Date.now()}`);
     const logPayload = { ...payload, id };
     // Optimistic cache update for instant UI feedback (offline support)
@@ -954,12 +897,14 @@ export const AuthProvider = ({ children }) => {
 
   const deleteLog = async (logId) => {
     if (!user?.uid) return;
+    if (!checkOnlineStatus()) return;
     syncService.enqueue({ type: 'delete', uid: user.uid, collection: USER_SUBCOLLECTIONS.logs, id: String(logId) });
     return queueWrite(() => serviceDeleteLog(user.uid, logId));
   };
 
   const upsertNote = async (payload) => {
     if (!user?.uid) return;
+    if (!checkOnlineStatus()) return;
     const normalized = normalizeNote(payload);
     syncService.enqueue({ type: 'upsert', uid: user.uid, collection: USER_SUBCOLLECTIONS.notes, id: normalized.id, payload: normalized });
     return queueWrite(() => upsertCollectionDoc(user.uid, USER_SUBCOLLECTIONS.notes, normalized.id, normalized, true));
@@ -967,12 +912,14 @@ export const AuthProvider = ({ children }) => {
 
   const deleteNote = async (noteId) => {
     if (!user?.uid) return;
+    if (!checkOnlineStatus()) return;
     syncService.enqueue({ type: 'delete', uid: user.uid, collection: USER_SUBCOLLECTIONS.notes, id: String(noteId) });
     return queueWrite(() => deleteCollectionDoc(user.uid, USER_SUBCOLLECTIONS.notes, noteId));
   };
 
   const upsertReminder = async (payload) => {
     if (!user?.uid) return;
+    if (!checkOnlineStatus()) return;
     const normalized = normalizeReminder(payload);
     syncService.enqueue({ type: 'upsert', uid: user.uid, collection: USER_SUBCOLLECTIONS.reminders, id: normalized.id, payload: normalized });
     return queueWrite(() => upsertCollectionDoc(user.uid, USER_SUBCOLLECTIONS.reminders, normalized.id, normalized, true));
@@ -980,12 +927,14 @@ export const AuthProvider = ({ children }) => {
 
   const deleteReminder = async (reminderId) => {
     if (!user?.uid) return;
+    if (!checkOnlineStatus()) return;
     syncService.enqueue({ type: 'delete', uid: user.uid, collection: USER_SUBCOLLECTIONS.reminders, id: String(reminderId) });
     return queueWrite(() => deleteCollectionDoc(user.uid, USER_SUBCOLLECTIONS.reminders, reminderId));
   };
 
   const clearAllSyncedLogs = async () => {
     if (!user?.uid) return;
+    if (!checkOnlineStatus()) return;
     // Clear logs from cache too
     syncService.writeCache(user.uid, USER_SUBCOLLECTIONS.logs, []);
     return queueWrite(() => clearUserLogs(user.uid));
@@ -1026,8 +975,7 @@ export const AuthProvider = ({ children }) => {
     banReason,
     showBanModal,
     setShowBanModal,
-    isLiveMonitoring,
-    liveFacingMode,
+
 
     habits,
     logDocs,
@@ -1055,9 +1003,6 @@ export const AuthProvider = ({ children }) => {
     deleteBehavioralMemory,
     uploadCooldown,
     triggerUploadCooldown,
-    peerMessages,
-    unreadPeerCount,
-    clearUnreadPeerCount
   };
 
   return (

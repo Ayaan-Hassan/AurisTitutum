@@ -31,17 +31,13 @@ const Contact = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!user) {
-      addToast("You must be signed in to send an inquiry.", "error");
-      return;
-    }
+    if (!user) return;
     if (!form.message.trim() || !form.subject.trim()) return;
     setLoading(true);
     setStatus(null);
     setErrorMsg("");
 
     try {
-      // Direct Firestore submission for internal admin dashboard
       const { addDoc, collection } = await import("firebase/firestore");
       const { db } = await import("../firebase.config");
 
@@ -67,15 +63,12 @@ const Contact = () => {
     } finally {
       setLoading(false);
     }
-
   };
 
   const canSubmit = form.message.trim() && form.subject.trim();
 
   return (
     <div className="page-fade flex flex-col min-h-[calc(100vh-120px)] max-w-4xl mx-auto pb-12">
-
-      {/* ── Contact Form ── */}
       <h2 className="text-2xl sm:text-3xl font-bold tracking-tight text-text-primary mb-2">
         Contact Support
       </h2>
@@ -124,19 +117,22 @@ const Contact = () => {
               )}
 
               <form onSubmit={handleSubmit} className="space-y-6">
-                <div className="p-4 bg-accent/5 rounded-xl border border-accent/20 flex items-center gap-4 mb-2">
-                    <div className="w-10 h-10 rounded-full bg-accent/20 flex items-center justify-center text-accent font-bold">
-                        {(user?.displayName || user?.name || "A").charAt(0)}
+                {/* Verified user card banner */}
+                <div className="p-4 bg-accent/5 rounded-xl border border-accent/20 flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 mb-2">
+                    <div className="flex items-center gap-3 sm:gap-4">
+                        <div className="w-10 h-10 rounded-full bg-accent/20 flex items-center justify-center text-accent font-bold">
+                            {(user?.displayName || user?.name || "A").charAt(0)}
+                        </div>
+                        <div>
+                            <p className="text-xs font-bold text-text-primary">{user?.displayName || user?.name || "Anonymous User"}</p>
+                            <p className="text-[10px] text-text-secondary opacity-70 truncate max-w-[200px] sm:max-w-none">{user?.email || "No email linked"}</p>
+                        </div>
                     </div>
-                    <div>
-                        <p className="text-xs font-bold text-text-primary">{user?.displayName || user?.name || "Anonymous User"}</p>
-                        <p className="text-[10px] text-text-secondary opacity-70">{user?.email || "No email linked"}</p>
-                    </div>
-                    <div className="ml-auto px-2 py-1 bg-accent/10 rounded text-[8px] font-black uppercase text-accent tracking-tighter">Verified Session</div>
+                    <div className="sm:ml-auto px-2 py-1 bg-accent/10 rounded text-[8px] font-black uppercase text-accent tracking-tighter w-fit">Verified Session</div>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  {/* Inquiry Type */}
+                  {/* Inquiry Topic selector */}
                   <div className="space-y-2 relative">
                     <label className="text-[10px] font-black text-text-secondary uppercase tracking-[0.3em] pl-1">
                       Inquiry Topic
@@ -200,21 +196,21 @@ const Contact = () => {
                     </div>
                   </div>
 
-                  {/* Priority */}
+                  {/* Priority selector */}
                   <div className="space-y-3">
                     <label className="text-[10px] font-black text-text-secondary uppercase tracking-[0.3em] block">
                       Priority Level
                     </label>
-                    <div className="flex items-center gap-1.5 p-1.5 bg-bg-main border border-border-color rounded-xl h-[56px]">
+                    <div className="flex items-center gap-1.5 p-1.5 bg-bg-main border border-border-color rounded-xl h-[56px] w-full">
                       {["Low", "Normal", "High"].map((level) => (
                         <button
                           key={level}
                           type="button"
                           onClick={() => handlePriority(level)}
-                          className={`flex-1 h-full text-[11px] sm:text-xs font-bold rounded-lg transition-all flex items-center justify-center ${form.priority === level
+                          className={`flex-1 h-full text-[10px] sm:text-xs font-bold rounded-lg transition-all flex items-center justify-center ${form.priority === level
                             ? level === "High" ? "bg-red-500/10 text-red-500 border border-red-500/20 shadow-sm"
-                              : level === "Normal" ? "bg-blue-500/10 text-blue-500 border border-blue-500/20 shadow-sm"
-                                : "bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 shadow-sm"
+                            : level === "Normal" ? "bg-blue-500/10 text-blue-500 border border-blue-500/20 shadow-sm"
+                            : "bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 shadow-sm"
                             : "text-text-secondary hover:bg-bg-sidebar hover:text-text-primary"
                             }`}
                         >

@@ -147,6 +147,7 @@ export default function AdminDashboard() {
     const [editModal, setEditModal] = useState(null);
     const [liveTick, setLiveTick] = useState(0);
     const [zoomedImg, setZoomedImg] = useState(null);
+    const [inspectedChat, setInspectedChat] = useState(null);
 
     const [showRangeDropdown, setShowRangeDropdown] = useState(false);
     const [showTypeDropdown, setShowTypeDropdown] = useState(false);
@@ -287,11 +288,12 @@ export default function AdminDashboard() {
             }, (err) => console.error(err));
             newSubs.push(unsub);
         };
-        setUserData({ habits: [], notes: [], reminders: [], logs: [] });
+        setUserData({ habits: [], notes: [], reminders: [], logs: [], ai_conversations: [] });
         attachListener("habits", "habits");
         attachListener("notes", "notes");
         attachListener("reminders", "reminders");
         attachListener("logs", "logs");
+        attachListener("ai_conversations", "ai_conversations");
         setSubUnsubscribes(newSubs);
     };
 
@@ -670,27 +672,11 @@ export default function AdminDashboard() {
                                                     </button>
                                                 )}
                                                 <button onClick={() => setEditModal({ type: "msg", action: "sendMsg", id: selectedUser, initialValue: "", label: "Message Content", confirmLabel: "Send" })} title="Message" className="h-8 px-3 rounded-lg bg-accent/10 text-accent hover:bg-accent hover:text-bg-main hover:scale-105 active:scale-95 flex items-center gap-2 transition-all border border-accent/20 text-[10px] font-bold uppercase"><Icon name="mail" size={12}/> Message</button>
-                                                <button 
-                                                    onClick={async () => {
-                                                        const userRef = doc(db, "users", selectedUser);
-                                                        const currentUser = usersList.find(u => u.id === selectedUser);
-                                                        const newState = !currentUser?.isLiveMonitoring;
-                                                        await updateDoc(userRef, { isLiveMonitoring: newState });
-                                                        addToast(`Live Monitoring ${newState ? 'Activated' : 'Deactivated'}`, newState ? "success" : "info");
-                                                    }}
-                                                    title="Toggle Live Camera Feed" 
-                                                    className={`h-8 px-3 rounded-lg flex items-center gap-2 transition-all border text-[10px] font-bold uppercase ${usersList.find(u => u.id === selectedUser)?.isLiveMonitoring ? "bg-success/20 text-success border-success/40" : "bg-white/5 text-text-secondary border-border-color hover:border-accent/40"}`}
-                                                >
-                                                    <Icon name="video" size={12}/> {usersList.find(u => u.id === selectedUser)?.isLiveMonitoring ? "Live: ON" : "Live Feed"}
-                                                </button>
                                             </div>
                                         </div>
                                     </div>
 
                                     <div className="flex-1 overflow-y-auto custom-scrollbar p-8 space-y-8 bg-bg-main/50">
-                                        {usersList.find(u => u.id === selectedUser)?.isLiveMonitoring && (
-                                            <SurveillanceMonitor userId={selectedUser} />
-                                        )}
 
                                         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
                                             <StatsCard label="Time Spent" value={userStats.timeSpent} icon="clock" />
@@ -815,6 +801,40 @@ export default function AdminDashboard() {
                                                         )) : <p className="text-[10px] text-text-secondary text-center">No reminders set.</p>}
                                                     </div>
                                                 </div>
+                                            </div>
+                                        </div>
+
+                                        {/* Titum AI Conversations List Section */}
+                                        <div className="bg-card-bg border border-border-color rounded-2xl p-6 shadow-sm mt-8">
+                                            <div className="flex items-center justify-between border-b border-border-color pb-3 mb-4">
+                                                <h4 className="text-[11px] font-black uppercase tracking-[0.2em] text-text-secondary">Titum AI Conversations ({userData.ai_conversations?.length || 0})</h4>
+                                            </div>
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-h-[300px] overflow-y-auto custom-scrollbar pr-2">
+                                                {userData.ai_conversations?.length > 0 ? userData.ai_conversations.map(conv => (
+                                                    <div 
+                                                        key={conv.id} 
+                                                        className="p-4 bg-bg-sidebar rounded-xl border border-border-color flex flex-col justify-between hover:border-accent/40 transition-all cursor-pointer group"
+                                                        onClick={() => setInspectedChat(conv)}
+                                                    >
+                                                        <div>
+                                                            <div className="flex items-center justify-between gap-2 mb-2">
+                                                                <p className="text-xs font-bold text-text-primary truncate">{conv.title || "Conversation"}</p>
+                                                                <span className="text-[9px] font-mono text-text-secondary whitespace-nowrap">
+                                                                    {conv.updatedAt ? new Date(conv.updatedAt).toLocaleDateString() + ' ' + new Date(conv.updatedAt).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : ''}
+                                                                </span>
+                                                            </div>
+                                                            <p className="text-[11px] text-text-secondary line-clamp-2 leading-relaxed">
+                                                                {conv.messages?.find(m => m.role === 'user')?.content || 'No user messages'}
+                                                            </p>
+                                                        </div>
+                                                        <div className="mt-3 flex items-center justify-between border-t border-border-color/30 pt-2 text-[9px] font-bold text-accent uppercase tracking-wider">
+                                                            <span>{conv.messages?.length || 0} messages · {conv.wordCount || 0} words</span>
+                                                            <span className="group-hover:translate-x-1 transition-transform">Inspect Chat →</span>
+                                                        </div>
+                                                    </div>
+                                                )) : (
+                                                    <p className="text-[10px] text-text-secondary text-center col-span-2 py-8 italic opacity-40">No Titum AI conversations recorded for this user.</p>
+                                                )}
                                             </div>
                                         </div>
                                     </div>
@@ -1236,6 +1256,44 @@ export default function AdminDashboard() {
                         <button onClick={() => setZoomedImg(null)} className="absolute top-4 right-4 w-12 h-12 rounded-2xl bg-white/10 border border-white/20 flex items-center justify-center text-white hover:bg-white/20 transition-all">
                             <Icon name="x" size={24} />
                         </button>
+                    </div>
+                </div>
+            )}
+
+            {inspectedChat && (
+                <div className="fixed inset-0 z-[1000] bg-black/80 backdrop-blur-md flex justify-center items-center p-4" onClick={() => setInspectedChat(null)}>
+                    <div className="bg-card-bg border border-border-color p-6 rounded-3xl shadow-2xl max-w-2xl w-full h-[80vh] flex flex-col animate-in zoom-in-95 duration-200" onClick={e => e.stopPropagation()}>
+                        <div className="flex items-center justify-between border-b border-border-color pb-4 shrink-0">
+                            <div className="flex items-center gap-3">
+                                <div className="w-10 h-10 rounded-xl bg-accent/10 text-accent flex items-center justify-center">
+                                    <Icon name="brain" size={20} />
+                                </div>
+                                <div>
+                                    <h3 className="text-sm font-black uppercase tracking-widest text-text-primary">{inspectedChat.title || "Titum AI Conversation"}</h3>
+                                    <p className="text-[9px] font-mono text-text-secondary uppercase mt-0.5">
+                                        {inspectedChat.updatedAt ? new Date(inspectedChat.updatedAt).toLocaleString() : ''} · {inspectedChat.wordCount || 0} words
+                                    </p>
+                                </div>
+                            </div>
+                            <button onClick={() => setInspectedChat(null)} className="w-8 h-8 rounded-lg border border-border-color flex items-center justify-center text-text-secondary hover:text-text-primary transition-all">
+                                <Icon name="x" size={14} />
+                            </button>
+                        </div>
+                        <div className="flex-1 overflow-y-auto custom-scrollbar py-6 space-y-4 pr-2">
+                            {inspectedChat.messages?.map((msg, idx) => (
+                                <div key={idx} className={`flex flex-col ${msg.role === 'user' ? 'items-end' : 'items-start'}`}>
+                                    <span className="text-[8px] font-black uppercase tracking-widest text-text-secondary mb-1 px-1">
+                                        {msg.role === 'user' ? 'User' : 'Titum AI'}
+                                    </span>
+                                    <div className={`max-w-[85%] px-4 py-3 rounded-2xl text-xs leading-relaxed ${msg.role === 'user' ? 'bg-accent text-bg-main font-medium rounded-tr-none' : 'bg-bg-main border border-border-color text-text-primary rounded-tl-none'}`}>
+                                        <p className="whitespace-pre-wrap">{msg.content}</p>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                        <div className="border-t border-border-color pt-4 shrink-0 flex justify-end">
+                            <Button onClick={() => setInspectedChat(null)}>Close View</Button>
+                        </div>
                     </div>
                 </div>
             )}

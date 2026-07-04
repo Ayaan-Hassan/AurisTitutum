@@ -33,6 +33,8 @@ import {
     LogOut,
     Lock,
     Pencil,
+    Edit3,
+    RefreshCw,
     ShieldCheck,
     ShieldAlert,
     AlertTriangle,
@@ -74,7 +76,12 @@ import {
     Maximize2,
     Users,
     Share2,
-    Copy
+    Copy,
+    WifiOff,
+    MessageSquare,
+    ChevronLeft,
+    ChevronRight,
+    MoreVertical
 } from 'lucide-react';
 
 
@@ -156,7 +163,14 @@ const Icon = ({ name, size = 18, className = "" }) => {
         'hash': Hash,
         'maximize-2': Maximize2,
         'terminal': Terminal,
-        'command': Command
+        'command': Command,
+        'edit-3': Edit3,
+        'refresh-cw': RefreshCw,
+        'wifi-off': WifiOff,
+        'message-square': MessageSquare,
+        'chevron-left': ChevronLeft,
+        'chevron-right': ChevronRight,
+        'more-vertical': MoreVertical
     };
 
 

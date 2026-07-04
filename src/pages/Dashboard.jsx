@@ -614,7 +614,7 @@ const Dashboard = ({ habits, notes, logActivity, insights, dataLoading }) => {
               const isFull = streak === target;
 
               return (
-                <div key={h.id} className={`relative flex items-center justify-between p-3 border rounded-xl group transition-all overflow-hidden ${isWhite ? 'bg-white border-white shadow-[0_0_15px_rgba(255,255,255,0.3)] scale-[1.02]' : 'bg-accent-dim border-border-color hover:border-text-secondary'}`}>
+                <div key={h.id} className={`relative flex flex-col sm:flex-row sm:items-center justify-between gap-3.5 p-3.5 border rounded-xl group transition-all overflow-hidden ${isWhite ? 'bg-white border-white shadow-[0_0_15px_rgba(255,255,255,0.3)] scale-[1.02]' : 'bg-accent-dim border-border-color hover:border-text-secondary'}`}>
                   {/* Adaptive Progress Bar */}
                   <div 
                     className={`absolute left-0 top-0 bottom-0 z-0 transition-[width] duration-1000 [transition-timing-function:cubic-bezier(0.16,1,0.3,1)] flex items-start overflow-hidden ${isWhite ? 'bg-black/10' : 'bg-white/10'}`} 
@@ -627,7 +627,7 @@ const Dashboard = ({ habits, notes, logActivity, insights, dataLoading }) => {
                       )}
                   </div>
                   
-                  <div className="flex items-center gap-3 min-w-0 relative z-10">
+                  <div className="flex items-center gap-3 min-w-0 relative z-10 w-full sm:w-auto">
                     <div className={`w-7 h-7 rounded-lg shrink-0 flex items-center justify-center border ${isWhite ? "bg-black/5 border-black/10" : isGood ? "bg-accent/10 border-accent/30" : "bg-bg-main border-border-color"}`}>
                       {h.emoji ? (
                         <span className="leading-none" style={{ filter: "grayscale(1) saturate(0) brightness(1.2)", fontSize: "0.8rem" }}>
@@ -637,7 +637,7 @@ const Dashboard = ({ habits, notes, logActivity, insights, dataLoading }) => {
                         <Icon name={isGood ? "check-circle" : "alert-circle"} size={13} className={isWhite ? "text-black" : isGood ? "text-accent" : "text-text-secondary"} />
                       )}
                     </div>
-                    <div className="min-w-0">
+                    <div className="min-w-0 flex-1">
                       <div className={`text-sm font-bold truncate flex items-center gap-2 ${isWhite ? "text-black" : "text-text-primary"}`}>
                         {h.name}
                         {h.isPinned && <Icon name="pin" size={10} className={`${isWhite ? 'text-black/40' : 'text-accent'} rotate-45`} />}
@@ -648,7 +648,7 @@ const Dashboard = ({ habits, notes, logActivity, insights, dataLoading }) => {
                       </div>
                     </div>
                   </div>
-                  <div className="flex items-center gap-1.5 shrink-0 ml-2 relative z-10">
+                  <div className="flex items-center gap-1.5 shrink-0 w-full sm:w-auto justify-end sm:justify-start relative z-10">
                     <Button id={i === 0 ? "tour-habit-performance" : undefined} onClick={() => setPerformanceTarget(h.id)} size="sm" variant="outline" icon="bar-chart-2" className="bg-bg-main rounded-lg w-8 h-8 p-0" title="Habit performance" />
 
                     {h.mode === "timer" ? (

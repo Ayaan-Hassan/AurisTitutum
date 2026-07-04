@@ -287,7 +287,8 @@ const Logs = ({ habits, setHabits, setFeatureLockConfig }) => {
       </div>
 
       <Card className="overflow-hidden hover:translate-y-0 hover:shadow-none hover:border-border-color">
-        <div className="overflow-x-auto">
+        {/* Desktop Table View */}
+        <div className="hidden sm:block overflow-x-auto">
           <table className="w-full text-left border-collapse min-w-[600px]">
             <thead>
               <tr className="border-b border-border-color bg-bg-sidebar/30">
@@ -370,6 +371,58 @@ const Logs = ({ habits, setHabits, setFeatureLockConfig }) => {
               ))}
             </tbody>
           </table>
+        </div>
+
+        {/* Mobile Card List View */}
+        <div className="sm:hidden divide-y divide-border-color/40">
+          {paginatedLogs.map((log) => (
+            <div
+              key={log.id}
+              onClick={() => toggleSelect(log.id)}
+              className={`p-4 flex gap-3 cursor-pointer transition-colors ${selectedIds.includes(log.id) ? 'bg-accent/5' : 'hover:bg-accent-dim/30'}`}
+            >
+              <div className="pt-0.5" onClick={(e) => e.stopPropagation()}>
+                <button 
+                  onClick={() => toggleSelect(log.id)}
+                  className={`w-5 h-5 rounded border-2 transition-all flex items-center justify-center ${selectedIds.includes(log.id) ? 'bg-accent border-accent text-bg-main' : 'border-border-color hover:border-text-secondary'}`}
+                >
+                  {selectedIds.includes(log.id) && <Icon name="check" size={12} />}
+                </button>
+              </div>
+              <div className="flex-1 min-w-0 space-y-2">
+                <div className="flex items-start justify-between gap-2">
+                  <p className="text-sm font-bold text-text-primary flex items-center gap-1.5 truncate">
+                    {log.emoji && <span className="text-sm leading-none" style={{ filter: "grayscale(1) brightness(1.1)" }}>{log.emoji}</span>}
+                    {log.habit}
+                  </p>
+                  <span className={`text-[8px] font-black uppercase tracking-wider px-2 py-0.5 rounded shrink-0 ${log.type === "Good" ? "bg-success/20 text-success" : "bg-danger/20 text-danger"}`}>
+                    {log.type === "Good" ? "Good" : "Bad"}
+                  </span>
+                </div>
+                <div className="flex flex-wrap items-center justify-between gap-2 text-[10px] font-mono text-text-secondary">
+                  <span>{formatDate(log.date)}</span>
+                  {log.isPhoto ? (
+                    <div className="flex items-center gap-2">
+                      <div className="w-8 h-8 rounded overflow-hidden border border-border-color">
+                        <img src={log.photoData} alt="Log" className="w-full h-full object-cover" />
+                      </div>
+                      <span className="text-[8px] font-bold text-accent uppercase tracking-widest bg-accent/5 border border-accent/15 px-1.5 py-0.5 rounded">Image</span>
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-1.5">
+                      <span>{log.time}</span>
+                      {log.value != null && (
+                        <>
+                          <div className="w-1 h-1 rounded-full bg-border-color" />
+                          <span className="font-bold text-text-primary">{log.value} {log.unit || ""}</span>
+                        </>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          ))}
         </div>
 
         {filteredLogs.length === 0 && (

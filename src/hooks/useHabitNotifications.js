@@ -1,24 +1,34 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { getLocalDateKey } from "../utils/date";
-const REMINDER_STORAGE_KEY = "habitflow_unlogged_reminder_shown_date";
-const BROWSER_REMINDER_STORAGE_KEY =
-  "habitflow_unlogged_browser_reminder_shown_date";
 
-const getLocalDateStr = (date = new Date()) => {
-  const y = date.getFullYear();
-  const m = String(date.getMonth() + 1).padStart(2, "0");
-  const d = String(date.getDate()).padStart(2, "0");
-  return `${y}-${m}-${d}`;
+const READ_KEYS_STORAGE = "auris_read_notification_keys";
+
+/** Load persisted read keys from localStorage */
+const loadReadKeys = () => {
+  try {
+    const raw = localStorage.getItem(READ_KEYS_STORAGE);
+    if (raw) return new Set(JSON.parse(raw));
+  } catch {}
+  return new Set();
+};
+
+/** Save read keys to localStorage */
+const saveReadKeys = (keys) => {
+  try {
+    localStorage.setItem(READ_KEYS_STORAGE, JSON.stringify([...keys]));
+  } catch {}
 };
 
 /**
  * Hook to manage habit completion notifications.
  * Shows at most one in-app reminder per day to avoid overlapping toasts.
+ * Read state is persisted to localStorage so page refreshes don't reset unread/read status.
  */
 export const useHabitNotifications = (habits, config) => {
   const [toasts, setToasts] = useState([]);
   const [notifications, setNotifications] = useState([]);
   const inactivityLevelRef = useRef(null); // '1h' | '6h' | '20h' | null
+  const readKeysRef = useRef(loadReadKeys());
 
   const addToast = useCallback((message, type = "info") => {
     const id = Date.now();
@@ -39,15 +49,18 @@ export const useHabitNotifications = (habits, config) => {
       // Avoid duplicates by key
       if (key && prev.some((n) => n.key === key)) return prev;
       const id = Date.now() + Math.random();
+      const notifKey = key || String(id);
+      // Check if already read from persisted storage
+      const isRead = readKeysRef.current.has(notifKey);
       return [
         {
           id,
-          key: key || String(id),
+          key: notifKey,
           title,
           body,
           level,
           createdAt: new Date().toISOString(),
-          read: false,
+          read: isRead,
         },
         ...prev,
       ].slice(0, 50);
@@ -56,16 +69,25 @@ export const useHabitNotifications = (habits, config) => {
 
   const markAllRead = useCallback((notificationId = null, forceStatus = null) => {
     setNotifications((prev) => {
+      let updated;
       // 1. Force state for all (header toggle)
       if (forceStatus !== null && notificationId === null) {
-        return prev.map((n) => ({ ...n, read: forceStatus }));
+        updated = prev.map((n) => ({ ...n, read: forceStatus }));
+      } else if (notificationId !== null) {
+        // 2. Mark specific notification as read (individual click)
+        updated = prev.map((n) => (n.id === notificationId ? { ...n, read: true } : n));
+      } else {
+        // 3. Fallback (bell icon click): mark everything as read
+        updated = prev.map((n) => ({ ...n, read: true }));
       }
-      // 2. Mark specific notification as read (individual click)
-      if (notificationId !== null) {
-        return prev.map((n) => (n.id === notificationId ? { ...n, read: true } : n));
-      }
-      // 3. Fallback (bell icon click): mark everything as read
-      return prev.map((n) => ({ ...n, read: true }));
+
+      // Persist the newly read keys
+      const newReadKeys = new Set(readKeysRef.current);
+      updated.filter((n) => n.read).forEach((n) => newReadKeys.add(n.key));
+      readKeysRef.current = newReadKeys;
+      saveReadKeys(newReadKeys);
+
+      return updated;
     });
   }, []);
 
@@ -136,9 +158,6 @@ export const useHabitNotifications = (habits, config) => {
     } else {
       inactivityLevelRef.current = null;
     }
-
-    // We will no longer spam unlogged daily reminders immediately on sign-in
-    // to strictly adhere to user's requested "only show exactly exactly on time" rule.
   }, [
     config?.notificationsEnabled,
     habits,

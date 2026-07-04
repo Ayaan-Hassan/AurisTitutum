@@ -13,9 +13,16 @@ const Analytics = ({ habits, selectedHabitId, setSelectedHabitId }) => {
     const { theme } = useTheme();
     const { user } = useAuth();
     const [timeRange, setTimeRange] = useState('weekly');
+    const [chartType, setChartType] = useState('line');
+    const [customFrom, setCustomFrom] = useState(() => {
+        const d = new Date();
+        d.setDate(d.getDate() - 30);
+        return d.toISOString().split('T')[0];
+    });
+    const [customTo, setCustomTo] = useState(() => new Date().toISOString().split('T')[0]);
+
     const [compareMode, setCompareMode] = useState(false);
     const [selectedHabits, setSelectedHabits] = useState([]);
-    const [chartType, setChartType] = useState('line');
 
     useEffect(() => {
         if (!compareMode) {
@@ -100,6 +107,29 @@ const Analytics = ({ habits, selectedHabitId, setSelectedHabitId }) => {
             });
         }
 
+        if (timeRange === 'custom') {
+            if (!customFrom || !customTo) return [];
+            const start = new Date(customFrom + 'T00:00:00');
+            const end = new Date(customTo + 'T23:59:59');
+            if (isNaN(start.getTime()) || isNaN(end.getTime()) || start > end) return [];
+            
+            const data = [];
+            const diffDays = Math.min(365, Math.ceil((end - start) / (1000 * 60 * 60 * 24)));
+            for (let i = 0; i <= diffDays; i++) {
+                const current = new Date(start.getTime() + i * 24 * 60 * 60 * 1000);
+                const dateStr = getLocalDateKey(current);
+                const name = current.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+                
+                const dataPoint = { name };
+                selectedHabitObjects.forEach(habit => {
+                    const log = (habit.logs || []).find(l => l.date === dateStr);
+                    dataPoint[habit.id] = log ? (parseFloat(log.count) || 0) : 0;
+                });
+                data.push(dataPoint);
+            }
+            return data;
+        }
+
         const length = timeRange === 'weekly' ? 7 : timeRange === 'monthly' ? 30 : 12;
         return Array.from({ length }).map((_, i) => {
             const d = new Date();
@@ -139,7 +169,7 @@ const Analytics = ({ habits, selectedHabitId, setSelectedHabitId }) => {
                 return dataPoint;
             }
         });
-    }, [selectedHabits, timeRange, habits]);
+    }, [selectedHabits, timeRange, customFrom, customTo, habits]);
 
     const filteredSelectedHabits = useMemo(() => {
         return selectedHabits.filter(habitId => {
@@ -202,7 +232,7 @@ const Analytics = ({ habits, selectedHabitId, setSelectedHabitId }) => {
                         </button>
                     )}
 
-                    {/* Mobile: dropdown select for time range */}
+                     {/* Mobile: dropdown select for time range */}
                     <div className="md:hidden">
                         <select
                             value={timeRange}
@@ -210,14 +240,14 @@ const Analytics = ({ habits, selectedHabitId, setSelectedHabitId }) => {
                             style={{ backgroundColor: 'var(--bg-main)', color: 'var(--text-primary)', borderColor: 'var(--border-color)' }}
                             className="border text-[10px] font-bold uppercase rounded-xl px-3 py-2 outline-none cursor-pointer"
                         >
-                            {['daily', 'weekly', 'monthly', 'yearly'].map(r => (
+                            {['daily', 'weekly', 'monthly', 'yearly', 'custom'].map(r => (
                                 <option key={r} value={r} style={{ backgroundColor: 'var(--bg-main)', color: 'var(--text-primary)' }}>{r}</option>
                             ))}
                         </select>
                     </div>
                     {/* Desktop: button group for time range */}
                     <div className="hidden md:flex bg-accent-dim border border-border-color p-1 rounded-xl">
-                        {['daily', 'weekly', 'monthly', 'yearly'].map(r => (
+                        {['daily', 'weekly', 'monthly', 'yearly', 'custom'].map(r => (
                             <button key={r} onClick={() => setTimeRange(r)} className={`px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase whitespace-nowrap ${timeRange === r ? 'bg-accent text-bg-main' : 'text-text-secondary hover:text-text-primary'}`}>{r}</button>
                         ))}
                     </div>
@@ -247,6 +277,30 @@ const Analytics = ({ habits, selectedHabitId, setSelectedHabitId }) => {
                     </div>
                 </div>
             </div>
+            {timeRange === 'custom' && (
+                <div className="p-4 bg-accent-dim border border-border-color rounded-xl flex flex-wrap items-center gap-6 animate-in slide-in-from-top-2 duration-300">
+                    <div className="flex items-center gap-3">
+                        <label className="text-[10px] font-black text-text-secondary uppercase tracking-[0.2em]">From:</label>
+                        <input
+                            type="date"
+                            value={customFrom}
+                            onChange={(e) => setCustomFrom(e.target.value)}
+                            style={{ backgroundColor: 'var(--bg-main)', color: 'var(--text-primary)', borderColor: 'var(--border-color)' }}
+                            className="border rounded-xl px-4 py-2 text-xs outline-none focus:border-accent font-medium"
+                        />
+                    </div>
+                    <div className="flex items-center gap-3">
+                        <label className="text-[10px] font-black text-text-secondary uppercase tracking-[0.2em]">To:</label>
+                        <input
+                            type="date"
+                            value={customTo}
+                            onChange={(e) => setCustomTo(e.target.value)}
+                            style={{ backgroundColor: 'var(--bg-main)', color: 'var(--text-primary)', borderColor: 'var(--border-color)' }}
+                            className="border rounded-xl px-4 py-2 text-xs outline-none focus:border-accent font-medium"
+                        />
+                    </div>
+                </div>
+            )}
 
             <div className="flex gap-6 flex-col lg:flex-row">
                 {/* Sidebar: list of habits */}
