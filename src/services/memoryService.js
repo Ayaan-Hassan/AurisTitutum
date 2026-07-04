@@ -1,4 +1,6 @@
-import { addBehavioralMemory, deleteBehavioralMemory } from "../contexts/AuthContext";
+// memoryService.js — Titum AI Memory Service
+// Note: addMemory and deleteMemory are passed as parameters, not imported directly.
+
 
 /**
  * Titum AI Memory Service

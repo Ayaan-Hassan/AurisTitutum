@@ -1,10 +1,9 @@
 import { createContext, useContext, useState, useEffect, useMemo, useRef } from "react";
-import { onSnapshot, doc, updateDoc, getDoc, query, collection, where, orderBy } from "firebase/firestore";
+import { onSnapshot, doc, updateDoc, getDoc, query, collection, where } from "firebase/firestore";
 import {
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
   signInWithPopup,
-  signInWithRedirect,
   getRedirectResult,
   GoogleAuthProvider,
   FacebookAuthProvider,
@@ -29,7 +28,6 @@ import {
   upsertUserSetting,
   getUserSetting,
   updateUserPresence,
-  updateGuestPresence,
   upsertCollectionDoc,
   deleteCollectionDoc,
 } from "../services/firestoreService";
@@ -51,6 +49,7 @@ import {
 } from "../services/logService";
 import { replaceReminders, subscribeReminders } from "../services/reminderService";
 import { identifyUser, trackEvent } from "../utils/telemetry";
+import { syncService } from "../services/syncService";
 
 const AuthContext = createContext(null);
 let redirectUser = null;
@@ -426,6 +425,8 @@ export const AuthProvider = ({ children }) => {
         (docs) => {
           if (authCycleRef.current !== cycleId) return;
           setHabitDocs(docs);
+          // Populate cache from authoritative Firestore snapshot
+          syncService.writeCache(uid, USER_SUBCOLLECTIONS.habits, docs);
           markLoaded(USER_SUBCOLLECTIONS.habits);
         },
         (err) => onListenerError(USER_SUBCOLLECTIONS.habits, err),
@@ -435,6 +436,7 @@ export const AuthProvider = ({ children }) => {
         (docs) => {
           if (authCycleRef.current !== cycleId) return;
           setLogDocs(docs);
+          syncService.writeCache(uid, USER_SUBCOLLECTIONS.logs, docs);
           markLoaded(USER_SUBCOLLECTIONS.logs);
         },
         (err) => onListenerError(USER_SUBCOLLECTIONS.logs, err),
@@ -448,6 +450,7 @@ export const AuthProvider = ({ children }) => {
             .map(normalizeNote)
             .sort((a, b) => String(b.updatedAt || "").localeCompare(String(a.updatedAt || "")));
           setNotes(sorted);
+          syncService.writeCache(uid, USER_SUBCOLLECTIONS.notes, sorted);
           markLoaded(USER_SUBCOLLECTIONS.notes);
         },
         (err) => onListenerError(USER_SUBCOLLECTIONS.notes, err),
@@ -460,6 +463,7 @@ export const AuthProvider = ({ children }) => {
             .map(normalizeReminder)
             .sort((a, b) => String(a.createdAt || "").localeCompare(String(b.createdAt || "")));
           setRemindersState(sorted);
+          syncService.writeCache(uid, USER_SUBCOLLECTIONS.reminders, sorted);
           markLoaded(USER_SUBCOLLECTIONS.reminders);
         },
         (err) => onListenerError(USER_SUBCOLLECTIONS.reminders, err),
@@ -470,6 +474,7 @@ export const AuthProvider = ({ children }) => {
         (docs) => {
           if (authCycleRef.current !== cycleId) return;
           setSettingsDocs(docs);
+          syncService.writeCache(uid, USER_SUBCOLLECTIONS.settings, docs);
           markLoaded(USER_SUBCOLLECTIONS.settings);
         },
         (err) => onListenerError(USER_SUBCOLLECTIONS.settings, err),
@@ -479,7 +484,9 @@ export const AuthProvider = ({ children }) => {
         USER_SUBCOLLECTIONS.behavioralMemory,
         (docs) => {
           if (authCycleRef.current !== cycleId) return;
-          setBehavioralMemory(docs.sort((a, b) => String(b.lastObserved || b.createdAt || "").localeCompare(String(a.lastObserved || a.createdAt || ""))));
+          const sorted = docs.sort((a, b) => String(b.lastObserved || b.createdAt || "").localeCompare(String(a.lastObserved || a.createdAt || "")));
+          setBehavioralMemory(sorted);
+          syncService.writeCache(uid, USER_SUBCOLLECTIONS.behavioralMemory, sorted);
           markLoaded(USER_SUBCOLLECTIONS.behavioralMemory);
         },
         (err) => onListenerError(USER_SUBCOLLECTIONS.behavioralMemory, err),
@@ -540,6 +547,11 @@ export const AuthProvider = ({ children }) => {
 
     listenersRef.current = subscriptions;
   };
+
+  // Initialize syncService once on mount
+  useEffect(() => {
+    syncService.init();
+  }, []);
 
   useEffect(() => {
     if (!isFirebaseConfigured || !auth) {
@@ -709,68 +721,41 @@ export const AuthProvider = ({ children }) => {
   const triggerUploadCooldown = () => setUploadCooldown(10);
 
 
-  const guestSessionId = useMemo(() => {
-    let id = localStorage.getItem("auris_guest_sid");
-    if (!id) {
-       id = `gst_${Math.random().toString(36).slice(2, 10)}`;
-       localStorage.setItem("auris_guest_sid", id);
-    }
-    return id;
-  }, []);
-
+  // Authenticated-user presence tracking (no guest tracking)
   useEffect(() => {
+    if (!user?.uid) return;
+
     const isVisible = document.visibilityState === 'visible';
-    
-    if (user?.uid) {
-        updateUserPresence(user.uid, isVisible, 0);
-    } else {
-        updateGuestPresence(guestSessionId, isVisible);
-    }
+    updateUserPresence(user.uid, isVisible, 0);
 
     const handleVisibilityChange = () => {
-      const active = document.visibilityState === 'visible';
-      if (user?.uid) {
-        updateUserPresence(user.uid, active, 0);
-      } else {
-        updateGuestPresence(guestSessionId, active);
-      }
+      if (!user?.uid) return;
+      updateUserPresence(user.uid, document.visibilityState === 'visible', 0);
     };
 
     const handleBeforeUnload = () => {
-      if (user?.uid) {
-        updateUserPresence(user.uid, false, 0);
-      } else {
-        updateGuestPresence(guestSessionId, false);
-      }
+      if (user?.uid) updateUserPresence(user.uid, false, 0);
     };
 
     let secondsPassed = 0;
     const interval = setInterval(() => {
-        secondsPassed++;
-        if (secondsPassed >= 20) { // Update every 20s for better accuracy
-            if (user?.uid) {
-                updateUserPresence(user.uid, true, secondsPassed);
-            } else if (document.visibilityState === 'visible') {
-                updateGuestPresence(guestSessionId, true);
-            }
-            secondsPassed = 0;
-        }
+      secondsPassed++;
+      if (secondsPassed >= 20) {
+        if (user?.uid) updateUserPresence(user.uid, true, secondsPassed);
+        secondsPassed = 0;
+      }
     }, 1000);
 
     window.addEventListener("visibilitychange", handleVisibilityChange);
     window.addEventListener("beforeunload", handleBeforeUnload);
 
     return () => {
-      if (user?.uid) {
-        updateUserPresence(user.uid, false, secondsPassed);
-      } else {
-        updateGuestPresence(guestSessionId, false);
-      }
+      if (user?.uid) updateUserPresence(user.uid, false, secondsPassed);
       window.removeEventListener("visibilitychange", handleVisibilityChange);
       window.removeEventListener("beforeunload", handleBeforeUnload);
       clearInterval(interval);
     };
-  }, [user, guestSessionId]);
+  }, [user?.uid]);
 
   const login = async (email, password) => {
     if (!isFirebaseConfigured) {
@@ -886,6 +871,10 @@ export const AuthProvider = ({ children }) => {
   };
 
   const logout = async () => {
+    // Clear the local cache for this user before signing out
+    if (user?.uid) {
+      syncService.clearUserCache(user.uid);
+    }
     if (!isFirebaseConfigured) {
       setUser(null);
       clearAllSyncedState();
@@ -936,68 +925,83 @@ export const AuthProvider = ({ children }) => {
 
   const addHabit = async (payload) => {
     if (!user?.uid) return;
+    // Optimistic: update cache via syncService, then write to Firestore
+    const habit = { ...payload, updatedAt: new Date().toISOString() };
+    syncService.enqueue({ type: 'upsert', uid: user.uid, collection: USER_SUBCOLLECTIONS.habits, id: String(habit.id), payload: habit });
     return queueWrite(() => createHabit(user.uid, payload));
   };
 
   const updateHabit = async (habitId, payload) => {
     if (!user?.uid) return;
+    syncService.enqueue({ type: 'upsert', uid: user.uid, collection: USER_SUBCOLLECTIONS.habits, id: String(habitId), payload: { ...payload, id: String(habitId) } });
     return queueWrite(() => serviceUpdateHabit(user.uid, habitId, payload));
   };
 
   const deleteHabit = async (habitId) => {
     if (!user?.uid) return;
+    syncService.enqueue({ type: 'delete', uid: user.uid, collection: USER_SUBCOLLECTIONS.habits, id: String(habitId) });
     return queueWrite(() => serviceDeleteHabit(user.uid, habitId));
   };
 
   const addLog = async (payload) => {
     if (!user?.uid) return;
+    const id = String(payload?.id || `${payload?.habitId || "habit"}_${Date.now()}`);
+    const logPayload = { ...payload, id };
+    // Optimistic cache update for instant UI feedback (offline support)
+    syncService.enqueue({ type: 'upsert', uid: user.uid, collection: USER_SUBCOLLECTIONS.logs, id, payload: logPayload });
     return queueWrite(() => createLog(user.uid, payload));
   };
 
   const deleteLog = async (logId) => {
     if (!user?.uid) return;
+    syncService.enqueue({ type: 'delete', uid: user.uid, collection: USER_SUBCOLLECTIONS.logs, id: String(logId) });
     return queueWrite(() => serviceDeleteLog(user.uid, logId));
   };
 
   const upsertNote = async (payload) => {
     if (!user?.uid) return;
     const normalized = normalizeNote(payload);
+    syncService.enqueue({ type: 'upsert', uid: user.uid, collection: USER_SUBCOLLECTIONS.notes, id: normalized.id, payload: normalized });
     return queueWrite(() => upsertCollectionDoc(user.uid, USER_SUBCOLLECTIONS.notes, normalized.id, normalized, true));
   };
 
   const deleteNote = async (noteId) => {
     if (!user?.uid) return;
+    syncService.enqueue({ type: 'delete', uid: user.uid, collection: USER_SUBCOLLECTIONS.notes, id: String(noteId) });
     return queueWrite(() => deleteCollectionDoc(user.uid, USER_SUBCOLLECTIONS.notes, noteId));
   };
 
   const upsertReminder = async (payload) => {
     if (!user?.uid) return;
     const normalized = normalizeReminder(payload);
+    syncService.enqueue({ type: 'upsert', uid: user.uid, collection: USER_SUBCOLLECTIONS.reminders, id: normalized.id, payload: normalized });
     return queueWrite(() => upsertCollectionDoc(user.uid, USER_SUBCOLLECTIONS.reminders, normalized.id, normalized, true));
   };
 
   const deleteReminder = async (reminderId) => {
     if (!user?.uid) return;
+    syncService.enqueue({ type: 'delete', uid: user.uid, collection: USER_SUBCOLLECTIONS.reminders, id: String(reminderId) });
     return queueWrite(() => deleteCollectionDoc(user.uid, USER_SUBCOLLECTIONS.reminders, reminderId));
   };
 
   const clearAllSyncedLogs = async () => {
     if (!user?.uid) return;
+    // Clear logs from cache too
+    syncService.writeCache(user.uid, USER_SUBCOLLECTIONS.logs, []);
     return queueWrite(() => clearUserLogs(user.uid));
   };
 
   const addBehavioralMemory = async (payload) => {
     if (!user?.uid) return;
     const id = payload.id || `${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
-    return queueWrite(() => upsertCollectionDoc(user.uid, USER_SUBCOLLECTIONS.behavioralMemory, id, {
-      ...payload,
-      id,
-      lastObserved: payload.lastObserved || new Date().toISOString()
-    }, true));
+    const memPayload = { ...payload, id, lastObserved: payload.lastObserved || new Date().toISOString() };
+    syncService.enqueue({ type: 'upsert', uid: user.uid, collection: USER_SUBCOLLECTIONS.behavioralMemory, id, payload: memPayload });
+    return queueWrite(() => upsertCollectionDoc(user.uid, USER_SUBCOLLECTIONS.behavioralMemory, id, memPayload, true));
   };
 
   const deleteBehavioralMemory = async (id) => {
     if (!user?.uid) return;
+    syncService.enqueue({ type: 'delete', uid: user.uid, collection: USER_SUBCOLLECTIONS.behavioralMemory, id: String(id) });
     return queueWrite(() => deleteCollectionDoc(user.uid, USER_SUBCOLLECTIONS.behavioralMemory, id));
   };
 
@@ -1035,7 +1039,6 @@ export const AuthProvider = ({ children }) => {
     replaceNotesState,
     replaceRemindersState,
     updateUserConfig,
-    peerMessages,
 
     addHabit,
     updateHabit,

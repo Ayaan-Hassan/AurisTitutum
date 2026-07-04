@@ -1,25 +1,16 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card } from "../components/ui/Card";
-import { Button } from "../components/ui/Button";
 import Icon from "../components/Icon";
 
-const Landing = ({ habits, user, userConfig }) => {
+const Landing = ({ user }) => {
   const navigate = useNavigate();
   const [scrolled, setScrolled] = useState(false);
 
-  const hasLocalData = useMemo(
-    () => Array.isArray(habits) && habits.length > 0,
-    [habits],
-  );
-  const isLoggedIn = !!user;
-  const hasVisitedApp = localStorage.getItem("auris_visited_dashboard") === "true";
-
+  // If already authenticated, redirect to the app immediately
   useEffect(() => {
-    if (hasLocalData || isLoggedIn || hasVisitedApp) {
-      navigate("/app", { replace: true });
-    }
-  }, [hasLocalData, isLoggedIn, hasVisitedApp, navigate]);
+    if (user) navigate("/app", { replace: true });
+  }, [user, navigate]);
 
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 10);
@@ -27,20 +18,8 @@ const Landing = ({ habits, user, userConfig }) => {
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
-  const handleGetStarted = () => {
-    if (!userConfig?.settings?.onboardingComplete) {
-      sessionStorage.setItem("triggerOnboarding", "true");
-      sessionStorage.setItem("auris_new_user_flow", "true");
-    }
-    navigate("/app");
-  };
-  const handleSignIn = () => {
-    if (!userConfig?.settings?.onboardingComplete) {
-      sessionStorage.setItem("triggerOnboarding", "true");
-      sessionStorage.setItem("auris_new_user_flow", "true");
-    }
-    navigate("/login");
-  };
+  const handleSignIn = () => navigate("/login");
+  const handleSignUp = () => navigate("/signup");
 
   const features = [
     {
@@ -144,11 +123,11 @@ const Landing = ({ habits, user, userConfig }) => {
               Sign In
             </button>
             <button
-              onClick={handleGetStarted}
+              onClick={handleSignUp}
               className="h-8 px-3 sm:px-4 rounded-lg bg-accent text-bg-main text-[10px] font-bold uppercase tracking-wider hover:opacity-90 transition-all"
             >
-              <span className="sm:hidden">Open</span>
-              <span className="hidden sm:inline">Open App</span>
+              <span className="sm:hidden">Start</span>
+              <span className="hidden sm:inline">Get Started</span>
             </button>
           </div>
         </div>
@@ -184,10 +163,10 @@ const Landing = ({ habits, user, userConfig }) => {
               {/* CTA Buttons */}
               <div className="flex flex-col sm:flex-row gap-3 pt-1 justify-center lg:justify-start">
                 <button
-                  onClick={handleGetStarted}
+                  onClick={handleSignUp}
                   className="w-full sm:w-auto px-6 py-3.5 rounded-xl bg-accent text-bg-main text-[11px] font-black uppercase tracking-widest hover:opacity-90 hover:scale-[1.02] active:scale-[0.98] transition-all shadow-lg"
                 >
-                  Open Habit Console
+                  Create Free Account
                 </button>
                 <button
                   onClick={handleSignIn}
@@ -458,19 +437,19 @@ const Landing = ({ habits, user, userConfig }) => {
                   Ready when you are
                 </p>
                 <h3 className="text-base sm:text-lg font-bold tracking-tight">
-                  Start your next streak today
+                  Start your first streak today
                 </h3>
                 <p className="text-xs text-text-secondary max-w-md leading-relaxed">
-                  No forced login. Track one habit locally for free — then sign
-                  in when you want sync, analytics, and Titum AI.
+                  Create an account and your habits, streaks, and analytics are permanently
+                  linked to your profile — synced across every device, automatically.
                 </p>
               </div>
               <div className="flex flex-col sm:flex-row gap-2.5 w-full sm:w-auto shrink-0">
                 <button
-                  onClick={handleGetStarted}
+                  onClick={handleSignUp}
                   className="w-full sm:w-auto px-6 py-3 rounded-xl bg-accent text-bg-main text-[11px] font-black uppercase tracking-widest hover:opacity-90 hover:scale-[1.02] active:scale-[0.98] transition-all"
                 >
-                  Open Console
+                  Create Account
                 </button>
                 <button
                   onClick={handleSignIn}
@@ -511,10 +490,10 @@ const Landing = ({ habits, user, userConfig }) => {
           Sign In
         </button>
         <button
-          onClick={handleGetStarted}
+          onClick={handleSignUp}
           className="flex-1 py-3 rounded-xl bg-accent text-bg-main text-[11px] font-black uppercase tracking-widest hover:opacity-90 active:scale-[0.98] transition-all"
         >
-          Open App
+          Get Started
         </button>
       </div>
 

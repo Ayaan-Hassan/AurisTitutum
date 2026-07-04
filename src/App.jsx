@@ -26,6 +26,7 @@ import { db } from "./firebase.config";
 import { collection, addDoc } from "firebase/firestore";
 import { Button } from "./components/ui/Button";
 import Onboarding from "./components/Onboarding";
+import ProtectedRoute from "./components/ProtectedRoute";
 
 const DAILY_INSIGHTS = [
   {
@@ -159,137 +160,6 @@ const getDailyInsight = () => {
   return DAILY_INSIGHTS[hash % DAILY_INSIGHTS.length];
 };
 
-const LEGACY_STORAGE_KEYS = {
-  habits: "habitflow_pro_data",
-  userConfig: "habitflow_pro_user",
-  notes: "habitflow_pro_notes",
-  reminders: "habitflow_pro_reminders",
-};
-
-const SCOPED_STATE_PREFIX = "habitflow_pro_state_";
-const _backendBase = (import.meta.env.VITE_BACKEND_URL ?? "").replace(
-  /\/$/,
-  "",
-);
-const CLOUD_SYNC_API_BASE = _backendBase ? `${_backendBase}/api` : "/api";
-const CLOUD_SYNC_POLL_MS = 4000;
-
-const DEFAULT_USER_CONFIG = {
-  name: "",
-  email: "",
-  age: "",
-  gender: "",
-  avatar: null,
-  connectedPeerId: null,
-  connectedPeerName: "",
-  settings: {
-    persistence: true,
-    audit: true,
-    devConsole: false,
-    notificationsEnabled: true,
-    hasSeenTour: false,
-    onboardingComplete: false,
-  },
-};
-
-const safeJsonParse = (value, fallback) => {
-  try {
-    return value ? JSON.parse(value) : fallback;
-  } catch {
-    return fallback;
-  }
-};
-
-const normalizeUserConfig = (raw = {}) => ({
-  ...DEFAULT_USER_CONFIG,
-  ...(raw || {}),
-  settings: {
-    ...DEFAULT_USER_CONFIG.settings,
-    ...((raw && raw.settings) || {}),
-  },
-});
-
-const mergeUserIdentityIntoConfig = (config = {}, user = null) => {
-  const fallbackName = user?.email ? user.email.split("@")[0] : "";
-  const normalized = normalizeUserConfig(config);
-  
-  return {
-    ...normalized,
-    email: user?.email || normalized.email || "",
-    name: normalized.name || user?.name || fallbackName,
-    avatar: normalized.avatar || user?.photoURL || null,
-  };
-};
-
-const normalizeAppState = (raw = {}) => ({
-  habits: Array.isArray(raw.habits) ? raw.habits : [],
-  userConfig: normalizeUserConfig(raw.userConfig),
-  notes: Array.isArray(raw.notes) ? raw.notes : [],
-  reminders: Array.isArray(raw.reminders) ? raw.reminders : [],
-});
-
-const areAppStatesEqual = (left, right) =>
-  JSON.stringify(normalizeAppState(left)) ===
-  JSON.stringify(normalizeAppState(right));
-
-const getUserKey = (user) => user?.uid || user?.id || null;
-const getStorageScope = (user) =>
-  getUserKey(user) ? `user_${getUserKey(user)}` : "guest";
-
-const getScopedStateKey = (scope) => `${SCOPED_STATE_PREFIX}${scope}`;
-
-const readScopedState = (scope) => {
-  if (typeof localStorage === "undefined") return null;
-  const parsed = safeJsonParse(
-    localStorage.getItem(getScopedStateKey(scope)),
-    null,
-  );
-  return parsed ? normalizeAppState(parsed) : null;
-};
-
-const readLegacyState = () => {
-  if (typeof localStorage === "undefined") return null;
-  const habits = safeJsonParse(
-    localStorage.getItem(LEGACY_STORAGE_KEYS.habits),
-    null,
-  );
-  const userConfig = safeJsonParse(
-    localStorage.getItem(LEGACY_STORAGE_KEYS.userConfig),
-    null,
-  );
-  const notes = safeJsonParse(
-    localStorage.getItem(LEGACY_STORAGE_KEYS.notes),
-    null,
-  );
-  const reminders = safeJsonParse(
-    localStorage.getItem(LEGACY_STORAGE_KEYS.reminders),
-    null,
-  );
-  const hasAnyLegacy =
-    habits !== null ||
-    userConfig !== null ||
-    notes !== null ||
-    reminders !== null;
-  if (!hasAnyLegacy) return null;
-  return normalizeAppState({
-    habits: habits || [],
-    userConfig: userConfig || DEFAULT_USER_CONFIG,
-    notes: notes || [],
-    reminders: reminders || [],
-  });
-};
-
-const writeScopedState = (scope, state) => {
-  if (typeof localStorage === "undefined") return;
-  localStorage.setItem(
-    getScopedStateKey(scope),
-    JSON.stringify({
-      ...normalizeAppState(state),
-      updatedAt: Date.now(),
-    }),
-  );
-};
-
 import { getLocalDateKey } from "./utils/date";
 
 // eslint-disable-next-line
@@ -327,16 +197,16 @@ const compressImage = (base64Str) => {
 
 function AppContent() {
   const authContext = useAuth();
-  const { user, authLoading, replaceHabitsState, replaceNotesState, replaceRemindersState, updateUserConfig } = authContext;
+  const { user, authLoading, updateUserConfig } = authContext;
 
-  const userKey = getUserKey(user);
-  const activeScope = getStorageScope(user);
-  const initialState = normalizeAppState(
-    readScopedState("guest") || readLegacyState() || {},
-  );
-
-  const [habits, setHabits] = useState(initialState.habits);
-  const [userConfig, setUserConfig] = useState(initialState.userConfig);
+  // ── All state is sourced from AuthContext (Firestore-backed) ──
+  // No local guest state. Authentication is required before this component renders
+  // (ProtectedRoute gates the /app/* tree). Landing/Login/Signup are public.
+  const habits = authContext.habits;
+  const notes = authContext.notes;
+  const reminders = authContext.reminders;
+  const userConfig = authContext.userConfig;
+  const dataLoading = authContext.dataLoading;
 
   const [showAddModal, setShowAddModal] = useState(false);
   const [addHabitStep, setAddHabitStep] = useState(1);
@@ -348,26 +218,10 @@ function AppContent() {
     emoji: "",
   });
   const [selectedHabitId, setSelectedHabitId] = useState(null);
-  const [notes, setNotes] = useState(initialState.notes);
-  const [reminders, setReminders] = useState(initialState.reminders);
   const fileInputRef = useRef(null);
-  const loadedScopeRef = useRef("guest");
-  const pendingScopeInitRef = useRef(null);
-  const cloudStateReadyRef = useRef(false);
-  const cloudSaveTimerRef = useRef(null);
-  const skipNextCloudSaveRef = useRef(false);
   const [activeUndo, setActiveUndo] = useState(null);
   const undoTimerRef = useRef(null);
   const undoVisibilityTimerRef = useRef(null);
-  const isSavingToCloudRef = useRef(false);
-
-  // Track the state that is currently synced with the cloud
-  const cloudStateRef = useRef(initialState);
-
-  useEffect(() => {
-    if (!user) return;
-    setUserConfig((prev) => mergeUserIdentityIntoConfig(prev, user));
-  }, [activeScope, userKey, user?.email, user?.name]);
 
   const authCtx = useAuth();
   useEffect(() => {
@@ -384,8 +238,7 @@ function AppContent() {
   const { toasts, removeToast, notifications, markAllRead, addToast } =
     useHabitNotifications(habits, {
       ...userConfig.settings,
-      notificationsEnabled:
-        !!user && userConfig.settings.notificationsEnabled !== false,
+      notificationsEnabled: !!user && userConfig.settings.notificationsEnabled !== false,
     });
 
   // Fire scheduled reminder notifications
@@ -394,18 +247,12 @@ function AppContent() {
   const [featureLockConfig, setFeatureLockConfig] = useState(null);
   const [confirmAction, setConfirmAction] = useState(null);
   const [activeSystemMsg, setActiveSystemMsg] = useState(null);
+
   const handleAddHabitRequest = useCallback(() => {
-    if (!user && habits.length >= 1) {
-      setFeatureLockConfig({
-        title: "Unlock full console",
-        subtitle: "Sign in for free to unlock this feature.",
-        description: "Create one local habit without an account. To add more streams, enable notifications, analytics, and external sync, sign in and we'll keep everything synced across devices."
-      });
-      return;
-    }
+    // All users are authenticated here (ProtectedRoute guards /app/*)
     setAddHabitStep(1);
     setShowAddModal(true);
-  }, [user, habits.length]);
+  }, []);
 
   // Listen for toast events from components
   useEffect(() => {
@@ -433,57 +280,12 @@ function AppContent() {
 
 
 
-  useEffect(() => {
-    if (loadedScopeRef.current === activeScope) return;
+  // Synchronize local state with localStorage — removed (auth-first; Firestore is source of truth)
 
-    const previousScope = loadedScopeRef.current;
-    const existingScopedState = readScopedState(activeScope);
-    const isUserScope = activeScope.startsWith("user_");
-    const switchingBetweenUsers =
-      previousScope.startsWith("user_") &&
-      isUserScope &&
-      previousScope !== activeScope;
-    const legacyFallback = !isUserScope ? readLegacyState() : null;
-    const nextState = normalizeAppState(
-      switchingBetweenUsers ? {} : existingScopedState || legacyFallback || {},
-    );
-
-    if (!existingScopedState || switchingBetweenUsers) {
-      writeScopedState(activeScope, nextState);
-    }
-
-    loadedScopeRef.current = activeScope;
-    pendingScopeInitRef.current = activeScope;
-    setHabits(nextState.habits);
-    setUserConfig(mergeUserIdentityIntoConfig(nextState.userConfig, user));
-    setNotes(nextState.notes);
-    setReminders(nextState.reminders);
-  }, [activeScope, user]);
-
-  // Synchronize local guest state with localStorage
-  useEffect(() => {
-    if (loadedScopeRef.current !== activeScope) return;
-    if (pendingScopeInitRef.current === activeScope) {
-      pendingScopeInitRef.current = null;
-      return;
-    }
-    // Only write to localStorage for guest scope or as a backup
-    writeScopedState(activeScope, {
-      habits,
-      userConfig,
-      notes,
-      reminders,
-    });
-  }, [activeScope, habits, userConfig, notes, reminders]);
-
-  // Derived state that switches between local (guest) and remote (user)
-  const displayHabits = user ? authContext.habits : habits;
-  const displayNotes = user ? authContext.notes : notes;
-  const displayReminders = user ? authContext.reminders : reminders;
-  const displayUserConfig = user ? authContext.userConfig : userConfig;
-  const dataLoading = user ? authContext.dataLoading : false;
-
-  const logInProgressRef = useRef(false);
+  // Unified update function — always goes through AuthContext since user is always authenticated
+  const unifiedUpdateUserConfig = useCallback(async (updater) => {
+    return authContext.updateUserConfig(updater);
+  }, [authContext.updateUserConfig]);
 
   const logActivity = useCallback(async (id, increment = true, amount = 1, unit = "", photoData = null, customDate = null, customTime = null) => {
     if (id === "example-habit") {
@@ -494,9 +296,7 @@ function AppContent() {
         return;
     }
     // Guard against double-taps / concurrency
-    if (logInProgressRef.current) return;
-    logInProgressRef.current = true;
-    setTimeout(() => { logInProgressRef.current = false; }, 300);
+    if (!user) return; // Auth required
 
     const amt = Math.max(1, Math.floor(Number(amount) || 1));
     const now = new Date();
@@ -510,7 +310,7 @@ function AppContent() {
     const localTimestamp = now.toString();
     const isOverride = !!(customDate || customTime);
 
-    // --- Undo Pop-up Logic (Internal Trigger) ---
+    // --- Undo Pop-up Logic ---
     if (increment) {
         if (undoTimerRef.current) clearTimeout(undoTimerRef.current);
         if (undoVisibilityTimerRef.current) clearTimeout(undoVisibilityTimerRef.current);
@@ -521,185 +321,42 @@ function AppContent() {
             undoVisibilityTimerRef.current = setTimeout(() => {
                 setActiveUndo(null);
             }, 5000); 
-        }, 500); // Trigger after 500ms for a snappier feel
+        }, 500);
     } else {
         setActiveUndo(null);
     }
 
-    // Handle User Sync Mode
-    if (user) {
-      const habitObj = authContext.habits.find(h => h.id === id);
-      if (!habitObj) return;
+    const habitObj = authContext.habits.find(h => h.id === id);
+    if (!habitObj) return;
 
-      if (increment) {
-        await authContext.addLog({
-          habitId: id,
-          date: todayKey,
-          time: timestamp,
-          amount: amt,
-          unit: unit || habitObj.unit || "",
-          mode: habitObj.mode,
-          type: habitObj.type,
-          photoData: photoData,
-          // Persistent Behavioral Metadata
-          exactTimestamp,
-          timezone,
-          timezoneOffset,
-          localTimestamp,
-          createdAt: exactTimestamp,
-          updatedAt: exactTimestamp,
-          isOverride,
-          completionDelayMs: 0, // Placeholder for future target-time logic
-        });
-      } else {
-        // Find the most recent log for this habit on this date to remove
-        const relevantLogs = (authContext.logDocs || [])
-          .filter(l => l.habitId === id && l.date === todayKey)
-          .sort((a, b) => (b.createdAt || "").localeCompare(a.createdAt || ""));
-        
-        if (relevantLogs.length > 0) {
-          await authContext.deleteLog(relevantLogs[0].id);
-        }
+    if (increment) {
+      await authContext.addLog({
+        habitId: id,
+        date: todayKey,
+        time: timestamp,
+        amount: amt,
+        unit: unit || habitObj.unit || "",
+        mode: habitObj.mode,
+        type: habitObj.type,
+        photoData: photoData,
+        exactTimestamp,
+        timezone,
+        timezoneOffset,
+        localTimestamp,
+        createdAt: exactTimestamp,
+        updatedAt: exactTimestamp,
+        isOverride,
+        completionDelayMs: 0,
+      });
+    } else {
+      const relevantLogs = (authContext.logDocs || [])
+        .filter(l => l.habitId === id && l.date === todayKey)
+        .sort((a, b) => (b.createdAt || "").localeCompare(a.createdAt || ""));
+      
+      if (relevantLogs.length > 0) {
+        await authContext.deleteLog(relevantLogs[0].id);
       }
-      return;
     }
-
-    // Handle Local Guest Mode
-    setHabits((prev) =>
-      prev.map((h) => {
-        if (h.id !== id) return h;
-
-        const isValueMode = h.mode === "count" || h.mode === "timer" || h.mode === "rating";
-        const isCheckMode = h.mode === "check";
-        let updatedLogs = (h.logs || []).map((l) => ({
-          ...l,
-          entries: [...(l.entries || [])],
-        }));
-        let updatedTotal = h.totalLogs;
-
-        if (increment) {
-          const existingDateIdx = updatedLogs.findIndex(
-            (l) => l.date === todayKey,
-          );
-
-          if (isCheckMode) {
-            if (existingDateIdx > -1) return h;
-            updatedTotal += 1;
-            updatedLogs.push({
-              date: todayKey,
-              count: 1,
-              entries: [timestamp],
-            });
-          } else if (isValueMode) {
-            const value = amt;
-            const entryStr = `${timestamp}|${value}|${unit || h.unit || ""}`;
-            updatedTotal += value;
-            if (existingDateIdx > -1) {
-              updatedLogs[existingDateIdx] = {
-                ...updatedLogs[existingDateIdx],
-                count: updatedLogs[existingDateIdx].count + value,
-                entries: [...updatedLogs[existingDateIdx].entries, entryStr],
-              };
-            } else {
-              updatedLogs.push({
-                date: todayKey,
-                count: value,
-                entries: [entryStr],
-              });
-            }
-          } else if (h.mode === "upload") {
-            const entryStr = photoData || timestamp;
-            updatedTotal += 1;
-            if (existingDateIdx > -1) {
-              updatedLogs[existingDateIdx] = {
-                ...updatedLogs[existingDateIdx],
-                count: updatedLogs[existingDateIdx].count + 1,
-                entries: [...updatedLogs[existingDateIdx].entries, entryStr],
-              };
-            } else {
-              updatedLogs.push({
-                date: todayKey,
-                count: 1,
-                entries: [entryStr],
-              });
-            }
-          } else {
-            updatedTotal += amt;
-            const newEntries = Array(amt).fill(timestamp);
-            if (existingDateIdx > -1) {
-              updatedLogs[existingDateIdx] = {
-                ...updatedLogs[existingDateIdx],
-                count: updatedLogs[existingDateIdx].count + amt,
-                entries: [
-                  ...updatedLogs[existingDateIdx].entries,
-                  ...newEntries,
-                ],
-              };
-            } else {
-              updatedLogs.push({
-                date: todayKey,
-                count: amt,
-                entries: newEntries,
-              });
-            }
-          }
-        } else {
-          const dateIdx = updatedLogs.findIndex((l) => l.date === todayKey);
-
-          if (isCheckMode) {
-            if (dateIdx > -1) {
-              updatedTotal -= 1;
-              updatedLogs.splice(dateIdx, 1);
-            }
-          } else if (
-            isValueMode &&
-            dateIdx > -1 &&
-            updatedLogs[dateIdx].entries.length > 0
-          ) {
-            const newEntries = [...updatedLogs[dateIdx].entries];
-            const lastEntry = newEntries.pop();
-            const parts = lastEntry.split("|");
-            const val = parseInt(parts[1], 10) || 1;
-            const newCount = updatedLogs[dateIdx].count - val;
-            updatedTotal -= val;
-            if (newCount <= 0) {
-              updatedLogs.splice(dateIdx, 1);
-            } else {
-              updatedLogs[dateIdx] = {
-                ...updatedLogs[dateIdx],
-                count: newCount,
-                entries: newEntries,
-              };
-            }
-          } else {
-            const removeCount = Math.min(amt, updatedTotal);
-            if (removeCount <= 0) return h;
-            updatedTotal -= removeCount;
-            if (dateIdx > -1 && updatedLogs[dateIdx].count > 0) {
-              const toRemove = Math.min(
-                removeCount,
-                updatedLogs[dateIdx].count,
-              );
-              const newEntries = [...updatedLogs[dateIdx].entries];
-              for (let i = 0; i < toRemove; i++) {
-                if (newEntries.length > 0) newEntries.pop();
-              }
-              const newCount = updatedLogs[dateIdx].count - toRemove;
-              if (newCount === 0) {
-                updatedLogs.splice(dateIdx, 1);
-              } else {
-                updatedLogs[dateIdx] = {
-                  ...updatedLogs[dateIdx],
-                  count: newCount,
-                  entries: newEntries,
-                };
-              }
-            }
-          }
-        }
-        return { ...h, logs: updatedLogs, totalLogs: updatedTotal };
-      }),
-    );
   }, [user, authContext]);
 
   const handleAvatarUpload = (e) => {
@@ -708,31 +365,14 @@ function AppContent() {
     const reader = new FileReader();
     reader.onload = async (event) => {
       const compressed = await compressImage(event.target.result);
-      if (user) {
-        await authContext.updateUserConfig({ avatar: compressed });
-      } else {
-        setUserConfig((prev) => ({ ...prev, avatar: compressed }));
-      }
+      await authContext.updateUserConfig({ avatar: compressed });
     };
     reader.readAsDataURL(file);
     e.target.value = null;
   };
 
-  const unifiedUpdateUserConfig = useCallback(async (updater) => {
-    if (user) {
-      return authContext.updateUserConfig(updater);
-    } else {
-      setUserConfig((prev) => {
-        const next = typeof updater === "function" ? updater(prev) : { ...prev, ...updater };
-        if (updater.settings) {
-          next.settings = { ...prev.settings, ...updater.settings };
-        }
-        return next;
-      });
-    }
-  }, [user, authContext.updateUserConfig]);
-
   const [dailyInsight] = useState(() => getDailyInsight());
+
 
 
 
@@ -776,17 +416,21 @@ function AppContent() {
     "🧬",
   ];
 
-  const isReturningOperator = localStorage.getItem("auris_returning_operator") === "true";
-
   if (authLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-bg-main">
         <div className="flex flex-col items-center gap-6">
-          <div className="w-16 h-16 bg-accent rounded-2xl flex items-center justify-center animate-spin">
-            <div className="w-4 h-4 bg-bg-main rotate-45" />
+          <div className="relative">
+            <div className="w-14 h-14 bg-accent rounded-2xl flex items-center justify-center shadow-[0_0_40px_rgba(99,102,241,0.3)]">
+              <div className="w-5 h-5 bg-bg-main rotate-45" />
+            </div>
+            <div className="absolute inset-0 rounded-2xl border-2 border-accent/30 animate-ping" style={{ animationDuration: '1.8s' }} />
           </div>
-          <div className="text-text-secondary text-[10px] font-black uppercase tracking-[0.4em] animate-pulse">
-            Initalizing Console...
+          <div className="flex flex-col items-center gap-2">
+            <p className="text-text-primary text-sm font-bold tracking-tight">AurisTitutum <span className="text-text-secondary">PRO</span></p>
+            <div className="text-text-secondary text-[10px] font-black uppercase tracking-[0.4em] animate-pulse">
+              Initializing Console...
+            </div>
           </div>
         </div>
       </div>
@@ -796,25 +440,25 @@ function AppContent() {
   return (
     <>
       <TourGuide 
-        habits={displayHabits}
-        userConfig={displayUserConfig}
+        habits={habits}
+        userConfig={userConfig}
         updateUserConfig={unifiedUpdateUserConfig}
         dataLoading={dataLoading}
       />
       <Onboarding 
         onAddHabit={handleAddHabitRequest} 
-        habits={displayHabits} 
-        userConfig={displayUserConfig}
+        habits={habits} 
+        userConfig={userConfig}
         updateUserConfig={unifiedUpdateUserConfig}
       />
       <Routes>
-        {/* Public Landing */}
+        {/* Public Landing — redirects to /app if already authenticated */}
         <Route 
           path="/" 
           element={
-            (user || isReturningOperator) 
-              ? <Navigate to="/app" replace /> 
-              : <Landing habits={displayHabits} user={user} userConfig={displayUserConfig} />
+            user
+              ? <Navigate to="/app" replace />
+              : <Landing user={user} />
           } 
         />
 
@@ -822,18 +466,19 @@ function AppContent() {
         <Route path="/login" element={<Login />} />
         <Route path="/signup" element={<Signup />} />
 
-        {/* App Shell */}
+        {/* Protected App Shell — requires authentication */}
         <Route
           path="/app/*"
           element={
+            <ProtectedRoute>
               <Layout
-                userConfig={displayUserConfig}
+                userConfig={userConfig}
                 onAddHabit={handleAddHabitRequest}
-                habits={displayHabits}
+                habits={habits}
                 notifications={notifications}
                 onNotificationsRead={markAllRead}
-                notes={displayNotes}
-                reminders={displayReminders}
+                notes={notes}
+                reminders={reminders}
               >
                 <ToastContainer toasts={toasts} onClose={removeToast} />
                 <Routes>
@@ -841,9 +486,9 @@ function AppContent() {
                     path=""
                     element={
                       <Dashboard
-                        habits={displayHabits}
-                        notes={displayNotes}
-                        setHabits={user ? authContext.replaceHabitsState : setHabits}
+                        habits={habits}
+                        notes={notes}
+                        setHabits={authContext.replaceHabitsState}
                         logActivity={logActivity}
                         insights={dailyInsight}
                         dataLoading={dataLoading}
@@ -855,9 +500,9 @@ function AppContent() {
                     path="dashboard"
                     element={
                       <Dashboard
-                        habits={displayHabits}
-                        notes={displayNotes}
-                        setHabits={user ? authContext.replaceHabitsState : setHabits}
+                        habits={habits}
+                        notes={notes}
+                        setHabits={authContext.replaceHabitsState}
                         logActivity={logActivity}
                         insights={dailyInsight}
                         dataLoading={dataLoading}
@@ -869,7 +514,7 @@ function AppContent() {
                     path="analytics"
                     element={
                       <Analytics
-                        habits={displayHabits}
+                        habits={habits}
                         selectedHabitId={selectedHabitId}
                         setSelectedHabitId={setSelectedHabitId}
                       />
@@ -877,14 +522,14 @@ function AppContent() {
                   />
                   <Route
                     path="social"
-                    element={<SocialEngine habits={displayHabits} />}
+                    element={<SocialEngine habits={habits} />}
                   />
                   <Route
                     path="habits"
                     element={
                       <Habits
-                        habits={displayHabits}
-                        setHabits={user ? authContext.replaceHabitsState : setHabits}
+                        habits={habits}
+                        setHabits={authContext.replaceHabitsState}
                         logActivity={logActivity}
                         setFeatureLockConfig={setFeatureLockConfig}
                       />
@@ -892,18 +537,18 @@ function AppContent() {
                   />
                   <Route
                     path="logs"
-                    element={<Logs habits={user ? authContext.habits : habits} setHabits={user ? authContext.replaceHabitsState : setHabits} setFeatureLockConfig={setFeatureLockConfig} />}
+                    element={<Logs habits={habits} setHabits={authContext.replaceHabitsState} setFeatureLockConfig={setFeatureLockConfig} />}
                   />
                   <Route
                     path="notes"
-                    element={<Notes notes={displayNotes} setNotes={user ? authContext.replaceNotesState : setNotes} setFeatureLockConfig={setFeatureLockConfig} />}
+                    element={<Notes notes={notes} setNotes={authContext.replaceNotesState} setFeatureLockConfig={setFeatureLockConfig} />}
                   />
                   <Route
                     path="reminders"
                     element={
                       <Reminders
-                        reminders={displayReminders}
-                        setReminders={user ? authContext.replaceRemindersState : setReminders}
+                        reminders={reminders}
+                        setReminders={authContext.replaceRemindersState}
                         setFeatureLockConfig={setFeatureLockConfig}
                       />
                     }
@@ -912,11 +557,11 @@ function AppContent() {
                     path="settings"
                     element={
                       <Settings
-                        userConfig={displayUserConfig}
-                        setUserConfig={user ? authContext.updateUserConfig : setUserConfig}
+                        userConfig={userConfig}
+                        setUserConfig={authContext.updateUserConfig}
                         handleAvatarUpload={handleAvatarUpload}
                         fileInputRef={fileInputRef}
-                        habits={displayHabits}
+                        habits={habits}
                       />
                     }
                   />
@@ -925,6 +570,7 @@ function AppContent() {
                 <Route path="*" element={<Navigate to="" replace />} />
               </Routes>
             </Layout>
+            </ProtectedRoute>
           }
         />
       </Routes>
@@ -1139,13 +785,10 @@ function AppContent() {
                             logs: [],
                           };
 
-                          const isFirstHabit = displayHabits.length === 0;
+                          const isFirstHabit = habits.length === 0;
 
-                          if (user) {
-                             await authContext.addHabit(habitPayload);
-                          } else {
-                            setHabits([...habits, habitPayload]);
-                          }
+                          // All users are authenticated — always write to Firestore
+                          await authContext.addHabit(habitPayload);
 
                           if (isFirstHabit) {
                             sessionStorage.setItem("auris_tour_permitted", "true");
