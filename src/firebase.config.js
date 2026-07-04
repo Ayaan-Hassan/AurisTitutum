@@ -1,7 +1,7 @@
 import { initializeApp, getApps, getApp } from "firebase/app";
 import {
-  initializeAuth,
   getAuth,
+  setPersistence,
   browserLocalPersistence,
 } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
@@ -23,28 +23,24 @@ let app;
 let auth;
 let db;
 
-// Kept as a resolved promise so AuthContext can still `await authPersistenceReady`
-// without any changes — but persistence is now guaranteed at construction time.
-const authPersistenceReady = Promise.resolve();
+// This promise resolves once browserLocalPersistence has been applied to auth.
+// AuthContext awaits this before doing any auth operations, guaranteeing that
+// sessions survive page refreshes and browser restarts.
+let authPersistenceReady = Promise.resolve();
 
 try {
   if (isFirebaseConfigured) {
-    // Initialize the Firebase app (idempotent — safe to call repeatedly in HMR)
     app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
+    auth = getAuth(app);
 
-    // Use initializeAuth with persistence baked in at construction.
-    // This is the correct approach for guaranteed local persistence across
-    // browser restarts, computer reboots, and cold boots — unlike
-    // getAuth() + setPersistence() which is async and can lose the race.
-    try {
-      auth = initializeAuth(app, {
-        persistence: browserLocalPersistence,
-      });
-    } catch (_alreadyInitialized) {
-      // In Vite HMR / hot-reload, initializeAuth may throw because auth is
-      // already initialized on the same app instance. getAuth() returns it.
-      auth = getAuth(app);
-    }
+    // Apply local persistence — this is what keeps users logged in across
+    // restarts. We capture the promise so callers can await it before any
+    // sign-in/sign-out action.
+    authPersistenceReady = setPersistence(auth, browserLocalPersistence).catch(
+      (error) => {
+        console.error("Firebase auth persistence error:", error);
+      },
+    );
 
     db = getFirestore(app);
   } else {
