@@ -25,7 +25,7 @@ let db;
 
 // Kept as a resolved promise so AuthContext can still `await authPersistenceReady`
 // without any changes — but persistence is now guaranteed at construction time.
-export const authPersistenceReady = Promise.resolve();
+const authPersistenceReady = Promise.resolve();
 
 try {
   if (isFirebaseConfigured) {
@@ -58,4 +58,4 @@ try {
   db = null;
 }
 
-export { app, auth, db };
+export { app, auth, db, authPersistenceReady };
