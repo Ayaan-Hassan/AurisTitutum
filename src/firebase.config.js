@@ -1,8 +1,9 @@
 import { initializeApp, getApps, getApp } from "firebase/app";
 import {
+  initializeAuth,
   getAuth,
-  setPersistence,
   browserLocalPersistence,
+  browserPopupRedirectResolver,
 } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
 
@@ -23,24 +24,33 @@ let app;
 let auth;
 let db;
 
-// This promise resolves once browserLocalPersistence has been applied to auth.
-// AuthContext awaits this before doing any auth operations, guaranteeing that
-// sessions survive page refreshes and browser restarts.
-let authPersistenceReady = Promise.resolve();
+// authPersistenceReady is kept as a resolved promise so AuthContext can still
+// `await authPersistenceReady` without any changes. Persistence is guaranteed
+// at construction time via initializeAuth, so no async race is possible.
+const authPersistenceReady = Promise.resolve();
 
 try {
   if (isFirebaseConfigured) {
     app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
-    auth = getAuth(app);
 
-    // Apply local persistence — this is what keeps users logged in across
-    // restarts. We capture the promise so callers can await it before any
-    // sign-in/sign-out action.
-    authPersistenceReady = setPersistence(auth, browserLocalPersistence).catch(
-      (error) => {
-        console.error("Firebase auth persistence error:", error);
-      },
-    );
+    // initializeAuth is the correct approach for guaranteed persistence.
+    // Unlike getAuth() + setPersistence() (which is async and can race with
+    // onAuthStateChanged), initializeAuth applies persistence synchronously
+    // at construction time — so sessions always survive browser/PC restarts.
+    //
+    // IMPORTANT: browserPopupRedirectResolver MUST be passed here so that
+    // signInWithPopup (Google login) and signInWithRedirect (mobile OAuth)
+    // continue to work correctly.
+    try {
+      auth = initializeAuth(app, {
+        persistence: browserLocalPersistence,
+        popupRedirectResolver: browserPopupRedirectResolver,
+      });
+    } catch (_alreadyInitialized) {
+      // Vite HMR re-runs this module on hot-reload, and initializeAuth throws
+      // if the auth instance already exists. getAuth() returns the existing one.
+      auth = getAuth(app);
+    }
 
     db = getFirestore(app);
   } else {
