@@ -30,7 +30,7 @@ const compressImage = (base64Str) => {
   });
 };
 
-const Onboarding = ({ onAddHabit, habits = [], userConfig: propUserConfig, updateUserConfig: propUpdateUserConfig }) => {
+const Onboarding = ({ onAddHabit, habits = [], userConfig: propUserConfig, updateUserConfig: propUpdateUserConfig, dataLoading = false }) => {
   const { user } = useAuth();
   const { theme, setTheme } = useTheme();
   const location = useLocation();
@@ -62,7 +62,10 @@ const Onboarding = ({ onAddHabit, habits = [], userConfig: propUserConfig, updat
     }
   }, [sessionTrigger]);
 
-  const isNewUser = !isComplete && habits.length === 0 && user?.uid;
+  // Do NOT show while data is still loading — this prevents the flash where
+  // an existing user's habits haven't arrived from Firestore yet and
+  // habits.length === 0 temporarily makes them look like a new user.
+  const isNewUser = !isComplete && habits.length === 0 && user?.uid && !dataLoading && userConfig !== undefined && userConfig !== null;
   const shouldShow = sessionTrigger || isNewUser;
 
   if (!shouldShow || !isDashboard || isInitializing) return null;

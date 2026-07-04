@@ -78,7 +78,7 @@ const Contact = () => {
 
       <Card className="flex-1 relative overflow-hidden rounded-xl bg-card-bg/50 border-border-color shadow-lg">
         <div className="absolute top-0 right-0 w-64 h-64 bg-accent/5 blur-[80px] pointer-events-none" />
-        <div className="relative z-10 p-4 sm:p-8 w-full mx-auto">
+        <div className="relative z-10 p-4 sm:p-6 w-full mx-auto">
           {!user ? (
             <div className="py-20 flex flex-col items-center justify-center text-center animate-in fade-in zoom-in duration-500">
                <div className="w-16 h-16 rounded-2xl bg-accent/10 flex items-center justify-center text-accent mb-6">
@@ -118,14 +118,14 @@ const Contact = () => {
 
               <form onSubmit={handleSubmit} className="space-y-6">
                 {/* Verified user card banner */}
-                <div className="p-4 bg-accent/5 rounded-xl border border-accent/20 flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 mb-2">
-                    <div className="flex items-center gap-3 sm:gap-4">
-                        <div className="w-10 h-10 rounded-full bg-accent/20 flex items-center justify-center text-accent font-bold">
+                <div className="p-3 sm:p-4 bg-accent/5 rounded-xl border border-accent/20 flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 mb-2">
+                    <div className="flex items-center gap-3">
+                        <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-accent/20 flex items-center justify-center text-accent font-bold shrink-0">
                             {(user?.displayName || user?.name || "A").charAt(0)}
                         </div>
-                        <div>
-                            <p className="text-xs font-bold text-text-primary">{user?.displayName || user?.name || "Anonymous User"}</p>
-                            <p className="text-[10px] text-text-secondary opacity-70 truncate max-w-[200px] sm:max-w-none">{user?.email || "No email linked"}</p>
+                        <div className="min-w-0">
+                            <p className="text-xs font-bold text-text-primary truncate">{user?.displayName || user?.name || "Anonymous User"}</p>
+                            <p className="text-[10px] text-text-secondary opacity-70 truncate">{user?.email || "No email linked"}</p>
                         </div>
                     </div>
                     <div className="sm:ml-auto px-2 py-1 bg-accent/10 rounded text-[8px] font-black uppercase text-accent tracking-tighter w-fit">Verified Session</div>

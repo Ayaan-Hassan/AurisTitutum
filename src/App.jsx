@@ -450,6 +450,7 @@ function AppContent() {
         habits={habits} 
         userConfig={userConfig}
         updateUserConfig={unifiedUpdateUserConfig}
+        dataLoading={dataLoading}
       />
       <Routes>
         {/* Public Landing — redirects to /app if already authenticated */}

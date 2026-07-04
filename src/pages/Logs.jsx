@@ -232,7 +232,7 @@ const Logs = ({ habits, setHabits, setFeatureLockConfig }) => {
             All activity entries across habits with full details.
           </p>
 
-          <div className="mt-3 inline-flex rounded-xl border border-border-color bg-accent-dim p-1 flex-wrap">
+          <div className="mt-3 flex rounded-xl border border-border-color bg-accent-dim p-1 w-full sm:w-auto sm:inline-flex flex-wrap gap-0.5">
             {[
               { key: "all", label: `All (${counts.all})` },
               { key: "good", label: `Constructive (${counts.good})` },
@@ -242,7 +242,7 @@ const Logs = ({ habits, setHabits, setFeatureLockConfig }) => {
                 key={f.key}
                 type="button"
                 onClick={() => setFilter(f.key)}
-                className={`px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-widest whitespace-nowrap ${filter === f.key
+                className={`flex-1 sm:flex-none px-3 py-2 rounded-lg text-[10px] font-bold uppercase tracking-widest text-center whitespace-nowrap min-w-0 ${filter === f.key
                   ? "bg-accent text-bg-main"
                   : "text-text-secondary hover:text-text-primary"
                   }`}

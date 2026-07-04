@@ -26,22 +26,11 @@ export default function AurisChat({ user, isOpen, onClose, userConfig, habits, n
   const [conversationWordCount, setConversationWordCount] = useState(0);
 
   // UI state
-  const [showMenu, setShowMenu] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
   const [isSavingConv, setIsSavingConv] = useState(false);
 
   const messagesEndRef = useRef(null);
-  const menuRef = useRef(null);
-
-  // ─── Close menu when clicking outside ────────────────────────────────────────
-  useEffect(() => {
-    if (!showMenu) return;
-    const handler = (e) => {
-      if (menuRef.current && !menuRef.current.contains(e.target)) setShowMenu(false);
-    };
-    document.addEventListener('mousedown', handler);
-    return () => document.removeEventListener('mousedown', handler);
-  }, [showMenu]);
+  const isNewSessionRef = useRef(false); // Prevents Firestore snapshot from overwriting a fresh new conversation
 
   // ─── Scroll to bottom on new messages ────────────────────────────────────────
   useEffect(() => {
@@ -64,8 +53,9 @@ export default function AurisChat({ user, isOpen, onClose, userConfig, habits, n
       const convs = snap.docs.map(d => ({ id: d.id, ...d.data() }));
       setConversations(convs);
 
-      // If we have no active conversation yet, load the most recent one
-      if (!activeConvId && convs.length > 0 && messages.length <= 1) {
+      // Only auto-load the most recent conversation if we don't already
+      // have an active conversation AND the user didn't just press New
+      if (!activeConvId && convs.length > 0 && messages.length <= 1 && !isNewSessionRef.current) {
         const latest = convs[0];
         setActiveConvId(latest.id);
         setMessages(latest.messages || [INITIAL_MESSAGE]);
@@ -112,11 +102,13 @@ export default function AurisChat({ user, isOpen, onClose, userConfig, habits, n
 
   // ─── Start a new conversation ─────────────────────────────────────────────────
   const handleNewConversation = () => {
+    isNewSessionRef.current = true; // block Firestore snapshot from auto-loading last conv
     setActiveConvId(null);
     setMessages([INITIAL_MESSAGE]);
     setConversationWordCount(0);
-    setShowMenu(false);
     setShowHistory(false);
+    // Allow auto-load again after 3s (in case user navigates away and back)
+    setTimeout(() => { isNewSessionRef.current = false; }, 3000);
   };
 
   // ─── Delete the current conversation ─────────────────────────────────────────
@@ -131,7 +123,6 @@ export default function AurisChat({ user, isOpen, onClose, userConfig, habits, n
     } catch (err) {
       console.warn('Failed to delete conversation:', err);
     }
-    setShowMenu(false);
   };
 
   // ─── Load a past conversation ─────────────────────────────────────────────────
@@ -140,7 +131,6 @@ export default function AurisChat({ user, isOpen, onClose, userConfig, habits, n
     setMessages(conv.messages || [INITIAL_MESSAGE]);
     setConversationWordCount(conv.wordCount || 0);
     setShowHistory(false);
-    setShowMenu(false);
   };
 
   // ─── Network / AI helpers ─────────────────────────────────────────────────────
@@ -484,10 +474,10 @@ export default function AurisChat({ user, isOpen, onClose, userConfig, habits, n
 
   // ─── Header ───────────────────────────────────────────────────────────────────
   const renderHeader = (compact = false) => (
-    <div className={`flex items-center justify-between ${compact ? 'p-4' : 'p-5'} border-b border-border-color shrink-0`}>
-      <div className="flex items-center gap-3 sm:gap-4">
-        <div className={`${compact ? 'w-9 h-9' : 'w-11 h-11'} rounded-xl bg-accent/20 flex items-center justify-center`}>
-          <Icon name="brain" size={compact ? 18 : 22} className="text-accent" />
+    <div className={`flex items-center justify-between ${compact ? 'p-3.5' : 'p-5'} border-b border-border-color shrink-0`}>
+      <div className="flex items-center gap-3">
+        <div className={`${compact ? 'w-8 h-8' : 'w-11 h-11'} rounded-xl bg-accent/20 flex items-center justify-center shrink-0`}>
+          <Icon name="brain" size={compact ? 16 : 22} className="text-accent" />
         </div>
         <div>
           <h2 className={`font-black tracking-tight text-text-primary ${compact ? 'text-sm' : 'text-lg'}`}>Titum AI</h2>
@@ -495,49 +485,41 @@ export default function AurisChat({ user, isOpen, onClose, userConfig, habits, n
         </div>
       </div>
 
-      <div className="flex items-center gap-2">
-        {/* History button */}
+      <div className="flex items-center gap-1.5">
+        {/* New Conversation */}
         <button
-          onClick={() => { setShowHistory(!showHistory); setShowMenu(false); }}
-          title="Conversation History"
-          className={`${compact ? 'w-8 h-8' : 'w-9 h-9'} rounded-lg border border-border-color flex items-center justify-center text-text-secondary hover:text-accent hover:bg-accent/10 transition-colors ${showHistory ? 'bg-accent/10 text-accent' : ''}`}
+          onClick={handleNewConversation}
+          title="New Conversation"
+          className={`${compact ? 'w-8 h-8' : 'w-9 h-9'} rounded-lg border border-border-color flex items-center justify-center text-text-secondary hover:text-accent hover:bg-accent/10 hover:border-accent/30 transition-all`}
         >
-          <Icon name="message-square" size={compact ? 13 : 15} />
+          <Icon name="plus" size={compact ? 14 : 16} />
         </button>
 
-        {/* More menu */}
-        <div className="relative" ref={menuRef}>
+        {/* History / All Chats */}
+        <button
+          onClick={() => { setShowHistory(!showHistory); }}
+          title="Conversation History"
+          className={`${compact ? 'w-8 h-8' : 'w-9 h-9'} rounded-lg border border-border-color flex items-center justify-center transition-all ${
+            showHistory
+              ? 'bg-accent/10 text-accent border-accent/30'
+              : 'text-text-secondary hover:text-accent hover:bg-accent/10 hover:border-accent/30'
+          }`}
+        >
+          <Icon name="menu" size={compact ? 14 : 16} />
+        </button>
+
+        {/* Delete Current Chat — only shown when a conv is active */}
+        {activeConvId && (
           <button
-            onClick={() => setShowMenu(!showMenu)}
-            title="Options"
-            className={`${compact ? 'w-8 h-8' : 'w-9 h-9'} rounded-lg border border-border-color flex items-center justify-center text-text-secondary hover:text-text-primary hover:bg-white/5 transition-colors`}
+            onClick={() => handleDeleteConversation(null)}
+            title="Delete This Conversation"
+            className={`${compact ? 'w-8 h-8' : 'w-9 h-9'} rounded-lg border border-border-color flex items-center justify-center text-text-secondary hover:text-red-400 hover:bg-red-400/10 hover:border-red-400/30 transition-all`}
           >
-            <Icon name="more-vertical" size={compact ? 13 : 15} />
+            <Icon name="trash" size={compact ? 13 : 15} />
           </button>
+        )}
 
-          {showMenu && (
-            <div className="absolute right-0 top-full mt-1 w-48 bg-bg-main border border-border-color rounded-xl shadow-2xl shadow-black/40 z-50 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-150">
-              <button
-                onClick={handleNewConversation}
-                className="w-full px-4 py-3 text-left text-xs font-semibold text-text-primary hover:bg-white/5 transition-colors flex items-center gap-3"
-              >
-                <Icon name="plus" size={14} className="text-accent" />
-                New Conversation
-              </button>
-              {activeConvId && (
-                <button
-                  onClick={() => handleDeleteConversation(null)}
-                  className="w-full px-4 py-3 text-left text-xs font-semibold text-red-400 hover:bg-red-400/10 transition-colors flex items-center gap-3"
-                >
-                  <Icon name="trash" size={14} />
-                  Delete This Conversation
-                </button>
-              )}
-            </div>
-          )}
-        </div>
-
-        {/* Close button */}
+        {/* Close */}
         <button
           onClick={onClose}
           className={`${compact ? 'w-8 h-8' : 'w-9 h-9'} rounded-lg border border-border-color flex items-center justify-center text-text-secondary hover:text-text-primary transition-colors`}

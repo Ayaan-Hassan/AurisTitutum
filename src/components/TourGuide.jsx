@@ -158,22 +158,13 @@ const TourGuide = ({ habits: propHabits, userConfig: propUserConfig, updateUserC
                 const el = document.getElementById(step.targetId);
                 if (el) {
                     el.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'center' });
-                    
-                    // Initial rect capture
-                    let captureRetries = 0;
-                    const captureRect = () => {
+                    // Single clean rect capture after a settle delay — no re-polling loop
+                    checkTimeoutId = setTimeout(() => {
                         const currentEl = document.getElementById(step.targetId);
                         if (currentEl) {
-                            const rect = currentEl.getBoundingClientRect();
-                            setTargetRect(rect);
-                            // If it's still moving or being calculated, retry a few times
-                            if (captureRetries < 20) {
-                                captureRetries++;
-                                setTimeout(captureRect, 100);
-                            }
+                            setTargetRect(currentEl.getBoundingClientRect());
                         }
-                    };
-                    setTimeout(captureRect, 300);
+                    }, 350);
                 } else {
                     retries++;
                     if (retries < 15) { // Try for 1.5s
@@ -188,10 +179,18 @@ const TourGuide = ({ habits: propHabits, userConfig: propUserConfig, updateUserC
         };
 
         findAndSetTarget();
-        window.addEventListener('resize', findAndSetTarget);
+
+        // Debounced resize handler — prevents jitter from continuous recalculation
+        let resizeTimer;
+        const handleResize = () => {
+            clearTimeout(resizeTimer);
+            resizeTimer = setTimeout(findAndSetTarget, 250);
+        };
+        window.addEventListener('resize', handleResize);
         return () => {
-            window.removeEventListener('resize', findAndSetTarget);
+            window.removeEventListener('resize', handleResize);
             if (checkTimeoutId) clearTimeout(checkTimeoutId);
+            clearTimeout(resizeTimer);
         };
     }, [activeStepIndex, isMobile]);
 

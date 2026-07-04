@@ -1,4 +1,4 @@
-import React, { useMemo, useState, useEffect, useRef } from "react";
+﻿import React, { useMemo, useState, useEffect, useRef } from "react";
 import { Link } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
 import Icon from "../components/Icon";
@@ -614,25 +614,23 @@ const Dashboard = ({ habits, notes, logActivity, insights, dataLoading }) => {
               const isFull = streak === target;
 
               return (
-                <div key={h.id} className={`relative flex flex-col sm:flex-row sm:items-center justify-between gap-3.5 p-3.5 border rounded-xl group transition-all overflow-hidden ${isWhite ? 'bg-white border-white shadow-[0_0_15px_rgba(255,255,255,0.3)] scale-[1.02]' : 'bg-accent-dim border-border-color hover:border-text-secondary'}`}>
+                <div key={h.id} className={`relative flex flex-col justify-between border rounded-xl group transition-all overflow-hidden ${isWhite ? 'bg-white border-white shadow-[0_0_15px_rgba(255,255,255,0.3)] scale-[1.02]' : 'bg-accent-dim border-border-color hover:border-text-secondary'}`}>
                   {/* Adaptive Progress Bar */}
-                  <div 
-                    className={`absolute left-0 top-0 bottom-0 z-0 transition-[width] duration-1000 [transition-timing-function:cubic-bezier(0.16,1,0.3,1)] flex items-start overflow-hidden ${isWhite ? 'bg-black/10' : 'bg-white/10'}`} 
+                  <div
+                    className={`absolute left-0 top-0 bottom-0 z-0 transition-[width] duration-1000 [transition-timing-function:cubic-bezier(0.16,1,0.3,1)] flex items-start overflow-hidden ${isWhite ? 'bg-black/10' : 'bg-white/10'}`}
                     style={{ width: `${progress}%` }}
                   >
-                      {/* Flowing Animation Effect */}
                       <div className={`absolute inset-0 bg-gradient-to-r from-transparent via-${isWhite ? 'black/10' : 'white/20'} to-transparent animate-shimmer`} style={{ width: '200%' }} />
                       {isFull && (
                         <div className={`w-[200%] h-4 absolute top-[-5px] left-0 animate-wave rounded-[50%] ${isWhite ? 'bg-white/20' : 'bg-white/30'}`} />
                       )}
                   </div>
-                  
-                  <div className="flex items-center gap-3 min-w-0 relative z-10 w-full sm:w-auto">
+
+                  {/* MOBILE ONLY: Top row â€” icon + name + streak */}
+                  <div className="flex items-center gap-3 min-w-0 relative z-10 p-3.5 sm:hidden">
                     <div className={`w-7 h-7 rounded-lg shrink-0 flex items-center justify-center border ${isWhite ? "bg-black/5 border-black/10" : isGood ? "bg-accent/10 border-accent/30" : "bg-bg-main border-border-color"}`}>
                       {h.emoji ? (
-                        <span className="leading-none" style={{ filter: "grayscale(1) saturate(0) brightness(1.2)", fontSize: "0.8rem" }}>
-                          {h.emoji}
-                        </span>
+                        <span className="leading-none" style={{ filter: "grayscale(1) saturate(0) brightness(1.2)", fontSize: "0.8rem" }}>{h.emoji}</span>
                       ) : (
                         <Icon name={isGood ? "check-circle" : "alert-circle"} size={13} className={isWhite ? "text-black" : isGood ? "text-accent" : "text-text-secondary"} />
                       )}
@@ -643,75 +641,70 @@ const Dashboard = ({ habits, notes, logActivity, insights, dataLoading }) => {
                         {h.isPinned && <Icon name="pin" size={10} className={`${isWhite ? 'text-black/40' : 'text-accent'} rotate-45`} />}
                         {h.adminCreated && <span className="ml-2 px-1 py-0.5 rounded bg-black text-white text-[7px] font-black uppercase tracking-tighter align-middle">Admin Stream</span>}
                       </div>
-                      <div className={`text-[10px] uppercase font-mono truncate ${isWhite ? "text-black/60" : "text-text-secondary"}`}>
-                        {streakLabel} · {streak} / {target} DAY STREAK
-                      </div>
+                      <div className={`text-[10px] uppercase font-mono truncate ${isWhite ? "text-black/60" : "text-text-secondary"}`}>{streakLabel} Â· {streak} / {target} DAY STREAK</div>
                     </div>
                   </div>
-                  <div className="flex items-center gap-1.5 shrink-0 w-full sm:w-auto justify-end sm:justify-start relative z-10">
-                    <Button id={i === 0 ? "tour-habit-performance" : undefined} onClick={() => setPerformanceTarget(h.id)} size="sm" variant="outline" icon="bar-chart-2" className="bg-bg-main rounded-lg w-8 h-8 p-0" title="Habit performance" />
 
-                    {h.mode === "timer" ? (
-                      <DashboardTimerControl habitId={h.id} logActivity={logActivity} />
-                    ) : h.mode === "upload" ? (
-                      <DashboardUploadControl habit={h} logActivity={logActivity} />
-                    ) : h.mode === "rating" ? (
-                      <DashboardRatingControl habit={h} logActivity={logActivity} />
-                    ) : h.mode === "check" ? (
-                      <button
-                        onClick={() => logActivity(h.id, !checkedToday)}
-                        className={`w-8 h-8 rounded-lg border-2 flex items-center justify-center transition-all ${checkedToday
-                          ? isGood ? "bg-emerald-500/20 border-emerald-500/70 shadow-[0_0_10px_rgba(52,211,153,0.2)]"
-                            : "bg-red-500/20 border-red-500/70 shadow-[0_0_10px_rgba(239,68,68,0.2)]"
-                          : "border-border-color text-text-secondary hover:border-text-secondary"}`}
-                      >
-                        {checkedToday ? (
-                          isGood ? <svg viewBox="0 0 12 12" width="12" height="12" fill="none"><path d="M1.5 6.5L4.5 9.5L10.5 2.5" stroke="#4ade80" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" /></svg>
-                            : <svg viewBox="0 0 12 12" width="12" height="12" fill="none"><path d="M2 2L10 10M10 2L2 10" stroke="#f87171" strokeWidth="1.8" strokeLinecap="round" /></svg>
-                        ) : <div className="w-2.5 h-2.5 rounded border border-border-color" />}
-                      </button>
-                    ) : h.mode === "count" ? (
-                      <div className="flex items-center gap-1.5 ml-1 mr-1">
-                        <input
-                          type="number"
-                          min="1"
-                          placeholder="0"
-                          className="w-12 h-8 rounded-lg bg-bg-main border border-border-color text-center text-[11px] font-mono text-text-primary px-1"
-                          value={countInputs[h.id] ?? ""}
-                          onChange={(e) =>
-                            setCountInputs((prev) => ({
-                              ...prev,
-                              [h.id]: e.target.value,
-                            }))
-                          }
-                        />
-                        <Button
-                          onClick={() => {
-                            const n = countInputs[h.id];
-                            if (!n) return;
-                            logActivity(h.id, false, Number(n), h.unit || "");
-                            setCountInputs((prev) => ({ ...prev, [h.id]: "" }));
-                          }}
-                          disabled={!countInputs[h.id]}
-                          size="sm" variant="outline" icon="minus" className="bg-bg-main rounded-[6px] w-7 h-7 p-0"
-                        />
-                        <Button
-                          onClick={() => {
-                            const n = countInputs[h.id];
-                            if (!n) return;
-                            logActivity(h.id, true, Number(n), h.unit || "");
-                            setCountInputs((prev) => ({ ...prev, [h.id]: "" }));
-                          }}
-                          disabled={!countInputs[h.id]}
-                          size="sm" variant="primary" icon="plus" className="rounded-[6px] w-7 h-7 p-0"
-                        />
+                  {/* MOBILE ONLY: Bottom row â€” gradient + centered action buttons */}
+                  <div className={`sm:hidden relative z-10 px-3 pb-3 pt-2.5 border-t ${isWhite ? 'border-black/10 bg-gradient-to-b from-black/5 to-transparent' : 'border-white/10 bg-gradient-to-b from-white/5 to-transparent'}`}>
+                    <div className="flex items-center justify-center gap-2 flex-wrap">
+                      <Button id={i === 0 ? "tour-habit-performance" : undefined} onClick={() => setPerformanceTarget(h.id)} size="sm" variant="outline" icon="bar-chart-2" className="bg-bg-main rounded-lg w-9 h-9 p-0" title="Habit performance" />
+                      {h.mode === "timer" ? (
+                        <DashboardTimerControl habitId={h.id} logActivity={logActivity} />
+                      ) : h.mode === "upload" ? (
+                        <DashboardUploadControl habit={h} logActivity={logActivity} />
+                      ) : h.mode === "rating" ? (
+                        <DashboardRatingControl habit={h} logActivity={logActivity} />
+                      ) : h.mode === "check" ? (
+                        <button onClick={() => logActivity(h.id, !checkedToday)} className={`w-9 h-9 rounded-lg border-2 flex items-center justify-center transition-all ${checkedToday ? isGood ? "bg-emerald-500/20 border-emerald-500/70" : "bg-red-500/20 border-red-500/70" : "border-border-color text-text-secondary"}`}>
+                          {checkedToday ? (isGood ? <svg viewBox="0 0 12 12" width="12" height="12" fill="none"><path d="M1.5 6.5L4.5 9.5L10.5 2.5" stroke="#4ade80" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" /></svg> : <svg viewBox="0 0 12 12" width="12" height="12" fill="none"><path d="M2 2L10 10M10 2L2 10" stroke="#f87171" strokeWidth="1.8" strokeLinecap="round" /></svg>) : <div className="w-2.5 h-2.5 rounded border border-border-color" />}
+                        </button>
+                      ) : h.mode === "count" ? (
+                        <div className="flex items-center gap-1.5">
+                          <input type="number" min="1" placeholder="0" className="w-12 h-9 rounded-lg bg-bg-main border border-border-color text-center text-[11px] font-mono text-text-primary px-1" value={countInputs[h.id] ?? ""} onChange={(e) => setCountInputs((prev) => ({ ...prev, [h.id]: e.target.value }))} />
+                          <Button onClick={() => { const n = countInputs[h.id]; if (!n) return; logActivity(h.id, false, Number(n), h.unit || ""); setCountInputs((prev) => ({ ...prev, [h.id]: "" })); }} disabled={!countInputs[h.id]} size="sm" variant="outline" icon="minus" className="bg-bg-main rounded-[6px] w-8 h-8 p-0" />
+                          <Button onClick={() => { const n = countInputs[h.id]; if (!n) return; logActivity(h.id, true, Number(n), h.unit || ""); setCountInputs((prev) => ({ ...prev, [h.id]: "" })); }} disabled={!countInputs[h.id]} size="sm" variant="primary" icon="plus" className="rounded-[6px] w-8 h-8 p-0" />
+                        </div>
+                      ) : (
+                        <>
+                          <Button onClick={() => logActivity(h.id, false)} size="sm" variant="outline" icon="minus" className="bg-bg-main rounded-lg w-9 h-9 p-0" />
+                          <Button onClick={() => logActivity(h.id, true)} size="sm" variant="primary" icon="plus" className="rounded-lg w-9 h-9 p-0" />
+                        </>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* DESKTOP sm+: Side-by-side layout */}
+                  <div className="hidden sm:flex sm:items-center sm:justify-between gap-3.5 p-3.5 relative z-10">
+                    <div className="flex items-center gap-3 min-w-0">
+                      <div className={`w-7 h-7 rounded-lg shrink-0 flex items-center justify-center border ${isWhite ? "bg-black/5 border-black/10" : isGood ? "bg-accent/10 border-accent/30" : "bg-bg-main border-border-color"}`}>
+                        {h.emoji ? (<span className="leading-none" style={{ filter: "grayscale(1) saturate(0) brightness(1.2)", fontSize: "0.8rem" }}>{h.emoji}</span>) : (<Icon name={isGood ? "check-circle" : "alert-circle"} size={13} className={isWhite ? "text-black" : isGood ? "text-accent" : "text-text-secondary"} />)}
                       </div>
-                    ) : (
-                      <>
-                        <Button onClick={() => logActivity(h.id, false)} size="sm" variant="outline" icon="minus" className="bg-bg-main rounded-lg w-8 h-8 p-0" />
-                        <Button onClick={() => logActivity(h.id, true)} size="sm" variant="primary" icon="plus" className="rounded-lg w-8 h-8 p-0" />
-                      </>
-                    )}
+                      <div className="min-w-0 flex-1">
+                        <div className={`text-sm font-bold truncate flex items-center gap-2 ${isWhite ? "text-black" : "text-text-primary"}`}>
+                          {h.name}
+                          {h.isPinned && <Icon name="pin" size={10} className={`${isWhite ? 'text-black/40' : 'text-accent'} rotate-45`} />}
+                          {h.adminCreated && <span className="ml-2 px-1 py-0.5 rounded bg-black text-white text-[7px] font-black uppercase tracking-tighter align-middle">Admin Stream</span>}
+                        </div>
+                        <div className={`text-[10px] uppercase font-mono truncate ${isWhite ? "text-black/60" : "text-text-secondary"}`}>{streakLabel} Â· {streak} / {target} DAY STREAK</div>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      <Button id={i === 0 ? "tour-habit-performance" : undefined} onClick={() => setPerformanceTarget(h.id)} size="sm" variant="outline" icon="bar-chart-2" className="bg-bg-main rounded-lg w-8 h-8 p-0" title="Habit performance" />
+                      {h.mode === "timer" ? (<DashboardTimerControl habitId={h.id} logActivity={logActivity} />) : h.mode === "upload" ? (<DashboardUploadControl habit={h} logActivity={logActivity} />) : h.mode === "rating" ? (<DashboardRatingControl habit={h} logActivity={logActivity} />) : h.mode === "check" ? (
+                        <button onClick={() => logActivity(h.id, !checkedToday)} className={`w-8 h-8 rounded-lg border-2 flex items-center justify-center transition-all ${checkedToday ? isGood ? "bg-emerald-500/20 border-emerald-500/70 shadow-[0_0_10px_rgba(52,211,153,0.2)]" : "bg-red-500/20 border-red-500/70 shadow-[0_0_10px_rgba(239,68,68,0.2)]" : "border-border-color text-text-secondary hover:border-text-secondary"}`}>
+                          {checkedToday ? (isGood ? <svg viewBox="0 0 12 12" width="12" height="12" fill="none"><path d="M1.5 6.5L4.5 9.5L10.5 2.5" stroke="#4ade80" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" /></svg> : <svg viewBox="0 0 12 12" width="12" height="12" fill="none"><path d="M2 2L10 10M10 2L2 10" stroke="#f87171" strokeWidth="1.8" strokeLinecap="round" /></svg>) : <div className="w-2.5 h-2.5 rounded border border-border-color" />}
+                        </button>
+                      ) : h.mode === "count" ? (
+                        <div className="flex items-center gap-1.5 ml-1 mr-1">
+                          <input type="number" min="1" placeholder="0" className="w-12 h-8 rounded-lg bg-bg-main border border-border-color text-center text-[11px] font-mono text-text-primary px-1" value={countInputs[h.id] ?? ""} onChange={(e) => setCountInputs((prev) => ({ ...prev, [h.id]: e.target.value }))} />
+                          <Button onClick={() => { const n = countInputs[h.id]; if (!n) return; logActivity(h.id, false, Number(n), h.unit || ""); setCountInputs((prev) => ({ ...prev, [h.id]: "" })); }} disabled={!countInputs[h.id]} size="sm" variant="outline" icon="minus" className="bg-bg-main rounded-[6px] w-7 h-7 p-0" />
+                          <Button onClick={() => { const n = countInputs[h.id]; if (!n) return; logActivity(h.id, true, Number(n), h.unit || ""); setCountInputs((prev) => ({ ...prev, [h.id]: "" })); }} disabled={!countInputs[h.id]} size="sm" variant="primary" icon="plus" className="rounded-[6px] w-7 h-7 p-0" />
+                        </div>
+                      ) : (
+                        <><Button onClick={() => logActivity(h.id, false)} size="sm" variant="outline" icon="minus" className="bg-bg-main rounded-lg w-8 h-8 p-0" /><Button onClick={() => logActivity(h.id, true)} size="sm" variant="primary" icon="plus" className="rounded-lg w-8 h-8 p-0" /></>
+                      )}
+                    </div>
                   </div>
                 </div>
               );

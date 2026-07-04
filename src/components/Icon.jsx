@@ -81,7 +81,8 @@ import {
     MessageSquare,
     ChevronLeft,
     ChevronRight,
-    MoreVertical
+    MoreVertical,
+    Menu
 } from 'lucide-react';
 
 
@@ -170,7 +171,8 @@ const Icon = ({ name, size = 18, className = "" }) => {
         'message-square': MessageSquare,
         'chevron-left': ChevronLeft,
         'chevron-right': ChevronRight,
-        'more-vertical': MoreVertical
+        'more-vertical': MoreVertical,
+        'menu': Menu
     };
 
 
