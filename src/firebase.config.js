@@ -31,7 +31,13 @@ const authPersistenceReady = Promise.resolve();
 
 try {
   if (isFirebaseConfigured) {
+    console.log("[Firebase Init] Initializing Firebase App with config:", {
+      apiKey: firebaseConfig.apiKey ? "PRESENT" : "MISSING",
+      authDomain: firebaseConfig.authDomain,
+      projectId: firebaseConfig.projectId
+    });
     app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
+    console.log("[Firebase Init] Firebase App initialized:", app.name);
 
     // initializeAuth is the correct approach for guaranteed persistence.
     // Unlike getAuth() + setPersistence() (which is async and can race with
@@ -42,14 +48,18 @@ try {
     // signInWithPopup (Google login) and signInWithRedirect (mobile OAuth)
     // continue to work correctly.
     try {
+      console.log("[Firebase Init] Calling initializeAuth with browserLocalPersistence");
       auth = initializeAuth(app, {
         persistence: browserLocalPersistence,
         popupRedirectResolver: browserPopupRedirectResolver,
       });
+      console.log("[Firebase Init] initializeAuth succeeded. Persistence type:", browserLocalPersistence.type);
     } catch (_alreadyInitialized) {
       // Vite HMR re-runs this module on hot-reload, and initializeAuth throws
       // if the auth instance already exists. getAuth() returns the existing one.
+      console.log("[Firebase Init] Auth already initialized (HMR), calling getAuth()");
       auth = getAuth(app);
+      console.log("[Firebase Init] getAuth returned. Current Auth Persistence:", auth.persistence || "unknown");
     }
 
     db = getFirestore(app);

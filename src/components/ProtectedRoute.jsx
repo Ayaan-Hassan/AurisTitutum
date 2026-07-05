@@ -15,8 +15,12 @@ import { useAuth } from '../contexts/AuthContext';
  * No component inside /app/* should need to check auth state for access control.
  */
 const ProtectedRoute = ({ children }) => {
-    const { isAuthenticated, authLoading } = useAuth();
+    const { isAuthenticated, authLoading, hasAuthListenerFired } = useAuth();
     const location = useLocation();
+
+    console.log(
+        `[ProtectedRoute] Rendered. authLoading: ${authLoading}, isAuthenticated: ${isAuthenticated}, hasAuthListenerFired: ${hasAuthListenerFired}`
+    );
 
     // Show a branded loading screen while Firebase restores the auth token.
     // This prevents a false redirect to /login on page refresh.
@@ -51,6 +55,11 @@ const ProtectedRoute = ({ children }) => {
     // Auth resolved — gate unauthenticated users to /login.
     // We preserve the originally requested path so the user lands there after sign-in.
     if (!isAuthenticated) {
+        console.log(
+            `[ProtectedRoute] REDIRECTING to /login. Redirect happened ${
+                hasAuthListenerFired ? "AFTER" : "BEFORE"
+            } onAuthStateChanged fired.`
+        );
         return <Navigate to="/login" state={{ from: location }} replace />;
     }
 
