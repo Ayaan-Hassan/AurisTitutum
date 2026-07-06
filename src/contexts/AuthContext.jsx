@@ -758,6 +758,32 @@ export const AuthProvider = ({ children }) => {
       await authPersistenceReady;
       const result = await signInWithPopup(auth, googleProvider);
 
+      console.log("[Google Sign-in Success] result.user:", result.user ? { uid: result.user.uid, email: result.user.email } : "null");
+      console.log("[Google Sign-in Success] auth.currentUser immediately after sign-in:", auth.currentUser ? { uid: auth.currentUser.uid, email: auth.currentUser.email } : "null");
+      
+      if (auth && typeof auth.authStateReady === 'function') {
+        console.log("[Google Sign-in Success] auth.authStateReady is available. Awaiting...");
+        await auth.authStateReady();
+        console.log("[Google Sign-in Success] auth.authStateReady resolved. auth.currentUser is now:", auth.currentUser ? { uid: auth.currentUser.uid, email: auth.currentUser.email } : "null");
+      } else {
+        console.log("[Google Sign-in Success] auth.authStateReady is not available on this SDK version.");
+      }
+
+      console.log("[Google Sign-in Success] Auth persistence config:", auth.config ? auth.config.persistence : "not found on auth.config");
+      console.log("[Google Sign-in Success] Inspecting auth instance keys:", Object.keys(auth));
+
+      try {
+        if (window.indexedDB) {
+          const testDB = window.indexedDB.open("firebase-persistence-test");
+          testDB.onsuccess = () => console.log("[Google Sign-in Success] Diagnostic test: IndexedDB is accessible in this browser.");
+          testDB.onerror = (e) => console.error("[Google Sign-in Success] Diagnostic test: IndexedDB access failed.", e);
+        } else {
+          console.warn("[Google Sign-in Success] Diagnostic test: window.indexedDB is undefined in this environment.");
+        }
+      } catch (dbErr) {
+        console.error("[Google Sign-in Success] Diagnostic test: Exception when trying to access IndexedDB:", dbErr);
+      }
+
       // Strict Ban Check (skip for admin)
       if (!isAdminUid(result.user.uid)) {
         const userDoc = await getDoc(doc(db, "users", result.user.uid));
@@ -770,6 +796,7 @@ export const AuthProvider = ({ children }) => {
       trackEvent("login", { method: "google" });
       return { success: true, user: result.user };
     } catch (err) {
+      console.error("[Google Sign-in Error] Exception caught:", err);
       const errorMessage = getErrorMessage(err.code);
       setError(errorMessage);
       return { success: false, error: errorMessage };

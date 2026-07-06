@@ -2,6 +2,7 @@ import { initializeApp, getApps, getApp } from "firebase/app";
 import {
   initializeAuth,
   getAuth,
+  indexedDBLocalPersistence,
   browserLocalPersistence,
   browserPopupRedirectResolver,
 } from "firebase/auth";
@@ -48,18 +49,21 @@ try {
     // signInWithPopup (Google login) and signInWithRedirect (mobile OAuth)
     // continue to work correctly.
     try {
-      console.log("[Firebase Init] Calling initializeAuth with browserLocalPersistence");
+      console.log("[Firebase Init] Calling initializeAuth with indexedDBLocalPersistence and browserLocalPersistence fallback");
       auth = initializeAuth(app, {
-        persistence: browserLocalPersistence,
+        persistence: [indexedDBLocalPersistence, browserLocalPersistence],
         popupRedirectResolver: browserPopupRedirectResolver,
       });
-      console.log("[Firebase Init] initializeAuth succeeded. Persistence type:", browserLocalPersistence.type);
+      console.log("[Firebase Init] initializeAuth succeeded.");
+      console.log("[Firebase Init] Configured persistence:", auth.config ? auth.config.persistence : "unknown");
+      console.log("[Firebase Init] Actual runtime persistence manager:", auth.persistenceManager ? auth.persistenceManager.constructor.name : "none");
     } catch (_alreadyInitialized) {
       // Vite HMR re-runs this module on hot-reload, and initializeAuth throws
       // if the auth instance already exists. getAuth() returns the existing one.
       console.log("[Firebase Init] Auth already initialized (HMR), calling getAuth()");
       auth = getAuth(app);
       console.log("[Firebase Init] getAuth returned. Current Auth Persistence:", auth.persistence || "unknown");
+      console.log("[Firebase Init] Actual HMR persistence manager:", auth.persistenceManager ? auth.persistenceManager.constructor.name : "none");
     }
 
     db = getFirestore(app);
