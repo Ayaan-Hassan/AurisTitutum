@@ -427,6 +427,268 @@ export default function AdminDashboard() {
         };
     }, [userData, usersList, selectedUser, liveTick]);
 
+    // ─────────────────────────────────────────────────────────────────────────
+    // DASHBOARD TXT EXPORT
+    // ─────────────────────────────────────────────────────────────────────────
+    const downloadAllDataTxt = () => {
+        const now = new Date();
+        const dateStr = now.toLocaleDateString("en-US", { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+        const timeStr = now.toLocaleTimeString("en-US", { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true });
+
+        const divider = "═".repeat(70);
+        const thinDivider = "─".repeat(70);
+
+        // ── Section 1: Overall Stats ──
+        const totalOnline = usersList.filter(u => isUserOnline(u)).length + guestOnlineCount;
+        const statsSection = [
+            divider,
+            " SECTION 1 — PLATFORM OVERVIEW",
+            thinDivider,
+            ` Total Users on the Website    : ${usersList.length}`,
+            ` Currently Online              : ${totalOnline}`,
+            ` Total Habits Created          : ${stats.habits}`,
+            ` Total Notes Created           : ${stats.notes}`,
+            ` Total Reminders Set           : ${stats.reminders}`,
+            ` Pending Inquiries             : ${inquiries.filter(i => i.status === 'pending').length}`,
+            divider,
+        ].join("\n");
+
+        // ── Section 2: 30-Day User Density Graph ──
+        const last30Rows = [];
+        const registrationCounts = {};
+        usersList.forEach(u => {
+            if (u.createdAt) {
+                const day = u.createdAt.split('T')[0];
+                registrationCounts[day] = (registrationCounts[day] || 0) + 1;
+            }
+        });
+        const maxCount = Math.max(1, ...Object.values(registrationCounts));
+        const BAR_MAX = 30;
+        for (let i = 29; i >= 0; i--) {
+            const d = new Date();
+            d.setDate(d.getDate() - i);
+            const key = d.toISOString().split('T')[0];
+            const label = d.toLocaleDateString("en-US", { month: 'short', day: '2-digit' });
+            const count = registrationCounts[key] || 0;
+            const barLen = Math.round((count / maxCount) * BAR_MAX);
+            const bar = "█".repeat(barLen) + "░".repeat(BAR_MAX - barLen);
+            last30Rows.push(` ${label}  |${bar}|  ${count} new user${count !== 1 ? 's' : ''}`);
+        }
+        const graphSection = [
+            " SECTION 2 — REAL-TIME USER DENSITY INDEX (LAST 30 DAYS)",
+            thinDivider,
+            " Date         |─── New User Registrations Per Day (Scaled) ───|  Count",
+            thinDivider,
+            ...last30Rows,
+            divider,
+        ].join("\n");
+
+        // ── Section 3: System Inquiries ──
+        const pendingInqs = inquiries.filter(i => i.status !== 'resolved').sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+        const resolvedInqs = inquiries.filter(i => i.status === 'resolved').sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+        const allInqSorted = [...pendingInqs, ...resolvedInqs];
+
+        const formatInquiry = (inq, idx) => [
+            `  [${idx + 1}] STATUS: ${(inq.status || 'pending').toUpperCase()}  |  PRIORITY: ${inq.priority || 'Normal'}  |  TOPIC: ${inq.topic || 'N/A'}`,
+            `      Name    : ${inq.name || 'N/A'}`,
+            `      Email   : ${inq.email || 'N/A'}`,
+            `      Subject : ${inq.subject || 'N/A'}`,
+            `      Message : ${(inq.message || '').replace(/\n/g, '\n              ')}`,
+            `      Received: ${inq.createdAt ? new Date(inq.createdAt).toLocaleString() : 'N/A'}`,
+            thinDivider,
+        ].join("\n");
+
+        const inquiriesSection = [
+            " SECTION 3 — SYSTEM INQUIRIES  (Pending first, then Resolved)",
+            thinDivider,
+            allInqSorted.length === 0
+                ? "  No inquiries found."
+                : allInqSorted.map(formatInquiry).join("\n"),
+            divider,
+        ].join("\n");
+
+        // ── Assemble Full Report ──
+        const report = [
+            divider,
+            " AURISTITUTUM — ADMIN DASHBOARD REPORT",
+            ` Generated On : ${dateStr}`,
+            ` Generated At : ${timeStr}`,
+            divider,
+            "",
+            statsSection,
+            "",
+            graphSection,
+            "",
+            inquiriesSection,
+            "",
+            ` END OF REPORT — AurisTitutum Admin Panel`,
+            divider,
+        ].join("\n");
+
+        const blob = new Blob([report], { type: "text/plain;charset=utf-8" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `AurisTitutum_Dashboard_Report_${now.toISOString().split('T')[0]}.txt`;
+        a.click();
+        URL.revokeObjectURL(url);
+        addToast("Dashboard report downloaded", "success");
+    };
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // USER DIRECTORY CSV EXPORT
+    // ─────────────────────────────────────────────────────────────────────────
+    const [csvDownloading, setCsvDownloading] = useState(false);
+
+    const downloadUserDirectoryCsv = async () => {
+        setCsvDownloading(true);
+        addToast("Fetching full user data, please wait...", "info");
+        try {
+            // Fetch all subcollections via collectionGroup
+            const [habitsSnap, notesSnap, remindersSnap, logsSnap] = await Promise.all([
+                getDocs(query(collectionGroup(db, "habits"))),
+                getDocs(query(collectionGroup(db, "notes"))),
+                getDocs(query(collectionGroup(db, "reminders"))),
+                getDocs(query(collectionGroup(db, "logs"))),
+            ]);
+
+            // Map data by userId
+            const byUser = {};
+            const initUser = (uid) => {
+                if (!byUser[uid]) byUser[uid] = { habits: [], notes: [], reminders: [], logs: [] };
+            };
+
+            habitsSnap.forEach(d => {
+                const parts = d.ref.path.split('/');
+                if (parts[0] === 'users' && parts[2] === 'habits') {
+                    const uid = parts[1];
+                    initUser(uid);
+                    byUser[uid].habits.push({ id: d.id, ...d.data() });
+                }
+            });
+            notesSnap.forEach(d => {
+                const parts = d.ref.path.split('/');
+                if (parts[0] === 'users' && parts[2] === 'notes') {
+                    const uid = parts[1];
+                    initUser(uid);
+                    byUser[uid].notes.push({ id: d.id, ...d.data() });
+                }
+            });
+            remindersSnap.forEach(d => {
+                const parts = d.ref.path.split('/');
+                if (parts[0] === 'users' && parts[2] === 'reminders') {
+                    const uid = parts[1];
+                    initUser(uid);
+                    byUser[uid].reminders.push({ id: d.id, ...d.data() });
+                }
+            });
+            logsSnap.forEach(d => {
+                const parts = d.ref.path.split('/');
+                if (parts[0] === 'users' && parts[2] === 'logs') {
+                    const uid = parts[1];
+                    initUser(uid);
+                    byUser[uid].logs.push({ id: d.id, ...d.data() });
+                }
+            });
+
+            const escCsv = (val) => {
+                const s = String(val ?? '');
+                if (s.includes(',') || s.includes('"') || s.includes('\n')) {
+                    return `"${s.replace(/"/g, '""')}"`;
+                }
+                return s;
+            };
+
+            const formatTime = (exactSeconds, logs, habits, notes) => {
+                const totalLogHits = logs.length;
+                const baseTimeMins = (habits.length * 15) + (totalLogHits * 2.5) + (notes.length * 5);
+                const totalSeconds = (exactSeconds || 0) + Math.floor(baseTimeMins * 60);
+                const h = Math.floor(totalSeconds / 3600);
+                const m = Math.floor((totalSeconds % 3600) / 60);
+                const s = Math.floor(totalSeconds % 60);
+                return h > 0 ? `${h}h ${m}m ${s}s` : m > 0 ? `${m}m ${s}s` : `${s}s`;
+            };
+
+            const headerRow = [
+                "User Name", "User ID", "Email", "Age", "Gender",
+                "Joined Date", "Total Time Spent",
+                "Total Habits Count", "Habit Names",
+                "Total Notes Count", "Note Titles & Content",
+                "Total Reminders Count", "Reminders (Title | Time | Date | Repeat)",
+                "Is Banned", "Is Wiped", "Account Status"
+            ].map(escCsv).join(',');
+
+            const buildRow = (u) => {
+                const sub = byUser[u.id] || { habits: [], notes: [], reminders: [], logs: [] };
+                const habitNames = sub.habits.map(h => h.name || 'Unnamed').join(' | ');
+                const notesContent = sub.notes.map(n => `[${n.title || 'Untitled'}]: ${(n.body || '').substring(0, 120)}`).join(' || ');
+                const reminderDetails = sub.reminders.map(r => `${r.title || 'No Title'} @ ${r.time || '?'} on ${r.date || 'N/A'} (${r.repeat || 'once'})`).join(' | ');
+                const timeSpent = formatTime(u.exactTimeSpent, sub.logs, sub.habits, sub.notes);
+                const status = u.isBanned ? 'BANNED' : u.isWiped ? 'WIPED' : 'ACTIVE';
+
+                return [
+                    u.displayName || 'Unknown',
+                    u.id,
+                    u.email || 'N/A',
+                    u.age || 'N/A',
+                    u.gender || 'N/A',
+                    u.createdAt ? new Date(u.createdAt).toLocaleDateString() : 'N/A',
+                    timeSpent,
+                    sub.habits.length,
+                    habitNames || 'None',
+                    sub.notes.length,
+                    notesContent || 'None',
+                    sub.reminders.length,
+                    reminderDetails || 'None',
+                    u.isBanned ? 'YES' : 'NO',
+                    u.isWiped ? 'YES' : 'NO',
+                    status,
+                ].map(escCsv).join(',');
+            };
+
+            const activeUsers  = usersList.filter(u => !u.isBanned && !u.isWiped);
+            const bannedUsers  = usersList.filter(u => u.isBanned);
+            const wipedUsers   = usersList.filter(u => !u.isBanned && u.isWiped);
+
+            const sectionBreak = (label, count) =>
+                `"\n=== ${label} (${count} user${count !== 1 ? 's' : ''}) ==="`;
+
+            const lines = [
+                `"AurisTitutum — User Directory Export"`,
+                `"Generated: ${new Date().toLocaleString()}"`,
+                `"Total Users: ${usersList.length}"`,
+                '',
+                sectionBreak('ACTIVE USERS', activeUsers.length),
+                headerRow,
+                ...activeUsers.map(buildRow),
+                '',
+                sectionBreak('BANNED USERS', bannedUsers.length),
+                headerRow,
+                ...bannedUsers.map(buildRow),
+                '',
+                sectionBreak('WIPED (DATA CLEARED) USERS', wipedUsers.length),
+                headerRow,
+                ...wipedUsers.map(buildRow),
+            ];
+
+            const csvContent = lines.join('\n');
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `AurisTitutum_UserDirectory_${new Date().toISOString().split('T')[0]}.csv`;
+            a.click();
+            URL.revokeObjectURL(url);
+            addToast(`User directory exported — ${usersList.length} users`, "success");
+        } catch (e) {
+            addToast(`CSV export failed: ${e.message}`, "error");
+            console.error(e);
+        } finally {
+            setCsvDownloading(false);
+        }
+    };
+
+
     if (!isAdmin) {
         return (
             <div className="flex flex-col items-center justify-center p-10 min-h-[400px]">
@@ -446,6 +708,15 @@ export default function AdminDashboard() {
                 </div>
                 <div className="flex items-center gap-3">
                     <Button onClick={fetchStats} variant="outline" size="sm" icon="rotate-ccw" className="border-accent/30 text-accent hover:bg-accent/10">Refresh Data</Button>
+                    <Button
+                        onClick={downloadAllDataTxt}
+                        variant="outline"
+                        size="sm"
+                        icon="download"
+                        className="border-success/30 text-success hover:bg-success/10"
+                    >
+                        Download Report
+                    </Button>
                 </div>
             </div>
 
@@ -494,6 +765,20 @@ export default function AdminDashboard() {
                                             title="Banned Users"
                                         >
                                             <Icon name="user-x" size={14} />
+                                        </button>
+                                        <button
+                                            onClick={downloadUserDirectoryCsv}
+                                            disabled={csvDownloading}
+                                            className={`p-2 rounded-lg border transition-all ${
+                                                csvDownloading
+                                                    ? 'bg-white/5 text-text-secondary border-border-color opacity-50 cursor-not-allowed'
+                                                    : 'bg-white/5 text-accent border-border-color hover:bg-accent/10 hover:border-accent/40 active:scale-90'
+                                            }`}
+                                            title="Download User Directory CSV"
+                                        >
+                                            {csvDownloading
+                                                ? <Icon name="loader-2" size={14} className="animate-spin" />
+                                                : <Icon name="file-spreadsheet" size={14} />}
                                         </button>
                                     </div>
                                 </div>
