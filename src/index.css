@@ -476,3 +476,19 @@ button:hover:not(:disabled),
 .animate-shake {
   animation: shake 0.2s ease-in-out infinite;
 }
+
+@keyframes info-glow {
+  0%, 100% {
+    box-shadow: 0 0 2px rgba(255, 255, 255, 0.1);
+    opacity: 0.65;
+  }
+  50% {
+    box-shadow: 0 0 8px var(--accent);
+    opacity: 1;
+  }
+}
+
+.animate-info-glow {
+  animation: info-glow 2s infinite ease-in-out;
+}
+

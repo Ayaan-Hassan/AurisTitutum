@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import { useLocation } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
-import { useTheme } from "./ThemeProvider";
+
 import { Card } from "./ui/Card";
 import { Button } from "./ui/Button";
 import { Input } from "./ui/Input";
@@ -32,7 +32,7 @@ const compressImage = (base64Str) => {
 
 const Onboarding = ({ onAddHabit, habits = [], userConfig: propUserConfig, updateUserConfig: propUpdateUserConfig, dataLoading = false }) => {
   const { user } = useAuth();
-  const { theme, setTheme } = useTheme();
+
   const location = useLocation();
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
@@ -219,30 +219,7 @@ const Onboarding = ({ onAddHabit, habits = [], userConfig: propUserConfig, updat
               </div>
             </div>
 
-            {/* ── Theme Selector ── */}
-            <div className="space-y-2">
-              <label className="text-[10px] font-black text-text-secondary uppercase tracking-widest block px-1">Interface Theme</label>
-              <div className="grid grid-cols-2 gap-3">
-                <button
-                  type="button"
-                  onClick={() => setTheme('dark')}
-                  className={`flex items-center gap-3 px-4 py-3 rounded-xl border-2 transition-all ${theme === 'dark' ? 'border-accent bg-accent/10 text-accent' : 'border-border-color text-text-secondary hover:border-accent/50'}`}
-                >
-                  <Icon name="moon" size={16} />
-                  <span className="text-xs font-bold">Dark Mode</span>
-                  {theme === 'dark' && <Icon name="check" size={12} className="ml-auto" />}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setTheme('light')}
-                  className={`flex items-center gap-3 px-4 py-3 rounded-xl border-2 transition-all ${theme === 'light' ? 'border-accent bg-accent/10 text-accent' : 'border-border-color text-text-secondary hover:border-accent/50'}`}
-                >
-                  <Icon name="sun" size={16} />
-                  <span className="text-xs font-bold">Light Mode</span>
-                  {theme === 'light' && <Icon name="check" size={12} className="ml-auto" />}
-                </button>
-              </div>
-            </div>
+
 
             <Button
               onClick={saveProfile}

@@ -222,6 +222,7 @@ function AppContent() {
   const [activeUndo, setActiveUndo] = useState(null);
   const undoTimerRef = useRef(null);
   const undoVisibilityTimerRef = useRef(null);
+  const [activeModeInfo, setActiveModeInfo] = useState(null);
 
   const authCtx = useAuth();
   useEffect(() => {
@@ -252,6 +253,7 @@ function AppContent() {
     // All users are authenticated here (ProtectedRoute guards /app/*)
     setAddHabitStep(1);
     setShowAddModal(true);
+    setActiveModeInfo(null);
   }, []);
 
   // Listen for toast events from components
@@ -579,9 +581,12 @@ function AppContent() {
       {showAddModal && (
         <div
           className="fixed inset-0 bg-black/60 backdrop-blur-md flex items-center justify-center z-[100] p-4 animate-in fade-in duration-300"
-          onClick={(e) =>
-            e.target === e.currentTarget && setShowAddModal(false)
-          }
+          onClick={(e) => {
+            if (e.target === e.currentTarget) {
+              setShowAddModal(false);
+              setActiveModeInfo(null);
+            }
+          }}
         >
           <div className="glass-card modal-enter w-full max-w-md rounded-[2rem] shadow-[0_32px_64px_-16px_rgba(0,0,0,0.5)] border-white/10 relative overflow-hidden flex flex-col transition-all duration-300">
             {/* Background Glow */}
@@ -603,7 +608,10 @@ function AppContent() {
                 </div>
                 {(
                   <button
-                    onClick={() => setShowAddModal(false)}
+                    onClick={() => {
+                      setShowAddModal(false);
+                      setActiveModeInfo(null);
+                    }}
                     className="w-10 h-10 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center text-text-secondary hover:text-text-primary hover:bg-white/10 transition-all group"
                   >
                     <Icon name="x" size={18} className="group-hover:rotate-90 transition-transform duration-300" />
@@ -693,21 +701,30 @@ function AppContent() {
                     ].map((m) => (
                       <div key={m.id} className="relative group/mode">
                         <button
-                          onClick={() => setNewHabit({ 
-                            ...newHabit, 
-                            mode: m.id, 
-                            unit: m.id === "count" ? newHabit.unit : m.id === "timer" ? "min" : m.id === "upload" ? "IMG" : "" 
-                          })}
+                          onClick={() => {
+                            setNewHabit({ 
+                              ...newHabit, 
+                              mode: m.id, 
+                              unit: m.id === "count" ? newHabit.unit : m.id === "timer" ? "min" : m.id === "upload" ? "IMG" : "" 
+                            });
+                            setActiveModeInfo(null);
+                          }}
                           className={`w-full py-5 rounded-[1.5rem] text-[10px] font-black uppercase tracking-[0.2em] border transition-all ${newHabit.mode === m.id ? "bg-accent text-bg-main border-accent shadow-lg shadow-accent/10" : "bg-white/[0.02] border-white/5 text-text-secondary/60 hover:border-white/10 hover:bg-white/[0.04]"}`}
                         >
                           {m.label}
                         </button>
                         <div className="absolute right-3 top-3 z-20">
                            <div className="relative group/info">
-                              <div className={`w-5 h-5 rounded-lg flex items-center justify-center border transition-all ${newHabit.mode === m.id ? "bg-bg-main/20 border-accent/20 text-bg-main" : "bg-white/5 border-white/5 text-text-secondary/40"}`}>
-                                <Icon name="info" size={10} className="cursor-pointer" />
+                              <div 
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setActiveModeInfo(activeModeInfo === m.id ? null : m.id);
+                                }}
+                                className={`w-5 h-5 rounded-full flex items-center justify-center border transition-all cursor-pointer select-none animate-info-glow ${newHabit.mode === m.id ? "bg-bg-main/20 border-accent/20 text-bg-main" : "bg-white/5 border-white/5 text-text-secondary/40"}`}
+                              >
+                                <Icon name="info" size={10} />
                               </div>
-                              <div className="absolute bottom-full right-0 mb-3 opacity-0 group-hover/info:opacity-100 pointer-events-none transition-all duration-300 z-[60] translate-y-2 group-hover/info:translate-y-0">
+                              <div className={`absolute bottom-full right-0 mb-3 pointer-events-none transition-all duration-300 z-[60] translate-y-2 group-hover/info:translate-y-0 group-hover/info:opacity-100 ${activeModeInfo === m.id ? "opacity-100 translate-y-0 pointer-events-auto" : "opacity-0"}`}>
                                 <div className="bg-bg-sidebar/95 backdrop-blur-md border border-white/10 text-[9px] p-3 rounded-xl shadow-2xl w-40 text-center normal-case font-mono leading-tight tracking-tight text-text-primary border-t-white/20">
                                   {m.info}
                                 </div>
@@ -731,8 +748,8 @@ function AppContent() {
                   )}
 
                   <div className="flex justify-between items-center mt-8">
-                    <button onClick={() => setAddHabitStep(2)} className="px-6 py-3.5 rounded-2xl border border-white/5 bg-white/5 text-[10px] font-black uppercase tracking-[0.2em] text-text-secondary hover:text-text-primary hover:bg-white/10 active:scale-95 transition-all">Back</button>
-                    <button onClick={() => setAddHabitStep(4)} className="px-8 py-3.5 bg-accent text-bg-main rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] active:scale-95 transition-all shadow-lg shadow-accent/20">Continue</button>
+                    <button onClick={() => { setAddHabitStep(2); setActiveModeInfo(null); }} className="px-6 py-3.5 rounded-2xl border border-white/5 bg-white/5 text-[10px] font-black uppercase tracking-[0.2em] text-text-secondary hover:text-text-primary hover:bg-white/10 active:scale-95 transition-all">Back</button>
+                    <button onClick={() => { setAddHabitStep(4); setActiveModeInfo(null); }} className="px-8 py-3.5 bg-accent text-bg-main rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] active:scale-95 transition-all shadow-lg shadow-accent/20">Continue</button>
                   </div>
                 </div>
               )}
@@ -799,6 +816,7 @@ function AppContent() {
                           setNewHabit({ name: "", type: "Good", mode: "quick", unit: "", emoji: "" });
                           trackEvent("habit_created", { type: newHabit.type, mode: newHabit.mode });
                           setShowAddModal(false);
+                          setActiveModeInfo(null);
                         }}
                         className="px-10 py-3.5 bg-accent text-bg-main rounded-2xl text-[10px] font-black uppercase tracking-[0.3em] hover:scale-[1.03] active:scale-[0.97] transition-all shadow-2xl shadow-accent/30 border-t border-white/20"
                     >
