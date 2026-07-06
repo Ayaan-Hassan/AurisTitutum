@@ -877,7 +877,7 @@ export const AuthProvider = ({ children }) => {
     const logPayload = { ...payload, id };
     // Optimistic cache update for instant UI feedback (offline support)
     syncService.enqueue({ type: 'upsert', uid: user.uid, collection: USER_SUBCOLLECTIONS.logs, id, payload: logPayload });
-    return queueWrite(() => createLog(user.uid, payload));
+    return queueWrite(() => createLog(user.uid, logPayload));
   };
 
   const deleteLog = async (logId) => {

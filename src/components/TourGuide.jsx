@@ -137,60 +137,104 @@ const TourGuide = ({ habits: propHabits, userConfig: propUserConfig, updateUserC
     };
 
     useEffect(() => {
-        if (activeStepIndex === -1) return;
+        if (activeStepIndex === -1) {
+            setTargetRect(null);
+            return;
+        }
 
-        let checkTimeoutId;
-        const findAndSetTarget = () => {
-            const activeSteps = isMobile ? MOBILE_STEPS : DESKTOP_STEPS;
-            let step = activeSteps[activeStepIndex];
-            if (!step) {
-                completeTour();
-                return;
-            }
+        const activeSteps = isMobile ? MOBILE_STEPS : DESKTOP_STEPS;
+        const step = activeSteps[activeStepIndex];
+        if (!step) {
+            completeTour();
+            return;
+        }
 
-            // Scroll back up if moving to a navigation step after a dashboard content step
-            if (['tour-nav-analytics', 'tour-nav-habits', 'tour-nav-ai-desktop-sidebar'].includes(step.targetId)) {
-                window.scrollTo({ top: 0, behavior: 'smooth' });
-            }
+        // Scroll back up if moving to a navigation step after a dashboard content step
+        if (['tour-nav-analytics', 'tour-nav-habits', 'tour-nav-ai-desktop-sidebar'].includes(step.targetId)) {
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
 
-            let retries = 0;
-            const attemptFind = () => {
-                const el = document.getElementById(step.targetId);
-                if (el) {
+        let animationFrameId;
+        let retries = 0;
+        let hasScrolled = false;
+
+        const updatePosition = () => {
+            const el = document.getElementById(step.targetId);
+            if (el) {
+                if (!hasScrolled) {
                     el.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'center' });
-                    // Single clean rect capture after a settle delay — no re-polling loop
-                    checkTimeoutId = setTimeout(() => {
-                        const currentEl = document.getElementById(step.targetId);
-                        if (currentEl) {
-                            setTargetRect(currentEl.getBoundingClientRect());
-                        }
-                    }, 350);
-                } else {
-                    retries++;
-                    if (retries < 15) { // Try for 1.5s
-                        checkTimeoutId = setTimeout(attemptFind, 100);
-                    } else {
-                        // Element not found on this screen after 1.5s, skip to next
-                        setActiveStepIndex(prev => prev + 1);
-                    }
+                    hasScrolled = true;
                 }
-            };
-            attemptFind();
+                const rect = el.getBoundingClientRect();
+                setTargetRect((prev) => {
+                    if (
+                        prev &&
+                        prev.left === rect.left &&
+                        prev.top === rect.top &&
+                        prev.width === rect.width &&
+                        prev.height === rect.height
+                    ) {
+                        return prev;
+                    }
+                    return {
+                        left: rect.left,
+                        top: rect.top,
+                        right: rect.right,
+                        bottom: rect.bottom,
+                        width: rect.width,
+                        height: rect.height,
+                    };
+                });
+                animationFrameId = requestAnimationFrame(updatePosition);
+            } else {
+                retries++;
+                if (retries < 30) { // Try for ~1.5s
+                    animationFrameId = requestAnimationFrame(() => setTimeout(updatePosition, 50));
+                } else {
+                    // Skip step if target element is not found
+                    setActiveStepIndex((prev) => prev + 1);
+                }
+            }
         };
 
-        findAndSetTarget();
+        updatePosition();
 
-        // Debounced resize handler — prevents jitter from continuous recalculation
-        let resizeTimer;
-        const handleResize = () => {
-            clearTimeout(resizeTimer);
-            resizeTimer = setTimeout(findAndSetTarget, 250);
+        // Also update rect on scroll and resize for immediate recalculation outside animation frames
+        const handleInteraction = () => {
+            const el = document.getElementById(step.targetId);
+            if (el) {
+                const rect = el.getBoundingClientRect();
+                setTargetRect((prev) => {
+                    if (
+                        prev &&
+                        prev.left === rect.left &&
+                        prev.top === rect.top &&
+                        prev.width === rect.width &&
+                        prev.height === rect.height
+                    ) {
+                        return prev;
+                    }
+                    return {
+                        left: rect.left,
+                        top: rect.top,
+                        right: rect.right,
+                        bottom: rect.bottom,
+                        width: rect.width,
+                        height: rect.height,
+                    };
+                });
+            }
         };
-        window.addEventListener('resize', handleResize);
+
+        window.addEventListener('resize', handleInteraction);
+        window.addEventListener('scroll', handleInteraction, { capture: true, passive: true });
+
         return () => {
-            window.removeEventListener('resize', handleResize);
-            if (checkTimeoutId) clearTimeout(checkTimeoutId);
-            clearTimeout(resizeTimer);
+            if (animationFrameId) {
+                cancelAnimationFrame(animationFrameId);
+            }
+            window.removeEventListener('resize', handleInteraction);
+            window.removeEventListener('scroll', handleInteraction, { capture: true });
         };
     }, [activeStepIndex, isMobile]);
 
