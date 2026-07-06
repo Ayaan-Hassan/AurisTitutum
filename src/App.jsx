@@ -199,14 +199,6 @@ function AppContent() {
   const authContext = useAuth();
   const { user, authLoading, updateUserConfig } = authContext;
 
-  useEffect(() => {
-    console.log("[App Startup] AppContent mounted. Initial state -> user:", user ? user.uid : "null", "authLoading:", authLoading);
-  }, []);
-
-  useEffect(() => {
-    console.log("[AppContent State Update] user:", user ? user.uid : "null", "authLoading:", authLoading);
-  }, [user, authLoading]);
-
   // ── All state is sourced from AuthContext (Firestore-backed) ──
   // No local guest state. Authentication is required before this component renders
   // (ProtectedRoute gates the /app/* tree). Landing/Login/Signup are public.
@@ -1135,7 +1127,6 @@ const WipeMessageModal = () => {
 };
 
 function App() {
-  console.log("[App Startup] App component rendering");
   return (
     <AuthProvider>
       <ThemeProvider>
