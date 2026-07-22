@@ -5,6 +5,7 @@ import { Card } from "../components/ui/Card";
 import { Button } from "../components/ui/Button";
 import { ConfirmModal, RenameModal } from "../components/Modals";
 import HabitPerformanceModal from "../components/HabitPerformanceModal";
+import ChecklistSection from "../components/ChecklistSection";
 import { getLocalDateKey } from "../utils/date";
 
 
@@ -1047,8 +1048,11 @@ const Habits = ({ habits, setHabits, logActivity }) => {
   }, [habits]);
 
   return (
-    <div className="page-fade space-y-10 pb-20">
-      <div>
+    <div className="page-fade space-y-12 pb-20">
+      {/* ── Top Checklist & Tasks Section ── */}
+      <ChecklistSection />
+
+      <div className="pt-4 border-t border-border-color">
         <h2 className="text-3xl font-bold tracking-tighter text-text-primary">
           Habit Registry
         </h2>
@@ -1167,6 +1171,9 @@ const Habits = ({ habits, setHabits, logActivity }) => {
                   {h.name}
                   {h.isPinned && <Icon name="pin" size={12} className="text-accent rotate-45" />}
                 </h4>
+                {h.description && (
+                  <p className="text-xs text-text-secondary mb-2 truncate max-w-[240px] font-normal">{h.description}</p>
+                )}
                 <div className="flex items-center gap-2 flex-wrap">
                   <span
                     className={`text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded ${h.type === "Good"

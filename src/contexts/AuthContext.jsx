@@ -191,6 +191,8 @@ export const AuthProvider = ({ children }) => {
   const [logDocs, setLogDocs] = useState([]);
   const [notes, setNotes] = useState([]);
   const [reminders, setRemindersState] = useState([]);
+  const [tasks, setTasksState] = useState([]);
+  const [timetable, setTimetableState] = useState([]);
   const [settingsDocs, setSettingsDocs] = useState([]);
   const [behavioralMemory, setBehavioralMemory] = useState([]);
   
@@ -214,6 +216,8 @@ export const AuthProvider = ({ children }) => {
     setLogDocs([]);
     setNotes([]);
     setRemindersState([]);
+    setTasksState([]);
+    setTimetableState([]);
     setSettingsDocs([]);
     setBehavioralMemory([]);
   };
@@ -417,6 +421,24 @@ export const AuthProvider = ({ children }) => {
           markLoaded(USER_SUBCOLLECTIONS.behavioralMemory);
         },
         (err) => onListenerError(USER_SUBCOLLECTIONS.behavioralMemory, err),
+      ),
+      subscribeToUserSubcollection(
+        uid,
+        "tasks",
+        (docs) => {
+          if (authCycleRef.current !== cycleId) return;
+          setTasksState(docs);
+        },
+        (err) => console.error("tasks subscription error", err),
+      ),
+      subscribeToUserSubcollection(
+        uid,
+        "timetable",
+        (docs) => {
+          if (authCycleRef.current !== cycleId) return;
+          setTimetableState(docs);
+        },
+        (err) => console.error("timetable subscription error", err),
       ),
       onSnapshot(doc(db, "users", uid), (snap) => {
           if (authCycleRef.current !== cycleId) return;
@@ -939,6 +961,18 @@ export const AuthProvider = ({ children }) => {
     return queueWrite(() => deleteCollectionDoc(user.uid, USER_SUBCOLLECTIONS.behavioralMemory, id));
   };
 
+  const updateTasks = async (nextTasks) => {
+    setTasksState(nextTasks);
+    if (!user?.uid) return;
+    return queueWrite(() => replaceCollectionById(user.uid, "tasks", nextTasks));
+  };
+
+  const updateTimetable = async (nextTimetable) => {
+    setTimetableState(nextTimetable);
+    if (!user?.uid) return;
+    return queueWrite(() => replaceCollectionById(user.uid, "timetable", nextTimetable));
+  };
+
 
   const loading = authLoading || dataLoading;
 
@@ -967,6 +1001,8 @@ export const AuthProvider = ({ children }) => {
     logDocs,
     notes,
     reminders,
+    tasks,
+    timetable,
     userConfig,
 
     replaceHabitsState,
@@ -984,6 +1020,8 @@ export const AuthProvider = ({ children }) => {
     deleteNote,
     upsertReminder,
     deleteReminder,
+    updateTasks,
+    updateTimetable,
     behavioralMemory,
     addBehavioralMemory,
     deleteBehavioralMemory,

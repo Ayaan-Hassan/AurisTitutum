@@ -50,13 +50,24 @@ const isReminderPast = (r) => {
   return false;
 };
 
-// ─── Reminder Form (shared for Add and Edit) ─────────────────────────────────
+const COLOR_PALETTE = [
+  { id: "slate", hex: "#64748b" },
+  { id: "indigo", hex: "#6366f1" },
+  { id: "emerald", hex: "#10b981" },
+  { id: "amber", hex: "#f59e0b" },
+  { id: "rose", hex: "#f43f5e" },
+  { id: "purple", hex: "#a855f7" },
+  { id: "cyan", hex: "#06b6d4" },
+  { id: "orange", hex: "#f97316" },
+];
+
 const ReminderForm = ({ initial = {}, onSave, onCancel, title: formTitle }) => {
   const [title, setTitle] = useState(initial.title || "");
   const [notes, setNotes] = useState(initial.notes || "");
   const [date, setDate] = useState(initial.date || getTodayStr());
   const [time, setTime] = useState(initial.time || "09:00");
   const [repeat, setRepeat] = useState(initial.repeat || "none");
+  const [color, setColor] = useState(initial.color || "indigo");
 
   const canSave = title.trim().length > 0;
 
@@ -78,7 +89,7 @@ const ReminderForm = ({ initial = {}, onSave, onCancel, title: formTitle }) => {
               placeholder="e.g. Take medication, Call mom…"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && canSave && onSave({ title, notes, date, time, repeat })}
+              onKeyDown={(e) => e.key === "Enter" && canSave && onSave({ title: title.trim(), notes: notes.trim(), date, time, repeat, color })}
               autoFocus
               className="w-full bg-bg-main border border-border-color p-3.5 rounded-xl outline-none focus:border-accent text-sm text-text-primary transition-all placeholder:text-text-secondary/40"
             />
@@ -133,6 +144,22 @@ const ReminderForm = ({ initial = {}, onSave, onCancel, title: formTitle }) => {
             </div>
           </div>
 
+          {/* Color Palette */}
+          <div className="space-y-1.5">
+            <label className="text-[10px] font-black text-text-secondary uppercase tracking-[0.3em] ml-0.5">Card Color Tag</label>
+            <div className="flex gap-2 flex-wrap">
+              {COLOR_PALETTE.map((c) => (
+                <button
+                  key={c.id}
+                  type="button"
+                  onClick={() => setColor(c.id)}
+                  style={{ backgroundColor: c.hex }}
+                  className={`w-7 h-7 rounded-xl transition-all ${color === c.id ? "scale-125 border-2 border-white shadow-lg" : "opacity-60 hover:opacity-100"}`}
+                />
+              ))}
+            </div>
+          </div>
+
           {/* Actions */}
           <div className="flex gap-3">
             <button
@@ -142,7 +169,7 @@ const ReminderForm = ({ initial = {}, onSave, onCancel, title: formTitle }) => {
               Cancel
             </button>
             <button
-              onClick={() => onSave({ title: title.trim(), notes: notes.trim(), date, time, repeat })}
+              onClick={() => onSave({ title: title.trim(), notes: notes.trim(), date, time, repeat, color })}
               disabled={!canSave}
               className="flex-1 py-3 bg-accent text-bg-main text-[11px] font-black uppercase tracking-[0.25em] rounded-xl hover:opacity-90 active:scale-[0.99] transition-all shadow-lg disabled:opacity-30"
             >

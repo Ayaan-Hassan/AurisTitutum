@@ -11,8 +11,8 @@ const Sidebar = ({ userConfig, onOpenAuris }) => {
 
   const navItems = [
     { id: "/app", icon: "layout-dashboard", label: "Main Console" },
+    { id: "/app/timetable", icon: "clock", label: "Timetable" },
     { id: "/app/habits", icon: "activity", label: "Habit Registry" },
-    { id: "/app/social", icon: "users", label: "Social Hub" },
     { id: "/app/logs", icon: "file-text", label: "Logs" },
     { id: "/app/notes", icon: "sticky-note", label: "Notes" },
     { id: "/app/analytics", icon: "bar-chart-3", label: "Analytics" },

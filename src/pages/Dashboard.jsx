@@ -1,10 +1,11 @@
-﻿import React, { useMemo, useState, useEffect, useRef } from "react";
+import React, { useMemo, useState, useEffect, useRef } from "react";
 import { Link } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
 import Icon from "../components/Icon";
 import { Card } from "../components/ui/Card";
 import { Button } from "../components/ui/Button";
 import HabitPerformanceModal from "../components/HabitPerformanceModal";
+import ChecklistSection from "../components/ChecklistSection";
 import { getLocalDateKey } from "../utils/date";
 
 // ─── Inline Stopwatch (Timer) for Dashboard ────────────────────────────────
@@ -592,6 +593,81 @@ const Dashboard = ({ habits, notes, logActivity, insights, dataLoading }) => {
             <h3 className="text-xl font-mono font-bold text-danger">{destructiveLogs}</h3>
           </div>
         </Card>
+      </div>
+
+      {/* Timetable & Checklist Dashboard Section */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Today's Timetable Routine Box */}
+        <Card className="lg:col-span-1 flex flex-col justify-between hover:translate-y-0 border-accent/30 bg-gradient-to-br from-accent/10 to-bg-main">
+          <div>
+            <div className="flex items-center justify-between mb-4">
+              <span className="text-[10px] font-black uppercase tracking-[0.25em] text-accent flex items-center gap-1.5">
+                <Icon name="clock" size={13} /> Timetable Routine
+              </span>
+              <Link to="/app/timetable" className="text-[10px] font-bold uppercase tracking-widest text-accent hover:underline">
+                Full Schedule →
+              </Link>
+            </div>
+
+            <div className="space-y-3">
+              {(() => {
+                const todayDay = new Date().getDay();
+                const todaySlots = (timetable || []).filter((s) => (s.dayOfWeek ?? 1) === todayDay);
+                if (todaySlots.length === 0) {
+                  return (
+                    <div className="py-6 text-center text-text-secondary text-xs">
+                      <p className="font-bold text-text-primary mb-1">No Routine Configured Today</p>
+                      <p className="text-[10px]">Tap full schedule to design your routine.</p>
+                    </div>
+                  );
+                }
+                const nowM = new Date().getHours() * 60 + new Date().getMinutes();
+                const active = todaySlots.find((s) => {
+                  if (!s.startTime || !s.endTime) return false;
+                  const [sh, sm] = s.startTime.split(":").map(Number);
+                  const [eh, em] = s.endTime.split(":").map(Number);
+                  let start = sh * 60 + sm, end = eh * 60 + em;
+                  if (end <= start) return nowM >= start || nowM < end;
+                  return nowM >= start && nowM < end;
+                });
+
+                return (
+                  <>
+                    {active ? (
+                      <div className="p-3 rounded-xl bg-accent/20 border border-accent/50">
+                        <span className="text-[8px] font-black uppercase text-accent tracking-wider block mb-1">Currently Active</span>
+                        <div className="flex items-center justify-between">
+                          <h5 className="font-bold text-sm text-text-primary">{active.title}</h5>
+                          <span className="text-xs font-mono font-bold text-accent">{active.startTime}–{active.endTime}</span>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="p-3 rounded-xl bg-bg-sidebar border border-border-color">
+                        <span className="text-[8px] font-black uppercase text-text-secondary tracking-wider block mb-1">Status</span>
+                        <p className="text-xs font-bold text-text-primary">Between Scheduled Routines</p>
+                      </div>
+                    )}
+
+                    <div className="space-y-1.5 pt-2">
+                      <span className="text-[9px] font-black uppercase tracking-widest text-text-secondary block">Today's Timeline ({todaySlots.length} blocks)</span>
+                      {todaySlots.slice(0, 3).map((s) => (
+                        <div key={s.id} className="flex items-center justify-between text-xs p-2 rounded-lg bg-bg-main border border-border-color">
+                          <span className="font-medium text-text-primary truncate">{s.title}</span>
+                          <span className="font-mono text-[10px] text-text-secondary shrink-0">{s.startTime}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </>
+                );
+              })()}
+            </div>
+          </div>
+        </Card>
+
+        {/* Dashboard Tasks / Checklist Summary */}
+        <div className="lg:col-span-2">
+          <ChecklistSection />
+        </div>
       </div>
 
       {/* Habit Registry + Recent Logs */}

@@ -4,7 +4,7 @@ import Layout from "./components/Layout";
 import Icon from "./components/Icon";
 import Dashboard from "./pages/Dashboard";
 import Analytics from "./pages/Analytics";
-import SocialEngine from "./pages/SocialEngine";
+import Timetable from "./pages/Timetable";
 import Habits from "./pages/Habits";
 import Logs from "./pages/Logs";
 import Settings from "./pages/Settings";
@@ -212,6 +212,9 @@ function AppContent() {
   const [addHabitStep, setAddHabitStep] = useState(1);
   const [newHabit, setNewHabit] = useState({
     name: "",
+    description: "",
+    color: "indigo",
+    category: "General",
     type: "Good",
     mode: "quick",
     unit: "",
@@ -524,8 +527,8 @@ function AppContent() {
                     }
                   />
                   <Route
-                    path="social"
-                    element={<SocialEngine habits={habits} />}
+                    path="timetable"
+                    element={<Timetable logActivity={logActivity} />}
                   />
                   <Route
                     path="habits"
@@ -648,24 +651,14 @@ function AppContent() {
               )}
 
               {addHabitStep === 2 && (
-                <div className="animate-in slide-in-from-right fade-in duration-300 space-y-8">
+                <div className="animate-in slide-in-from-right fade-in duration-300 space-y-6">
                   <div className="flex items-center ml-1">
                     <label className="text-[10px] font-black text-text-secondary uppercase tracking-[0.3em]">
                         Habit Name
                     </label>
-                    <div className="relative group inline-flex items-center ml-2">
-                      <Icon name="info" size={14} className="text-text-secondary cursor-pointer hover:text-text-primary transition-colors" />
-                      <div className="absolute left-full ml-3 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 pointer-events-none transition-[opacity,transform] duration-200 z-50 translate-x-[-10px] group-hover:translate-x-0">
-                        <div className="bg-bg-sidebar border border-border-color text-text-primary text-[10px] p-3 rounded-lg shadow-2xl w-56 relative box-border">
-                          <div className="absolute top-1/2 -left-1.5 -translate-y-1/2 w-3 h-3 bg-bg-sidebar border-l border-b border-border-color transform rotate-45" />
-                          <span className="relative z-10 block font-mono text-text-secondary">Keep it actionable and clear.</span>
-                          <span className="relative z-10 block font-mono font-bold mt-1 text-text-primary">Ex: Reading Books, Morning Run</span>
-                        </div>
-                      </div>
-                    </div>
                   </div>
                   <input
-                    className="w-full bg-white/[0.03] border border-white/10 p-6 rounded-3xl outline-none focus:border-accent/40 text-base text-text-primary transition-all placeholder:text-text-secondary/20 focus:bg-white/[0.05] shadow-inner"
+                    className="w-full bg-white/[0.03] border border-white/10 p-5 rounded-3xl outline-none focus:border-accent/40 text-base text-text-primary transition-all placeholder:text-text-secondary/20 focus:bg-white/[0.05] shadow-inner"
                     placeholder={newHabit.type === "Good" ? "e.g. Read 20 pages" : "e.g. Smoking"}
                     value={newHabit.name}
                     onChange={(e) => setNewHabit({ ...newHabit, name: e.target.value })}
@@ -674,6 +667,19 @@ function AppContent() {
                       if (e.key === 'Enter' && newHabit.name.trim()) setAddHabitStep(3);
                     }}
                   />
+
+                  <div>
+                    <label className="text-[10px] font-black text-text-secondary uppercase tracking-[0.3em] ml-1 mb-1 block">
+                      Description <span className="font-normal normal-case opacity-60">(Optional)</span>
+                    </label>
+                    <input
+                      className="w-full bg-white/[0.03] border border-white/10 p-4 rounded-2xl outline-none focus:border-accent/40 text-sm text-text-primary transition-all placeholder:text-text-secondary/30"
+                      placeholder="e.g. Read 20 pages before bed every night"
+                      value={newHabit.description}
+                      onChange={(e) => setNewHabit({ ...newHabit, description: e.target.value })}
+                    />
+                  </div>
+
                   <div className="flex justify-between items-center mt-6">
                     <button onClick={() => setAddHabitStep(1)} className="px-6 py-3.5 rounded-2xl border border-white/5 bg-white/5 text-[10px] font-black uppercase tracking-[0.2em] text-text-secondary hover:text-text-primary hover:bg-white/10 active:scale-95 transition-all">Back</button>
                     <button onClick={() => setAddHabitStep(3)} disabled={!newHabit.name.trim()} className="px-8 py-3.5 bg-accent text-bg-main rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] disabled:opacity-20 active:scale-95 transition-all shadow-lg shadow-accent/20">Continue</button>
@@ -687,14 +693,12 @@ function AppContent() {
                     <label className="text-[10px] font-black text-text-secondary uppercase tracking-[0.3em]">
                         Tracking Mode
                     </label>
-
                   </div>
                   
                   <div className="grid grid-cols-2 gap-3">
                     {[
                       { id: "quick", label: "Tap", info: "Quick +/- counter for fast logging." },
                       { id: "count", label: "Count", info: "Log specific values with units (reps, kg, pages)." },
-                      { id: "check", label: "Check", info: "Simple completion checkbox once per day." },
                       { id: "timer", label: "Timer", info: "Integrated stopwatch to track duration." },
                       { id: "rating", label: "Rating", info: "Evaluate performance on a 1-5 star scale." },
                       { id: "upload", label: "Upload", info: "Keep a visual progress log with photos." }
@@ -713,24 +717,6 @@ function AppContent() {
                         >
                           {m.label}
                         </button>
-                        <div className="absolute right-3 top-3 z-20">
-                           <div className="relative group/info">
-                              <div 
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  setActiveModeInfo(activeModeInfo === m.id ? null : m.id);
-                                }}
-                                className={`w-5 h-5 rounded-full flex items-center justify-center border transition-all cursor-pointer select-none animate-info-glow ${newHabit.mode === m.id ? "bg-bg-main/20 border-accent/20 text-bg-main" : "bg-white/5 border-white/5 text-text-secondary/40"}`}
-                              >
-                                <Icon name="info" size={10} />
-                              </div>
-                              <div className={`absolute bottom-full right-0 mb-3 pointer-events-none transition-all duration-300 z-[60] translate-y-2 group-hover/info:translate-y-0 group-hover/info:opacity-100 ${activeModeInfo === m.id ? "opacity-100 translate-y-0 pointer-events-auto" : "opacity-0"}`}>
-                                <div className="bg-bg-sidebar/95 backdrop-blur-md border border-white/10 text-[9px] p-3 rounded-xl shadow-2xl w-40 text-center normal-case font-mono leading-tight tracking-tight text-text-primary border-t-white/20">
-                                  {m.info}
-                                </div>
-                              </div>
-                           </div>
-                        </div>
                       </div>
                     ))}
                   </div>
@@ -756,7 +742,34 @@ function AppContent() {
 
               {addHabitStep === 4 && (
                 <div className="animate-in slide-in-from-right fade-in duration-300 space-y-6">
-                  <div className="flex items-center justify-between ml-1">
+                  {/* Color palette */}
+                  <div>
+                    <label className="text-[10px] font-black text-text-secondary uppercase tracking-[0.3em] block mb-2">
+                      Card Color Theme
+                    </label>
+                    <div className="flex gap-2.5 flex-wrap">
+                      {[
+                        { id: "slate", hex: "#64748b" },
+                        { id: "indigo", hex: "#6366f1" },
+                        { id: "emerald", hex: "#10b981" },
+                        { id: "amber", hex: "#f59e0b" },
+                        { id: "rose", hex: "#f43f5e" },
+                        { id: "purple", hex: "#a855f7" },
+                        { id: "cyan", hex: "#06b6d4" },
+                        { id: "orange", hex: "#f97316" },
+                      ].map((c) => (
+                        <button
+                          key={c.id}
+                          type="button"
+                          onClick={() => setNewHabit({ ...newHabit, color: c.id })}
+                          style={{ backgroundColor: c.hex }}
+                          className={`w-8 h-8 rounded-xl transition-all ${newHabit.color === c.id ? "scale-125 border-2 border-white shadow-lg" : "opacity-60 hover:opacity-100"}`}
+                        />
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-between ml-1 pt-2">
                     <label className="text-[10px] font-black text-text-secondary uppercase tracking-[0.3em]">
                       Habit Symbol
                     </label>
@@ -770,7 +783,7 @@ function AppContent() {
                       </button>
                     )}
                   </div>
-                  <div className="rounded-2xl border border-white/10 bg-bg-main/30 p-3 max-h-[30vh] overflow-y-auto custom-scrollbar">
+                  <div className="rounded-2xl border border-white/10 bg-bg-main/30 p-3 max-h-[25vh] overflow-y-auto custom-scrollbar">
                     <div className="grid grid-cols-6 sm:grid-cols-8 gap-2">
                         {THEMED_EMOJIS.map((em, idx) => (
                             <button
@@ -794,7 +807,11 @@ function AppContent() {
                           
                           const habitPayload = {
                             id: Date.now().toString(),
-                            name: newHabit.name,
+                            name: newHabit.name.trim(),
+                            description: newHabit.description.trim(),
+                            color: newHabit.color || "indigo",
+                            category: newHabit.category || "General",
+                            createdBy: "user",
                             type: newHabit.type,
                             mode: newHabit.mode || "quick",
                             unit: newHabit.mode === "count" ? newHabit.unit || "" : newHabit.mode === "timer" ? "sec" : "",
@@ -805,7 +822,6 @@ function AppContent() {
 
                           const isFirstHabit = habits.length === 0;
 
-                          // All users are authenticated — always write to Firestore
                           await authContext.addHabit(habitPayload);
 
                           if (isFirstHabit) {
@@ -813,7 +829,7 @@ function AppContent() {
                             unifiedUpdateUserConfig({ settings: { onboardingComplete: true } });
                           }
 
-                          setNewHabit({ name: "", type: "Good", mode: "quick", unit: "", emoji: "" });
+                          setNewHabit({ name: "", description: "", color: "indigo", category: "General", type: "Good", mode: "quick", unit: "", emoji: "" });
                           trackEvent("habit_created", { type: newHabit.type, mode: newHabit.mode });
                           setShowAddModal(false);
                           setActiveModeInfo(null);
