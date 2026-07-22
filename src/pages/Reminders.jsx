@@ -51,14 +51,14 @@ const isReminderPast = (r) => {
 };
 
 const COLOR_PALETTE = [
-  { id: "slate", hex: "#64748b" },
-  { id: "indigo", hex: "#6366f1" },
-  { id: "emerald", hex: "#10b981" },
-  { id: "amber", hex: "#f59e0b" },
-  { id: "rose", hex: "#f43f5e" },
-  { id: "purple", hex: "#a855f7" },
-  { id: "cyan", hex: "#06b6d4" },
-  { id: "orange", hex: "#f97316" },
+  { id: "default", colorClass: "var(--card-bg)" },
+  { id: "blue",    colorClass: "rgba(59, 130, 246, 0.5)" },
+  { id: "emerald", colorClass: "rgba(16, 185, 129, 0.5)" },
+  { id: "amber",   colorClass: "rgba(245, 158, 11, 0.5)" },
+  { id: "rose",    colorClass: "rgba(244, 63, 94, 0.5)" },
+  { id: "purple",  colorClass: "rgba(168, 85, 247, 0.5)" },
+  { id: "cyan",    colorClass: "rgba(6, 182, 212, 0.5)" },
+  { id: "orange",  colorClass: "rgba(249, 115, 22, 0.5)" },
 ];
 
 const ReminderForm = ({ initial = {}, onSave, onCancel, title: formTitle }) => {
@@ -144,17 +144,17 @@ const ReminderForm = ({ initial = {}, onSave, onCancel, title: formTitle }) => {
             </div>
           </div>
 
-          {/* Color Palette */}
+          {/* Color */}
           <div className="space-y-1.5">
-            <label className="text-[10px] font-black text-text-secondary uppercase tracking-[0.3em] ml-0.5">Card Color Tag</label>
-            <div className="flex gap-2 flex-wrap">
+            <label className="text-[10px] font-black text-text-secondary uppercase tracking-[0.3em] ml-0.5">Card Color</label>
+            <div className="flex gap-2 flex-wrap pt-1">
               {COLOR_PALETTE.map((c) => (
                 <button
                   key={c.id}
                   type="button"
                   onClick={() => setColor(c.id)}
-                  style={{ backgroundColor: c.hex }}
-                  className={`w-7 h-7 rounded-xl transition-all ${color === c.id ? "scale-125 border-2 border-white shadow-lg" : "opacity-60 hover:opacity-100"}`}
+                  className={`w-6 h-6 rounded-full border-2 transition-all ${color === c.id ? "border-accent scale-125 shadow-[0_0_8px_rgba(var(--accent-rgb),0.4)]" : "border-border-color hover:scale-110"}`}
+                  style={{ backgroundColor: c.colorClass }}
                 />
               ))}
             </div>

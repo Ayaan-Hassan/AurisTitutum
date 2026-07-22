@@ -5,8 +5,8 @@ import Icon from "../components/Icon";
 import { Card } from "../components/ui/Card";
 import { Button } from "../components/ui/Button";
 import HabitPerformanceModal from "../components/HabitPerformanceModal";
-import ChecklistSection from "../components/ChecklistSection";
 import { getLocalDateKey } from "../utils/date";
+
 
 // ─── Inline Stopwatch (Timer) for Dashboard ────────────────────────────────
 const DashboardTimerControl = ({ habitId, logActivity }) => {
@@ -427,6 +427,78 @@ const DayDetailPopup = ({ dateStr, habits, notes, onClose }) => {
   );
 };
 
+// ─── Dashboard Checklist Widget (flat, no tabs) ───────────────────────────────
+const DashboardChecklistWidget = () => {
+  const { tasks, updateTasks } = useAuth();
+  const todayKey = getLocalDateKey();
+  const allTasks = Array.isArray(tasks) ? tasks : [];
+  const pending = allTasks.filter((t) => {
+    if (t.recurrence === "one-time") return !t.completed;
+    return !t.completions?.[todayKey];
+  }).sort((a, b) => {
+    const w = { high: 3, medium: 2, low: 1 };
+    return (w[b.priority] || 1) - (w[a.priority] || 1);
+  });
+  const done = allTasks.filter((t) => {
+    if (t.recurrence === "one-time") return !!t.completed;
+    return !!t.completions?.[todayKey];
+  });
+
+  const handleToggle = async (task) => {
+    let updated = [...allTasks];
+    const idx = updated.findIndex((t) => t.id === task.id);
+    if (idx === -1) return;
+    const t = { ...updated[idx] };
+    if (t.recurrence === "one-time") {
+      t.completed = !t.completed;
+    } else {
+      const comps = { ...(t.completions || {}) };
+      comps[todayKey] = !comps[todayKey];
+      t.completions = comps;
+    }
+    updated[idx] = t;
+    await updateTasks(updated);
+  };
+
+  if (allTasks.length === 0) return (
+    <div className="py-8 text-center">
+      <p className="text-xs text-text-secondary">No tasks yet. Go to <span className="font-bold text-text-primary">Habit Registry</span> to add tasks.</p>
+    </div>
+  );
+
+  const PRIORITY_COLORS = { high: "text-danger border-danger/30 bg-danger/5", medium: "text-amber-400 border-amber-400/30 bg-amber-400/5", low: "text-success border-success/30 bg-success/5" };
+
+  const renderTask = (task) => {
+    const isDone = task.recurrence === "one-time" ? !!task.completed : !!task.completions?.[todayKey];
+    const prioClass = PRIORITY_COLORS[task.priority] || PRIORITY_COLORS.low;
+    return (
+      <div key={task.id} className={`flex items-center gap-3 border-l-2 pl-3 py-1.5 transition-colors ${isDone ? "border-border-color opacity-40" : task.priority === "high" ? "border-danger/60" : task.priority === "medium" ? "border-amber-400/60" : "border-success/60"}`}>
+        <button
+          onClick={() => handleToggle(task)}
+          className={`w-5 h-5 rounded-md border-2 shrink-0 flex items-center justify-center transition-all ${isDone ? "bg-success/20 border-success/50" : "border-border-color hover:border-accent"}`}
+        >
+          {isDone && <Icon name="check" size={11} className="text-success" />}
+        </button>
+        <div className="flex-1 min-w-0">
+          <p className={`text-[11px] font-bold truncate ${isDone ? "line-through text-text-secondary" : "text-text-primary"}`}>{task.emoji && `${task.emoji} `}{task.name}</p>
+          {task.hasProgress && task.targetProgress > 0 && (
+            <p className="text-[9px] font-mono text-text-secondary">{task.currentProgress || 0} / {task.targetProgress} {task.progressUnit || ""}</p>
+          )}
+        </div>
+        <span className={`text-[8px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded border ${prioClass} shrink-0`}>{task.priority || "low"}</span>
+      </div>
+    );
+  };
+
+  return (
+    <div className="space-y-1 overflow-y-auto custom-scrollbar" style={{ maxHeight: "280px" }}>
+      {pending.map(renderTask)}
+      {done.length > 0 && pending.length > 0 && <div className="border-t border-border-color/50 my-2" />}
+      {done.map(renderTask)}
+    </div>
+  );
+};
+
 // ─── Main Dashboard ──────────────────────────────────────────────────────────
 const Dashboard = ({ habits, notes, logActivity, insights, dataLoading }) => {
   const { timetable } = useAuth();
@@ -596,80 +668,7 @@ const Dashboard = ({ habits, notes, logActivity, insights, dataLoading }) => {
         </Card>
       </div>
 
-      {/* Timetable & Checklist Dashboard Section */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Today's Timetable Routine Box */}
-        <Card className="lg:col-span-1 flex flex-col justify-between hover:translate-y-0 border-accent/30 bg-gradient-to-br from-accent/10 to-bg-main">
-          <div>
-            <div className="flex items-center justify-between mb-4">
-              <span className="text-[10px] font-black uppercase tracking-[0.25em] text-accent flex items-center gap-1.5">
-                <Icon name="clock" size={13} /> Timetable Routine
-              </span>
-              <Link to="/app/timetable" className="text-[10px] font-bold uppercase tracking-widest text-accent hover:underline">
-                Full Schedule →
-              </Link>
-            </div>
 
-            <div className="space-y-3">
-              {(() => {
-                const todayDay = new Date().getDay();
-                const todaySlots = (timetable || []).filter((s) => (s.dayOfWeek ?? 1) === todayDay);
-                if (todaySlots.length === 0) {
-                  return (
-                    <div className="py-6 text-center text-text-secondary text-xs">
-                      <p className="font-bold text-text-primary mb-1">No Routine Configured Today</p>
-                      <p className="text-[10px]">Tap full schedule to design your routine.</p>
-                    </div>
-                  );
-                }
-                const nowM = new Date().getHours() * 60 + new Date().getMinutes();
-                const active = todaySlots.find((s) => {
-                  if (!s.startTime || !s.endTime) return false;
-                  const [sh, sm] = s.startTime.split(":").map(Number);
-                  const [eh, em] = s.endTime.split(":").map(Number);
-                  let start = sh * 60 + sm, end = eh * 60 + em;
-                  if (end <= start) return nowM >= start || nowM < end;
-                  return nowM >= start && nowM < end;
-                });
-
-                return (
-                  <>
-                    {active ? (
-                      <div className="p-3 rounded-xl bg-accent/20 border border-accent/50">
-                        <span className="text-[8px] font-black uppercase text-accent tracking-wider block mb-1">Currently Active</span>
-                        <div className="flex items-center justify-between">
-                          <h5 className="font-bold text-sm text-text-primary">{active.title}</h5>
-                          <span className="text-xs font-mono font-bold text-accent">{active.startTime}–{active.endTime}</span>
-                        </div>
-                      </div>
-                    ) : (
-                      <div className="p-3 rounded-xl bg-bg-sidebar border border-border-color">
-                        <span className="text-[8px] font-black uppercase text-text-secondary tracking-wider block mb-1">Status</span>
-                        <p className="text-xs font-bold text-text-primary">Between Scheduled Routines</p>
-                      </div>
-                    )}
-
-                    <div className="space-y-1.5 pt-2">
-                      <span className="text-[9px] font-black uppercase tracking-widest text-text-secondary block">Today's Timeline ({todaySlots.length} blocks)</span>
-                      {todaySlots.slice(0, 3).map((s) => (
-                        <div key={s.id} className="flex items-center justify-between text-xs p-2 rounded-lg bg-bg-main border border-border-color">
-                          <span className="font-medium text-text-primary truncate">{s.title}</span>
-                          <span className="font-mono text-[10px] text-text-secondary shrink-0">{s.startTime}</span>
-                        </div>
-                      ))}
-                    </div>
-                  </>
-                );
-              })()}
-            </div>
-          </div>
-        </Card>
-
-        {/* Dashboard Tasks / Checklist Summary */}
-        <div className="lg:col-span-2">
-          <ChecklistSection />
-        </div>
-      </div>
 
       {/* Habit Registry + Recent Logs */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-stretch">
@@ -845,6 +844,61 @@ const Dashboard = ({ habits, notes, logActivity, insights, dataLoading }) => {
               </div>
             )}
           </div>
+        </Card>
+      </div>
+
+      {/* Timetable + Checklist — below Habit Registry */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Today's Timetable Widget */}
+        <Card className="lg:col-span-1 flex flex-col hover:translate-y-0 hover:shadow-none hover:border-border-color">
+          <div className="flex items-center justify-between mb-3">
+            <h4 className="text-xs font-bold uppercase tracking-[0.2em] text-text-secondary">Today's Routine</h4>
+            <Link to="/app/timetable" className="text-[10px] font-bold uppercase tracking-widest text-text-secondary hover:text-text-primary">Open →</Link>
+          </div>
+          <div className="space-y-2 flex-1">
+            {(() => {
+              const todayDay = new Date().getDay();
+              const todaySlots = (timetable || []).filter((s) => (s.dayOfWeek ?? 1) === todayDay)
+                .sort((a, b) => (a.startTime || "").localeCompare(b.startTime || ""));
+              if (todaySlots.length === 0) return (
+                <div className="py-8 text-center">
+                  <p className="text-xs text-text-secondary">No routine blocks for today.</p>
+                  <Link to="/app/timetable" className="text-[10px] font-bold uppercase tracking-widest text-accent mt-2 block hover:underline">Configure →</Link>
+                </div>
+              );
+              const nowM = new Date().getHours() * 60 + new Date().getMinutes();
+              return todaySlots.slice(0, 6).map((s) => {
+                const [sh, sm] = (s.startTime || "00:00").split(":").map(Number);
+                const [eh, em] = (s.endTime || "00:00").split(":").map(Number);
+                const startM = sh * 60 + sm, endM = eh * 60 + em;
+                const isActive = endM <= startM ? (nowM >= startM || nowM < endM) : (nowM >= startM && nowM < endM);
+                return (
+                  <div key={s.id} className={`flex items-center gap-3 px-3 py-2 rounded-xl border transition-all ${isActive ? 'border-accent/50 bg-accent/10' : 'border-border-color bg-accent-dim'}`}>
+                    {s.color && s.color !== 'default' && (
+                      <div className="w-1.5 h-8 rounded-full shrink-0" style={{ backgroundColor: ({
+                        blue:'rgba(59,130,246,0.7)', emerald:'rgba(16,185,129,0.7)', amber:'rgba(245,158,11,0.7)',
+                        rose:'rgba(244,63,94,0.7)', purple:'rgba(168,85,247,0.7)', cyan:'rgba(6,182,212,0.7)', orange:'rgba(249,115,22,0.7)'
+                      })[s.color] || 'var(--accent)' }} />
+                    )}
+                    <div className="flex-1 min-w-0">
+                      <p className={`text-xs font-bold truncate ${isActive ? 'text-accent' : 'text-text-primary'}`}>{s.title}</p>
+                      <p className="text-[9px] font-mono text-text-secondary">{s.startTime} – {s.endTime}</p>
+                    </div>
+                    {isActive && <div className="w-1.5 h-1.5 rounded-full bg-accent animate-pulse shrink-0" />}
+                  </div>
+                );
+              });
+            })()}
+          </div>
+        </Card>
+
+        {/* Today's Tasks - flat combined list */}
+        <Card className="lg:col-span-2 flex flex-col hover:translate-y-0 hover:shadow-none hover:border-border-color">
+          <div className="flex items-center justify-between mb-3">
+            <h4 className="text-xs font-bold uppercase tracking-[0.2em] text-text-secondary">Checklist</h4>
+            <Link to="/app/habits" className="text-[10px] font-bold uppercase tracking-widest text-text-secondary hover:text-text-primary">Manage →</Link>
+          </div>
+          <DashboardChecklistWidget />
         </Card>
       </div>
 

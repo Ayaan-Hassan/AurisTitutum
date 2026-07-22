@@ -744,26 +744,26 @@ function AppContent() {
                 <div className="animate-in slide-in-from-right fade-in duration-300 space-y-6">
                   {/* Color palette */}
                   <div>
-                    <label className="text-[10px] font-black text-text-secondary uppercase tracking-[0.3em] block mb-2">
-                      Card Color Theme
+                    <label className="text-[10px] font-black text-text-secondary uppercase tracking-[0.3em] block mb-3">
+                      Card Color
                     </label>
-                    <div className="flex gap-2.5 flex-wrap">
+                    <div className="flex gap-2 flex-wrap">
                       {[
-                        { id: "slate", hex: "#64748b" },
-                        { id: "indigo", hex: "#6366f1" },
-                        { id: "emerald", hex: "#10b981" },
-                        { id: "amber", hex: "#f59e0b" },
-                        { id: "rose", hex: "#f43f5e" },
-                        { id: "purple", hex: "#a855f7" },
-                        { id: "cyan", hex: "#06b6d4" },
-                        { id: "orange", hex: "#f97316" },
+                        { id: "default", colorClass: "var(--card-bg)" },
+                        { id: "blue",    colorClass: "rgba(59, 130, 246, 0.5)" },
+                        { id: "emerald", colorClass: "rgba(16, 185, 129, 0.5)" },
+                        { id: "amber",   colorClass: "rgba(245, 158, 11, 0.5)" },
+                        { id: "rose",    colorClass: "rgba(244, 63, 94, 0.5)" },
+                        { id: "purple",  colorClass: "rgba(168, 85, 247, 0.5)" },
+                        { id: "cyan",    colorClass: "rgba(6, 182, 212, 0.5)" },
+                        { id: "orange",  colorClass: "rgba(249, 115, 22, 0.5)" },
                       ].map((c) => (
                         <button
                           key={c.id}
                           type="button"
                           onClick={() => setNewHabit({ ...newHabit, color: c.id })}
-                          style={{ backgroundColor: c.hex }}
-                          className={`w-8 h-8 rounded-xl transition-all ${newHabit.color === c.id ? "scale-125 border-2 border-white shadow-lg" : "opacity-60 hover:opacity-100"}`}
+                          className={`w-6 h-6 rounded-full border-2 transition-all ${newHabit.color === c.id ? "border-accent scale-125 shadow-[0_0_8px_rgba(var(--accent-rgb),0.5)]" : "border-border-color hover:scale-110"}`}
+                          style={{ backgroundColor: c.colorClass }}
                         />
                       ))}
                     </div>
