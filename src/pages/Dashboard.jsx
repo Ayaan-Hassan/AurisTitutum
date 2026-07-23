@@ -551,7 +551,7 @@ const DashboardChecklistWidget = () => {
 
 // ─── Main Dashboard ──────────────────────────────────────────────────────────
 const Dashboard = ({ habits, notes, logActivity, insights, dataLoading }) => {
-  const { timetable } = useAuth();
+  const { timetable, user, logDocs, tasks } = useAuth();
   useEffect(() => {
     localStorage.setItem("auris_visited_dashboard", "true");
     localStorage.setItem("auris_returning_operator", "true");
