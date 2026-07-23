@@ -190,10 +190,7 @@ const ReminderForm = ({ initial = {}, onSave, onCancel, title: formTitle }) => {
 const ReminderCard = ({ reminder, onDelete, onEdit, onMarkDone }) => {
   const past = isReminderPast(reminder);
   const repeat = reminder.repeat || "none";
-  const isWhite = !!reminder.adminCreated;
-
-  const isCardWhite = reminder.color === "admin-white" || reminder.adminCreated;
-  const isWhite = isCardWhite;
+  const isWhite = reminder.color === "admin-white" || reminder.adminCreated;
 
   return (
     <div
