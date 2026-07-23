@@ -75,14 +75,14 @@ function SlotRow({ slot, onUpdate, onDelete }) {
             value={slot.title || ""}
             onChange={(e) => update({ title: e.target.value })}
             placeholder="Activity Name (e.g. Study, Sleep)"
-            className={`w-full bg-transparent border-none text-sm font-bold placeholder:text-text-secondary/30 outline-none ${isWhite ? "text-black" : "text-text-primary"}`}
+            className="w-full bg-transparent border-none text-sm font-bold placeholder:text-text-secondary/30 outline-none text-text-primary"
           />
           <input
             type="text"
             value={slot.notes || ""}
             onChange={(e) => update({ notes: e.target.value })}
             placeholder="Add description / details…"
-            className={`w-full bg-transparent border-none text-[10px] placeholder:text-text-secondary/20 outline-none ${isWhite ? "text-black/60" : "text-text-secondary"}`}
+            className="w-full bg-transparent border-none text-[10px] placeholder:text-text-secondary/20 outline-none text-text-secondary"
           />
         </div>
 
@@ -92,21 +92,21 @@ function SlotRow({ slot, onUpdate, onDelete }) {
             type="time"
             value={slot.startTime || "09:00"}
             onChange={(e) => update({ startTime: e.target.value })}
-            className={`bg-bg-main border border-border-color/60 rounded-lg px-2 py-1 text-[10px] font-mono outline-none focus:border-accent text-center cursor-pointer ${isWhite ? "text-black" : "text-text-primary"}`}
+            className="bg-bg-main border border-border-color/60 rounded-lg px-2 py-1 text-[10px] font-mono outline-none focus:border-accent text-center cursor-pointer text-text-primary"
           />
           <span className="text-text-secondary text-[9px]">–</span>
           <input
             type="time"
             value={slot.endTime || "10:00"}
             onChange={(e) => update({ endTime: e.target.value })}
-            className={`bg-bg-main border border-border-color/60 rounded-lg px-2 py-1 text-[10px] font-mono outline-none focus:border-accent text-center cursor-pointer ${isWhite ? "text-black" : "text-text-primary"}`}
+            className="bg-bg-main border border-border-color/60 rounded-lg px-2 py-1 text-[10px] font-mono outline-none focus:border-accent text-center cursor-pointer text-text-primary"
           />
         </div>
 
         {/* Delete button */}
         <button
           onClick={() => onDelete(slot.id)}
-          className={`w-8 h-8 rounded-lg flex items-center justify-center transition-all opacity-0 group-hover:opacity-100 shrink-0 ${isWhite ? "text-black/60 hover:text-red-500 hover:bg-black/5" : "text-text-secondary hover:text-danger hover:bg-danger/10"}`}
+          className="w-8 h-8 rounded-lg flex items-center justify-center transition-all opacity-0 group-hover:opacity-100 shrink-0 text-text-secondary hover:text-danger hover:bg-danger/10"
         >
           <Icon name="trash" size={13} />
         </button>
