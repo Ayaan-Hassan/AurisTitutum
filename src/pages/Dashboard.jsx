@@ -429,7 +429,7 @@ const DayDetailPopup = ({ dateStr, habits, notes, onClose }) => {
 
 // ─── Dashboard Checklist Widget (flat, no tabs) ───────────────────────────────
 const DashboardChecklistWidget = () => {
-  const { tasks, updateTasks } = useAuth();
+  const { tasks, updateTasks, addLog, deleteLog, logDocs } = useAuth();
   const todayKey = getLocalDateKey();
   const allTasks = Array.isArray(tasks) ? tasks : [];
   const pending = allTasks.filter((t) => {
@@ -449,15 +449,39 @@ const DashboardChecklistWidget = () => {
     const idx = updated.findIndex((t) => t.id === task.id);
     if (idx === -1) return;
     const t = { ...updated[idx] };
+    let nowChecking = false;
     if (t.recurrence === "one-time") {
       t.completed = !t.completed;
+      nowChecking = t.completed;
     } else {
       const comps = { ...(t.completions || {}) };
       comps[todayKey] = !comps[todayKey];
       t.completions = comps;
+      nowChecking = comps[todayKey];
     }
     updated[idx] = t;
     await updateTasks(updated);
+
+    // Logs Integration
+    if (nowChecking) {
+      await addLog({
+        habitId: "task_" + task.id,
+        habitName: `[Task] ${task.name}`,
+        date: todayKey,
+        time: new Date().toLocaleTimeString([], { hour: 24, hour12: false }).slice(0, 5),
+        amount: 1,
+        unit: "task",
+        mode: "task_completion",
+        type: "Good",
+      });
+    } else {
+      const relevantLogs = (logDocs || [])
+        .filter(l => l.habitId === "task_" + task.id && l.date === todayKey)
+        .sort((a, b) => (b.createdAt || "").localeCompare(a.createdAt || ""));
+      if (relevantLogs.length > 0) {
+        await deleteLog(relevantLogs[0].id);
+      }
+    }
   };
 
   if (allTasks.length === 0) return (
@@ -466,13 +490,27 @@ const DashboardChecklistWidget = () => {
     </div>
   );
 
-  const PRIORITY_COLORS = { high: "text-danger border-danger/30 bg-danger/5", medium: "text-amber-400 border-amber-400/30 bg-amber-400/5", low: "text-success border-success/30 bg-success/5" };
+  const PRIORITY_BADGES = {
+    high: "text-danger border-danger/30 bg-danger/5",
+    medium: "text-amber-400 border-amber-400/30 bg-amber-400/5",
+    low: "text-success border-success/30 bg-success/5"
+  };
 
   const renderTask = (task) => {
     const isDone = task.recurrence === "one-time" ? !!task.completed : !!task.completions?.[todayKey];
-    const prioClass = PRIORITY_COLORS[task.priority] || PRIORITY_COLORS.low;
+    const badgeClass = PRIORITY_BADGES[task.priority] || PRIORITY_BADGES.low;
+    const priorityBg = isDone ? "transparent" : {
+      high: "rgba(239, 68, 68, 0.12)",
+      medium: "rgba(245, 158, 11, 0.12)",
+      low: "rgba(16, 185, 129, 0.12)"
+    }[task.priority] || "transparent";
+
     return (
-      <div key={task.id} className={`flex items-center gap-3 border-l-2 pl-3 py-1.5 transition-colors ${isDone ? "border-border-color opacity-40" : task.priority === "high" ? "border-danger/60" : task.priority === "medium" ? "border-amber-400/60" : "border-success/60"}`}>
+      <div
+        key={task.id}
+        className={`flex items-center gap-3 border-l-2 pl-3 py-2 pr-2 rounded-r-xl transition-all ${isDone ? "border-border-color opacity-40" : task.priority === "high" ? "border-danger/60" : task.priority === "medium" ? "border-amber-400/60" : "border-success/60"}`}
+        style={{ backgroundColor: priorityBg }}
+      >
         <button
           onClick={() => handleToggle(task)}
           className={`w-5 h-5 rounded-md border-2 shrink-0 flex items-center justify-center transition-all ${isDone ? "bg-success/20 border-success/50" : "border-border-color hover:border-accent"}`}
@@ -480,12 +518,24 @@ const DashboardChecklistWidget = () => {
           {isDone && <Icon name="check" size={11} className="text-success" />}
         </button>
         <div className="flex-1 min-w-0">
-          <p className={`text-[11px] font-bold truncate ${isDone ? "line-through text-text-secondary" : "text-text-primary"}`}>{task.emoji && `${task.emoji} `}{task.name}</p>
+          <p className={`text-[11px] font-bold truncate ${isDone ? "line-through text-text-secondary" : "text-text-primary"}`}>
+            {task.emoji && `${task.emoji} `}{task.name}
+          </p>
+          <div className="flex items-center gap-1.5 flex-wrap mt-0.5">
+            <span className="text-[8px] font-black uppercase tracking-wider text-text-secondary bg-bg-main/50 px-1.5 py-0.5 rounded border border-border-color/60 shrink-0">
+              {task.recurrence === "one-time" ? "One-time" : task.recurrence === "daily" ? "Daily" : task.recurrence === "weekly" ? "Weekly" : "Monthly"}
+            </span>
+            {task.dueDate && task.recurrence === "one-time" && (
+              <span className="text-[8px] font-mono text-text-secondary bg-bg-main/50 px-1.5 py-0.5 rounded border border-border-color/60 flex items-center gap-0.5 shrink-0">
+                <Icon name="calendar" size={8} /> Due: {task.dueDate}
+              </span>
+            )}
+          </div>
           {task.hasProgress && task.targetProgress > 0 && (
-            <p className="text-[9px] font-mono text-text-secondary">{task.currentProgress || 0} / {task.targetProgress} {task.progressUnit || ""}</p>
+            <p className="text-[9px] font-mono text-text-secondary mt-1">{task.currentProgress || 0} / {task.targetProgress} {task.progressUnit || ""}</p>
           )}
         </div>
-        <span className={`text-[8px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded border ${prioClass} shrink-0`}>{task.priority || "low"}</span>
+        <span className={`text-[8px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded border ${badgeClass} shrink-0`}>{task.priority || "low"}</span>
       </div>
     );
   };
@@ -521,32 +571,123 @@ const Dashboard = ({ habits, notes, logActivity, insights, dataLoading }) => {
       if (!Number.isNaN(dt.getTime())) return dt;
       return new Date(`${dateStr}T12:00:00`);
     };
-    const all = [];
-    (habits || []).forEach((h) => {
-      (h.logs || []).forEach((day) => {
-        (day.entries || []).forEach((entry) => {
-          // Robust entry handling to avoid React Error #31
-          const isString = typeof entry === "string";
-          const isObjectWithPhoto = !isString && entry && typeof entry === "object" && "photoData" in entry;
 
-          // Include base64 photo entries in recent logs summary but flag them
-          const photoUrl = isString && entry.startsWith("data:image") ? entry : isObjectWithPhoto ? entry.photoData : null;
-          const isPhoto = !!photoUrl;
+    let all = [];
+    const todayKey = getLocalDateKey();
 
-          const isCount = isString && entry.includes("|");
-          const parts = isCount ? entry.split("|") : [];
-          const [time, value] = isCount ? [parts[0], parts[1]] : (isPhoto ? [null, "📷 Photo"] : [(isString ? entry : "Logged"), null]);
-          const unit = isCount ? (parts[2] || (h.mode === "count" ? "Unit" : h.mode === "rating" ? "Stars" : h.mode === "timer" ? "sec" : "")) : null;
-          const formattedDate = new Date(day.date + "T12:00:00")
-            .toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" })
-            .toUpperCase();
+    if (user && logDocs && logDocs.length > 0) {
+      all = logDocs.map((doc) => {
+        const h = habits.find((h) => h.id === doc.habitId);
+        let name = h?.name;
+        let emoji = h?.emoji || "";
+        if (!name && doc.habitId?.startsWith("task_")) {
+          name = doc.habitName || "Completed Task";
+          emoji = "📋";
+        }
+        const formattedDate = new Date(doc.date + "T12:00:00")
+          .toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" })
+          .toUpperCase();
+        return {
+          id: doc.id,
+          habit: name || "Deleted Habit",
+          habitId: doc.habitId,
+          emoji,
+          type: doc.type || h?.type || "Good",
+          mode: doc.mode || h?.mode || "quick",
+          date: doc.date,
+          formattedDate,
+          time: doc.time,
+          photoData: doc.photoData,
+          value: doc.amount,
+          unit: doc.unit || "",
+          isPhoto: !!doc.photoData,
+        };
+      });
+    } else {
+      // Guest mode or fallback
+      (habits || []).forEach((h) => {
+        (h.logs || []).forEach((day) => {
+          (day.entries || []).forEach((entry) => {
+            const isString = typeof entry === "string";
+            const isObjectWithPhoto = !isString && entry && typeof entry === "object" && "photoData" in entry;
+            const photoUrl = isString && entry.startsWith("data:image") ? entry : isObjectWithPhoto ? entry.photoData : null;
+            const isPhoto = !!photoUrl;
+            const isCount = isString && entry.includes("|");
+            const parts = isCount ? entry.split("|") : [];
+            const [time, value] = isCount ? [parts[0], parts[1]] : (isPhoto ? [null, "📷 Photo"] : [(isString ? entry : "Logged"), null]);
+            const unit = isCount ? (parts[2] || "") : null;
+            const formattedDate = new Date(day.date + "T12:00:00")
+              .toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" })
+              .toUpperCase();
 
-          all.push({ habit: h.name, emoji: h.emoji || "", type: h.type, date: day.date, formattedDate, time, value, unit, isPhoto, photoUrl });
+            all.push({
+              habit: h.name,
+              emoji: h.emoji || "",
+              type: h.type,
+              date: day.date,
+              formattedDate,
+              time,
+              value,
+              unit,
+              isPhoto,
+              photoUrl,
+            });
+          });
         });
       });
-    });
+
+      // Guest mode task logs:
+      (tasks || []).forEach((t) => {
+        if (t.recurrence === "one-time") {
+          if (t.completed) {
+            const formattedDate = new Date(todayKey + "T12:00:00")
+              .toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" })
+              .toUpperCase();
+            all.push({
+              id: `guest_task_${t.id}_comp`,
+              habit: `[Task] ${t.name}`,
+              habitId: `task_${t.id}`,
+              emoji: "📋",
+              type: "Good",
+              mode: "task_completion",
+              date: t.dueDate || todayKey,
+              formattedDate,
+              time: "Logged",
+              photoData: null,
+              value: 1,
+              unit: "task",
+              isPhoto: false,
+            });
+          }
+        } else {
+          Object.keys(t.completions || {}).forEach((dateStr) => {
+            if (t.completions[dateStr]) {
+              const formattedDate = new Date(dateStr + "T12:00:00")
+                .toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" })
+                .toUpperCase();
+              all.push({
+                id: `guest_task_${t.id}_${dateStr}`,
+                habit: `[Task] ${t.name}`,
+                habitId: `task_${t.id}`,
+                emoji: "📋",
+                type: "Good",
+                mode: "task_completion",
+                date: dateStr,
+                formattedDate,
+                time: "Logged",
+                photoData: null,
+                value: 1,
+                unit: "task",
+                isPhoto: false,
+              });
+            }
+          });
+        }
+      });
+    }
+
     return all.sort((a, b) => parseTs(b.date, b.time) - parseTs(a.date, a.time));
-  }, [habits]);
+  }, [habits, logDocs, user, tasks]);
 
   const totalLogEvents = (list) =>
     (list || []).reduce((sum, h) => sum + (h.logs || []).reduce((s, d) => s + (d.entries || []).length, 0), 0);
@@ -689,8 +830,17 @@ const Dashboard = ({ habits, notes, logActivity, insights, dataLoading }) => {
               const isWhite = h.color === "admin-white" || h.adminCreated;
               const isFull = streak === target;
 
+              const cardBgColor = isWhite ? "var(--admin-white)" : (
+                h.color === "blue" ? "rgba(59, 130, 246, 0.2)" :
+                h.color === "emerald" ? "rgba(16, 185, 129, 0.2)" :
+                h.color === "amber" ? "rgba(245, 158, 11, 0.2)" :
+                h.color === "rose" ? "rgba(244, 63, 94, 0.2)" :
+                h.color === "purple" ? "rgba(168, 85, 247, 0.2)" :
+                "var(--card-bg)"
+              );
+
               return (
-                <div key={h.id} className={`relative flex flex-col justify-between border rounded-xl group transition-all overflow-hidden ${isWhite ? 'bg-white border-white shadow-[0_0_15px_rgba(255,255,255,0.3)] scale-[1.02]' : 'bg-accent-dim border-border-color hover:border-text-secondary'}`}>
+                <div key={h.id} className={`relative flex flex-col justify-between border rounded-xl group transition-all overflow-hidden ${isWhite ? 'text-black border-white shadow-[0_0_15px_rgba(255,255,255,0.3)] scale-[1.02]' : 'border-border-color hover:border-text-secondary'}`} style={{ backgroundColor: cardBgColor }}>
                   {/* Adaptive Progress Bar */}
                   <div
                     className={`absolute left-0 top-0 bottom-0 z-0 transition-[width] duration-1000 [transition-timing-function:cubic-bezier(0.16,1,0.3,1)] flex items-start overflow-hidden ${isWhite ? 'bg-black/10' : 'bg-white/10'}`}

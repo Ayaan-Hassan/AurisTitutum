@@ -14,6 +14,7 @@ const Layout = ({
   children,
   userConfig,
   onAddHabit,
+  onAddTask,
   habits = [],
   notifications = [],
   onNotificationsRead,
@@ -26,6 +27,7 @@ const Layout = ({
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [aurisOpen, setAurisOpen] = useState(false);
+  const [addDropdownOpen, setAddDropdownOpen] = useState(false);
   const notifAutoCloseRef = useRef(null);
   const notifDropdownRef = useRef(null);
 
@@ -213,17 +215,36 @@ const Layout = ({
             <div className={user ? "block" : "hidden sm:block"}>
               <RealTimeClock />
             </div>
-            <button
-              id="tour-add-habit"
-              onClick={onAddHabit}
-              className="hidden sm:inline-flex px-3 sm:px-5 py-2 sm:py-2.5 bg-accent text-bg-main text-[10px] font-black rounded-lg hover:opacity-90 transition-all uppercase tracking-widest hover:scale-105 active:scale-95 h-9 sm:h-10 items-center"
-            >
-              <span className="sm:hidden flex items-center gap-1.5">
-                <Icon name="plus" size={13} />
-                <span className="text-[10px]">Add Habit</span>
-              </span>
-              <span className="hidden sm:inline">Add Habit</span>
-            </button>
+            <div className="relative">
+              <button
+                id="tour-add-habit"
+                onClick={() => setAddDropdownOpen(!addDropdownOpen)}
+                className="hidden sm:inline-flex px-3 sm:px-5 py-2 sm:py-2.5 bg-accent text-bg-main text-[10px] font-black rounded-lg hover:opacity-90 transition-all uppercase tracking-widest hover:scale-105 active:scale-95 h-9 sm:h-10 items-center gap-1"
+              >
+                <span>ADD +</span>
+              </button>
+              {addDropdownOpen && (
+                <>
+                  <div className="fixed inset-0 z-40" onClick={() => setAddDropdownOpen(false)} />
+                  <div className="absolute right-0 mt-2 w-44 bg-bg-sidebar border border-border-color rounded-xl py-2 shadow-xl z-50 animate-in fade-in slide-in-from-top-2 duration-200">
+                    <button
+                      onClick={() => { onAddHabit(); setAddDropdownOpen(false); }}
+                      className="w-full text-left px-4 py-2 text-xs font-bold text-text-primary hover:bg-accent hover:text-bg-main transition-colors flex items-center gap-2"
+                    >
+                      <Icon name="activity" size={14} />
+                      New Habit
+                    </button>
+                    <button
+                      onClick={() => { onAddTask?.(); setAddDropdownOpen(false); }}
+                      className="w-full text-left px-4 py-2 text-xs font-bold text-text-primary hover:bg-accent hover:text-bg-main transition-colors flex items-center gap-2"
+                    >
+                      <Icon name="check-square" size={14} />
+                      New Task
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
             {!user && (
               <button
                 onClick={() => navigate("/login")}
@@ -239,15 +260,38 @@ const Layout = ({
           {children}
         </div>
 
-        <button
-          id="tour-add-habit-mobile"
-          type="button"
-          onClick={onAddHabit}
-          className="sm:hidden fixed bottom-6 right-4 z-30 w-14 h-14 rounded-full bg-accent text-bg-main shadow-[0_12px_30px_rgba(0,0,0,0.45)] border border-white/20 flex items-center justify-center active:scale-95"
-          aria-label="Add habit"
-        >
-          <Icon name="plus" size={22} />
-        </button>
+        <div className="sm:hidden fixed bottom-6 right-4 z-30">
+          <button
+            id="tour-add-habit-mobile"
+            type="button"
+            onClick={() => setAddDropdownOpen(!addDropdownOpen)}
+            className="w-14 h-14 rounded-full bg-accent text-bg-main shadow-[0_12px_30px_rgba(0,0,0,0.45)] border border-white/20 flex items-center justify-center active:scale-95 animate-in fade-in"
+            aria-label="Add item"
+          >
+            <Icon name="plus" size={22} className={`transition-transform duration-200 ${addDropdownOpen ? 'rotate-45' : ''}`} />
+          </button>
+          {addDropdownOpen && (
+            <>
+              <div className="fixed inset-0 z-20" onClick={() => setAddDropdownOpen(false)} />
+              <div className="absolute right-0 bottom-16 w-36 bg-bg-sidebar border border-border-color rounded-xl py-2 shadow-xl z-50 animate-in fade-in slide-in-from-bottom-2 duration-200">
+                <button
+                  onClick={() => { onAddHabit(); setAddDropdownOpen(false); }}
+                  className="w-full text-left px-4 py-3 text-xs font-bold text-text-primary hover:bg-accent hover:text-bg-main transition-colors flex items-center gap-2"
+                >
+                  <Icon name="activity" size={14} />
+                  New Habit
+                </button>
+                <button
+                  onClick={() => { onAddTask?.(); setAddDropdownOpen(false); }}
+                  className="w-full text-left px-4 py-3 text-xs font-bold text-text-primary hover:bg-accent hover:text-bg-main transition-colors flex items-center gap-2"
+                >
+                  <Icon name="check-square" size={14} />
+                  New Task
+                </button>
+              </div>
+            </>
+          )}
+        </div>
 
         {/* Mobile overlay navigation */}
         {mobileNavOpen && (

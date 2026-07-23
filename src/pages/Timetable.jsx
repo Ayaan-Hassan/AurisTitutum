@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect, useRef } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import Icon from "../components/Icon";
 import { Card } from "../components/ui/Card";
 import { Button } from "../components/ui/Button";
@@ -16,130 +16,47 @@ const DAYS = [
   { id: 0, label: "Sun", full: "Sunday" },
 ];
 
-// ── Colors — same system as Notes page ───────────────────────────────────────
+// ── Colors — exact same system and number of colors as Notes page ─────────────
 const SLOT_COLORS = [
-  { id: "default", colorClass: "var(--card-bg)",              rgba: "rgba(255,255,255,0.05)" },
-  { id: "blue",    colorClass: "rgba(59,  130, 246, 0.18)",   rgba: "rgba(59,130,246,0.18)" },
-  { id: "emerald", colorClass: "rgba(16,  185, 129, 0.18)",   rgba: "rgba(16,185,129,0.18)" },
-  { id: "amber",   colorClass: "rgba(245, 158, 11,  0.18)",   rgba: "rgba(245,158,11,0.18)" },
-  { id: "rose",    colorClass: "rgba(244, 63,  94,  0.18)",   rgba: "rgba(244,63,94,0.18)" },
-  { id: "purple",  colorClass: "rgba(168, 85,  247, 0.18)",   rgba: "rgba(168,85,247,0.18)" },
-  { id: "cyan",    colorClass: "rgba(6,   182, 212, 0.18)",   rgba: "rgba(6,182,212,0.18)" },
-  { id: "orange",  colorClass: "rgba(249, 115, 22,  0.18)",   rgba: "rgba(249,115,22,0.18)" },
+  { id: "default",     colorClass: "var(--card-bg)" },
+  { id: "blue",        colorClass: "rgba(59, 130, 246, 0.2)" },
+  { id: "emerald",     colorClass: "rgba(16, 185, 129, 0.2)" },
+  { id: "amber",       colorClass: "rgba(245, 158, 11, 0.2)" },
+  { id: "rose",        colorClass: "rgba(244, 63, 94, 0.2)" },
+  { id: "purple",      colorClass: "rgba(168, 85, 247, 0.2)" },
+  { id: "admin-white", colorClass: "var(--admin-white)" },
 ];
 
-const colorStyle = (colorId) =>
-  SLOT_COLORS.find((c) => c.id === colorId)?.colorClass || SLOT_COLORS[0].colorClass;
+const colorStyle = (colorId) => {
+  const c = SLOT_COLORS.find((x) => x.id === colorId);
+  return c ? c.colorClass : "var(--card-bg)";
+};
 
-// ── Inline editable time field ────────────────────────────────────────────────
-function InlineTimeInput({ value, onChange }) {
-  const [editing, setEditing] = useState(false);
-  const inputRef = useRef(null);
-
-  useEffect(() => {
-    if (editing && inputRef.current) inputRef.current.focus();
-  }, [editing]);
-
-  const fmt = (t) => {
-    if (!t) return "--:--";
-    try {
-      const [h, m] = t.split(":");
-      const d = new Date();
-      d.setHours(Number(h), Number(m));
-      return d.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: true });
-    } catch { return t; }
-  };
-
-  if (editing) {
-    return (
-      <input
-        ref={inputRef}
-        type="time"
-        value={value || ""}
-        onChange={(e) => onChange(e.target.value)}
-        onBlur={() => setEditing(false)}
-        className="w-20 bg-bg-main border border-accent/60 rounded-lg px-2 py-0.5 text-[10px] font-mono text-text-primary outline-none focus:border-accent text-center"
-      />
-    );
-  }
-
-  return (
-    <button
-      onClick={() => setEditing(true)}
-      title="Click to change time"
-      className="text-[10px] font-mono font-bold text-text-secondary hover:text-text-primary hover:underline transition-colors cursor-pointer"
-    >
-      {fmt(value)}
-    </button>
-  );
-}
-
-// ── Inline editable text field ────────────────────────────────────────────────
-function InlineTextInput({ value, onChange, placeholder = "Untitled", className = "" }) {
-  const [editing, setEditing] = useState(false);
-  const [draft,   setDraft]   = useState(value || "");
-  const inputRef = useRef(null);
-
-  useEffect(() => {
-    if (editing) {
-      setDraft(value || "");
-      if (inputRef.current) inputRef.current.focus();
-    }
-  }, [editing, value]);
-
-  const commit = () => {
-    setEditing(false);
-    if (draft.trim() !== value) onChange(draft.trim() || placeholder);
-  };
-
-  if (editing) {
-    return (
-      <input
-        ref={inputRef}
-        value={draft}
-        onChange={(e) => setDraft(e.target.value)}
-        onBlur={commit}
-        onKeyDown={(e) => { if (e.key === "Enter" || e.key === "Escape") commit(); }}
-        className={`bg-bg-main/60 border border-accent/60 rounded-lg px-2 py-0.5 text-sm font-bold text-text-primary outline-none focus:border-accent w-full ${className}`}
-      />
-    );
-  }
-
-  return (
-    <button
-      onClick={() => setEditing(true)}
-      title="Click to edit"
-      className={`text-left font-bold text-text-primary hover:text-accent transition-colors cursor-pointer truncate max-w-full ${className}`}
-    >
-      {value || <span className="text-text-secondary italic font-normal">{placeholder}</span>}
-    </button>
-  );
-}
-
-// ── SlotRow — the visual timetable bar ────────────────────────────────────────
+// ── SlotRow — the visual timetable bar with direct inputs ────────────────────
 function SlotRow({ slot, onUpdate, onDelete }) {
   const [showColorPicker, setShowColorPicker] = useState(false);
 
   const update = (patch) => onUpdate({ ...slot, ...patch });
+  const isWhite = slot.color === "admin-white";
 
   return (
     <div
-      className="group relative rounded-2xl border border-border-color/60 overflow-hidden transition-all hover:border-border-color"
+      className={`group relative rounded-2xl border transition-all ${isWhite ? "text-black border-white shadow-sm" : "border-border-color/60 hover:border-text-secondary"}`}
       style={{ backgroundColor: colorStyle(slot.color) }}
     >
       {/* Main content row */}
-      <div className="flex items-center gap-3 px-4 py-3">
-        {/* Colored left accent + color picker trigger */}
+      <div className="flex items-center gap-3 px-4 py-3 flex-wrap sm:flex-nowrap">
+        {/* Color picker circle */}
         <div className="relative shrink-0">
           <button
             onClick={() => setShowColorPicker((v) => !v)}
             title="Change color"
-            className="w-3 h-3 rounded-full border-2 border-border-color/60 hover:scale-125 transition-all"
+            className={`w-6 h-6 rounded-full border transition-all hover:scale-110 ${isWhite ? "border-black/20" : "border-border-color"}`}
             style={{ backgroundColor: colorStyle(slot.color) === "var(--card-bg)" ? "var(--border-color)" : colorStyle(slot.color) }}
           />
           {showColorPicker && (
             <div
-              className="absolute left-0 top-5 z-20 bg-bg-sidebar border border-border-color rounded-2xl p-2.5 flex gap-1.5 shadow-xl"
+              className="absolute left-0 top-7 z-30 bg-bg-sidebar border border-border-color rounded-2xl p-2.5 flex gap-1.5 shadow-2xl"
               onClick={(e) => e.stopPropagation()}
             >
               {SLOT_COLORS.map((c) => (
@@ -154,38 +71,53 @@ function SlotRow({ slot, onUpdate, onDelete }) {
           )}
         </div>
 
-        {/* Title — inline editable */}
-        <div className="flex-1 min-w-0">
-          <InlineTextInput
-            value={slot.title}
-            onChange={(v) => update({ title: v })}
-            placeholder="Activity name"
-            className="text-sm"
+        {/* Inputs directly accessible */}
+        <div className="flex-1 min-w-0 space-y-1">
+          <input
+            type="text"
+            value={slot.title || ""}
+            onChange={(e) => update({ title: e.target.value })}
+            placeholder="Activity Name (e.g. Study, Sleep)"
+            className={`w-full bg-transparent border-none text-sm font-bold placeholder:text-text-secondary/30 outline-none ${isWhite ? "text-black" : "text-text-primary"}`}
           />
-          {slot.notes && (
-            <p className="text-[10px] text-text-secondary mt-0.5 truncate">{slot.notes}</p>
-          )}
+          <input
+            type="text"
+            value={slot.notes || ""}
+            onChange={(e) => update({ notes: e.target.value })}
+            placeholder="Add description / details…"
+            className={`w-full bg-transparent border-none text-[10px] placeholder:text-text-secondary/20 outline-none ${isWhite ? "text-black/60" : "text-text-secondary"}`}
+          />
         </div>
 
-        {/* Time range — inline editable */}
+        {/* Direct native time inputs */}
         <div className="flex items-center gap-1.5 shrink-0">
-          <InlineTimeInput value={slot.startTime} onChange={(v) => update({ startTime: v })} />
+          <input
+            type="time"
+            value={slot.startTime || "09:00"}
+            onChange={(e) => update({ startTime: e.target.value })}
+            className={`bg-bg-main border border-border-color/60 rounded-lg px-2 py-1 text-[10px] font-mono outline-none focus:border-accent text-center cursor-pointer ${isWhite ? "text-black" : "text-text-primary"}`}
+          />
           <span className="text-text-secondary text-[9px]">–</span>
-          <InlineTimeInput value={slot.endTime} onChange={(v) => update({ endTime: v })} />
+          <input
+            type="time"
+            value={slot.endTime || "10:00"}
+            onChange={(e) => update({ endTime: e.target.value })}
+            className={`bg-bg-main border border-border-color/60 rounded-lg px-2 py-1 text-[10px] font-mono outline-none focus:border-accent text-center cursor-pointer ${isWhite ? "text-black" : "text-text-primary"}`}
+          />
         </div>
 
-        {/* Delete (hover) */}
+        {/* Delete button */}
         <button
           onClick={() => onDelete(slot.id)}
-          className="w-7 h-7 rounded-lg flex items-center justify-center text-text-secondary hover:text-danger hover:bg-danger/10 transition-all opacity-0 group-hover:opacity-100 shrink-0"
+          className={`w-8 h-8 rounded-lg flex items-center justify-center transition-all opacity-0 group-hover:opacity-100 shrink-0 ${isWhite ? "text-black/60 hover:text-red-500 hover:bg-black/5" : "text-text-secondary hover:text-danger hover:bg-danger/10"}`}
         >
           <Icon name="trash" size={13} />
         </button>
       </div>
 
-      {/* Close picker on outside click */}
+      {/* Backdrop to close picker */}
       {showColorPicker && (
-        <div className="fixed inset-0 z-10" onClick={() => setShowColorPicker(false)} />
+        <div className="fixed inset-0 z-20" onClick={() => setShowColorPicker(false)} />
       )}
     </div>
   );
@@ -199,6 +131,10 @@ export default function Timetable() {
   const [selectedDay, setSelectedDay] = useState(realTodayDay);
   const [deleteSlotId, setDeleteSlotId] = useState(null);
   const [currentTime, setCurrentTime] = useState(new Date());
+
+  // Copy Day state
+  const [showCopyDialog, setShowCopyDialog] = useState(false);
+  const [copyTargetDays, setCopyTargetDays] = useState([]);
 
   useEffect(() => {
     const t = setInterval(() => setCurrentTime(new Date()), 10000);
@@ -261,27 +197,70 @@ export default function Timetable() {
     saveAll([...(timetable || []), newSlot]);
   };
 
+  const handleCopyDay = () => {
+    if (copyTargetDays.length === 0) return;
+    const sourceSlots = (timetable || []).filter(s => (s.dayOfWeek ?? 1) === selectedDay);
+    // remove existing slots on selected target days
+    let updated = (timetable || []).filter(s => !copyTargetDays.includes(s.dayOfWeek ?? 1));
+    // add copies to target days
+    copyTargetDays.forEach(dayId => {
+      sourceSlots.forEach(s => {
+        updated.push({
+          ...s,
+          id: `slot_${Date.now()}_${Math.random().toString(36).substr(2, 4)}`,
+          dayOfWeek: dayId,
+        });
+      });
+    });
+    saveAll(updated);
+    setShowCopyDialog(false);
+    setCopyTargetDays([]);
+  };
+
   return (
     <div className="page-fade space-y-6 pb-20">
       {/* Page header */}
-      <div>
-        <h2 className="text-2xl font-bold tracking-tighter text-text-primary">Timetable</h2>
-        <p className="text-text-secondary text-xs mt-1">Your weekly routine — click any field to edit it directly.</p>
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <div>
+          <h2 className="text-2xl font-bold tracking-tighter text-text-primary">Timetable</h2>
+          <p className="text-text-secondary text-xs mt-1">Your weekly schedule planner. Direct inline inputs.</p>
+        </div>
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setShowCopyDialog(true)}
+            disabled={todaySlots.length === 0}
+            className="rounded-xl font-bold text-xs uppercase tracking-widest"
+          >
+            <Icon name="copy" size={13} className="mr-1.5" /> Copy Day
+          </Button>
+        </div>
       </div>
 
-      {/* Active routine banner (today only) */}
-      {activeSlot && selectedDay === realTodayDay && (
-        <Card className="flex items-center gap-4 border-accent/40 bg-gradient-to-r from-accent/10 to-transparent hover:translate-y-0 hover:shadow-none">
-          <div className="w-2 h-10 rounded-full bg-accent animate-pulse shrink-0" />
-          <div className="min-w-0 flex-1">
-            <p className="text-[9px] font-black uppercase tracking-[0.3em] text-accent mb-0.5">Currently Active</p>
-            <p className="text-base font-bold text-text-primary truncate">{activeSlot.title}</p>
+      {/* Active routine banner — ALWAYS present at top as requested */}
+      <Card className="flex items-center gap-4 border-accent/40 bg-gradient-to-r from-accent/10 to-transparent hover:translate-y-0 hover:shadow-none min-h-[64px]">
+        {activeSlot && selectedDay === realTodayDay ? (
+          <>
+            <div className="w-2 h-10 rounded-full bg-accent animate-pulse shrink-0" />
+            <div className="min-w-0 flex-1">
+              <p className="text-[9px] font-black uppercase tracking-[0.3em] text-accent mb-0.5">Currently Active</p>
+              <p className="text-base font-bold text-text-primary truncate">{activeSlot.title || "Untitled Activity"}</p>
+            </div>
+            <div className="text-right shrink-0">
+              <p className="text-xs font-mono font-bold text-text-primary">{activeSlot.startTime} – {activeSlot.endTime}</p>
+            </div>
+          </>
+        ) : (
+          <div className="min-w-0 flex-1 py-1 flex items-center justify-between">
+            <div>
+              <p className="text-[9px] font-black uppercase tracking-[0.3em] text-text-secondary mb-0.5">Current Activity</p>
+              <p className="text-sm font-semibold text-text-secondary italic">No activity scheduled at this hour</p>
+            </div>
+            <Icon name="clock" size={16} className="text-text-secondary opacity-30" />
           </div>
-          <div className="text-right shrink-0">
-            <p className="text-xs font-mono font-bold text-text-primary">{activeSlot.startTime} – {activeSlot.endTime}</p>
-          </div>
-        </Card>
-      )}
+        )}
+      </Card>
 
       {/* Day selector tabs */}
       <div className="flex items-center gap-1 overflow-x-auto custom-scrollbar pb-1">
@@ -319,7 +298,7 @@ export default function Timetable() {
           <div className="py-16 text-center border border-dashed border-border-color rounded-2xl">
             <Icon name="clock" size={28} className="text-text-secondary/30 mx-auto mb-3" />
             <p className="text-xs font-bold text-text-secondary">No routine blocks for {DAYS.find((d) => d.id === selectedDay)?.full}.</p>
-            <p className="text-[10px] text-text-secondary/60 mt-1">Click the button below to start building your day.</p>
+            <p className="text-[10px] text-text-secondary/60 mt-1">Add a time block below to construct your routine.</p>
           </div>
         ) : (
           todaySlots.map((slot) => (
@@ -341,6 +320,62 @@ export default function Timetable() {
         <Icon name="plus" size={14} />
         Add time block
       </button>
+
+      {/* Copy Day Modal Dialog */}
+      {showCopyDialog && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-md flex items-center justify-center z-[150] p-4 animate-in fade-in">
+          <Card className="w-full max-w-sm p-6 space-y-4">
+            <div>
+              <h3 className="text-base font-bold text-text-primary uppercase tracking-wider">Copy Schedule</h3>
+              <p className="text-[10px] text-text-secondary uppercase tracking-[0.2em] font-mono mt-0.5">
+                Copy {DAYS.find(d => d.id === selectedDay)?.full}'s schedule to:
+              </p>
+            </div>
+            <div className="grid grid-cols-2 gap-2 py-2">
+              {DAYS.filter(d => d.id !== selectedDay).map((day) => {
+                const isSelected = copyTargetDays.includes(day.id);
+                return (
+                  <button
+                    key={day.id}
+                    onClick={() => {
+                      setCopyTargetDays(prev =>
+                        isSelected ? prev.filter(x => x !== day.id) : [...prev, day.id]
+                      );
+                    }}
+                    className={`py-2 px-3 border rounded-xl text-left text-xs font-bold transition-all flex items-center justify-between ${
+                      isSelected
+                        ? "bg-accent border-accent text-bg-main shadow-sm"
+                        : "bg-bg-main border-border-color text-text-secondary hover:border-text-secondary"
+                    }`}
+                  >
+                    <span>{day.full}</span>
+                    {isSelected && <Icon name="check" size={12} />}
+                  </button>
+                );
+              })}
+            </div>
+            <div className="flex gap-2 pt-2 border-t border-border-color/50">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => { setShowCopyDialog(false); setCopyTargetDays([]); }}
+                className="flex-1"
+              >
+                Cancel
+              </Button>
+              <Button
+                variant="primary"
+                size="sm"
+                onClick={handleCopyDay}
+                disabled={copyTargetDays.length === 0}
+                className="flex-1"
+              >
+                Confirm Copy
+              </Button>
+            </div>
+          </Card>
+        </div>
+      )}
 
       <ConfirmModal
         open={!!deleteSlotId}

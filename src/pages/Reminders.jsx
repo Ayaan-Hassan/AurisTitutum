@@ -51,15 +51,19 @@ const isReminderPast = (r) => {
 };
 
 const COLOR_PALETTE = [
-  { id: "default", colorClass: "var(--card-bg)" },
-  { id: "blue",    colorClass: "rgba(59, 130, 246, 0.5)" },
-  { id: "emerald", colorClass: "rgba(16, 185, 129, 0.5)" },
-  { id: "amber",   colorClass: "rgba(245, 158, 11, 0.5)" },
-  { id: "rose",    colorClass: "rgba(244, 63, 94, 0.5)" },
-  { id: "purple",  colorClass: "rgba(168, 85, 247, 0.5)" },
-  { id: "cyan",    colorClass: "rgba(6, 182, 212, 0.5)" },
-  { id: "orange",  colorClass: "rgba(249, 115, 22, 0.5)" },
+  { id: "default",     colorClass: "var(--card-bg)" },
+  { id: "blue",        colorClass: "rgba(59, 130, 246, 0.2)" },
+  { id: "emerald",     colorClass: "rgba(16, 185, 129, 0.2)" },
+  { id: "amber",       colorClass: "rgba(245, 158, 11, 0.2)" },
+  { id: "rose",        colorClass: "rgba(244, 63, 94, 0.2)" },
+  { id: "purple",      colorClass: "rgba(168, 85, 247, 0.2)" },
+  { id: "admin-white", colorClass: "var(--admin-white)" },
 ];
+
+const getCardBgColor = (colorId) => {
+  const c = COLOR_PALETTE.find((x) => x.id === colorId);
+  return c ? c.colorClass : "var(--card-bg)";
+};
 
 const ReminderForm = ({ initial = {}, onSave, onCancel, title: formTitle }) => {
   const [title, setTitle] = useState(initial.title || "");
@@ -67,12 +71,12 @@ const ReminderForm = ({ initial = {}, onSave, onCancel, title: formTitle }) => {
   const [date, setDate] = useState(initial.date || getTodayStr());
   const [time, setTime] = useState(initial.time || "09:00");
   const [repeat, setRepeat] = useState(initial.repeat || "none");
-  const [color, setColor] = useState(initial.color || "indigo");
+  const [color, setColor] = useState(initial.color || "default");
 
   const canSave = title.trim().length > 0;
 
   return (
-    <Card className="relative overflow-hidden">
+    <Card className="relative overflow-hidden transition-all" style={{ backgroundColor: getCardBgColor(color) }}>
       <div className="absolute -top-16 -right-16 w-36 h-36 bg-accent/5 rounded-full blur-[70px] pointer-events-none" />
       <div className="relative z-10">
         <div className="mb-5">
@@ -188,8 +192,14 @@ const ReminderCard = ({ reminder, onDelete, onEdit, onMarkDone }) => {
   const repeat = reminder.repeat || "none";
   const isWhite = !!reminder.adminCreated;
 
+  const isCardWhite = reminder.color === "admin-white" || reminder.adminCreated;
+  const isWhite = isCardWhite;
+
   return (
-    <div className={`flex items-start justify-between gap-3 p-4 rounded-2xl border transition-all group ${past ? "bg-bg-main/40 border-border-color opacity-60" : isWhite ? "bg-white border-white shadow-[0_0_15px_rgba(255,255,255,0.3)] scale-[1.01]" : "bg-card-bg border-border-color hover:border-text-secondary"}`}>
+    <div
+      className={`flex items-start justify-between gap-3 p-4 rounded-2xl border transition-all group ${past ? "bg-bg-main/40 border-border-color opacity-60" : isWhite ? "border-white shadow-[0_0_15px_rgba(255,255,255,0.3)] scale-[1.01]" : "border-border-color hover:border-text-secondary"}`}
+      style={past ? {} : { backgroundColor: getCardBgColor(reminder.color) }}
+    >
       <div className="flex items-start gap-3 min-w-0 flex-1">
         <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 mt-0.5 border ${past ? "bg-bg-main border-border-color" : isWhite ? "bg-black/5 border-black/10" : "bg-accent-dim border-border-color"}`}>
           <Icon name={past ? "check-circle" : "bell"} size={15} className={past ? "text-text-secondary" : isWhite ? "text-black" : "text-text-primary"} />

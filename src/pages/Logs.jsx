@@ -27,16 +27,23 @@ const Logs = ({ habits, setHabits, setFeatureLockConfig }) => {
     };
 
     let all = [];
+    const todayKey = getLocalDateKey();
 
     if (user && logDocs && logDocs.length > 0) {
       // Use logDocs directly for synced users to get real IDs
       all = logDocs.map(doc => {
         const h = habits.find(h => h.id === doc.habitId);
+        let name = h?.name;
+        let emoji = h?.emoji || "";
+        if (!name && doc.habitId?.startsWith("task_")) {
+          name = doc.habitName || "Completed Task";
+          emoji = "📋";
+        }
         return {
           id: doc.id,
-          habit: h?.name || 'Deleted Habit',
+          habit: name || 'Deleted Habit',
           habitId: doc.habitId,
-          emoji: h?.emoji || "",
+          emoji,
           type: doc.type || h?.type || "Good",
           mode: doc.mode || h?.mode || "quick",
           date: doc.date,
@@ -81,10 +88,52 @@ const Logs = ({ habits, setHabits, setFeatureLockConfig }) => {
           });
         });
       });
+
+      // Guest mode task logs:
+      const guestTasks = authContext.tasks || [];
+      guestTasks.forEach(t => {
+        if (t.recurrence === "one-time") {
+          if (t.completed) {
+            all.push({
+              id: `guest_task_${t.id}_comp`,
+              habit: `[Task] ${t.name}`,
+              habitId: `task_${t.id}`,
+              emoji: "📋",
+              type: "Good",
+              mode: "task_completion",
+              date: t.dueDate || todayKey,
+              time: "Logged",
+              photoData: null,
+              value: 1,
+              unit: "task",
+              isPhoto: false
+            });
+          }
+        } else {
+          Object.keys(t.completions || {}).forEach(dateStr => {
+            if (t.completions[dateStr]) {
+              all.push({
+                id: `guest_task_${t.id}_${dateStr}`,
+                habit: `[Task] ${t.name}`,
+                habitId: `task_${t.id}`,
+                emoji: "📋",
+                type: "Good",
+                mode: "task_completion",
+                date: dateStr,
+                time: "Logged",
+                photoData: null,
+                value: 1,
+                unit: "task",
+                isPhoto: false
+              });
+            }
+          });
+        }
+      });
     }
 
     return all.sort((a, b) => parseTs(b.date, b.time) - parseTs(a.date, a.time));
-  }, [habits, logDocs, user]);
+  }, [habits, logDocs, user, authContext.tasks]);
 
   const counts = useMemo(() => {
     const good = flattenedLogs.filter((l) => l.type === "Good").length;

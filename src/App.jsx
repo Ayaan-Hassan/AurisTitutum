@@ -27,6 +27,7 @@ import { collection, addDoc } from "firebase/firestore";
 import { Button } from "./components/ui/Button";
 import Onboarding from "./components/Onboarding";
 import ProtectedRoute from "./components/ProtectedRoute";
+import { TaskFormModal } from "./components/ChecklistSection";
 
 const DAILY_INSIGHTS = [
   {
@@ -209,6 +210,7 @@ function AppContent() {
   const dataLoading = authContext.dataLoading;
 
   const [showAddModal, setShowAddModal] = useState(false);
+  const [showAddTaskModal, setShowAddTaskModal] = useState(false);
   const [addHabitStep, setAddHabitStep] = useState(1);
   const [newHabit, setNewHabit] = useState({
     name: "",
@@ -480,6 +482,7 @@ function AppContent() {
               <Layout
                 userConfig={userConfig}
                 onAddHabit={handleAddHabitRequest}
+                onAddTask={() => setShowAddTaskModal(true)}
                 habits={habits}
                 notifications={notifications}
                 onNotificationsRead={markAllRead}
@@ -749,14 +752,13 @@ function AppContent() {
                     </label>
                     <div className="flex gap-2 flex-wrap">
                       {[
-                        { id: "default", colorClass: "var(--card-bg)" },
-                        { id: "blue",    colorClass: "rgba(59, 130, 246, 0.5)" },
-                        { id: "emerald", colorClass: "rgba(16, 185, 129, 0.5)" },
-                        { id: "amber",   colorClass: "rgba(245, 158, 11, 0.5)" },
-                        { id: "rose",    colorClass: "rgba(244, 63, 94, 0.5)" },
-                        { id: "purple",  colorClass: "rgba(168, 85, 247, 0.5)" },
-                        { id: "cyan",    colorClass: "rgba(6, 182, 212, 0.5)" },
-                        { id: "orange",  colorClass: "rgba(249, 115, 22, 0.5)" },
+                        { id: "default",     colorClass: "var(--card-bg)" },
+                        { id: "blue",        colorClass: "rgba(59, 130, 246, 0.2)" },
+                        { id: "emerald",     colorClass: "rgba(16, 185, 129, 0.2)" },
+                        { id: "amber",       colorClass: "rgba(245, 158, 11, 0.2)" },
+                        { id: "rose",        colorClass: "rgba(244, 63, 94, 0.2)" },
+                        { id: "purple",      colorClass: "rgba(168, 85, 247, 0.2)" },
+                        { id: "admin-white", colorClass: "var(--admin-white)" },
                       ].map((c) => (
                         <button
                           key={c.id}
@@ -974,6 +976,17 @@ function AppContent() {
             </button>
           </div>
         </div>
+      {showAddTaskModal && (
+        <TaskFormModal
+          task={{ name: "", priority: "medium", recurrence: "daily", category: "General" }}
+          onSave={async (taskData) => {
+            const updated = [...(authCtx.tasks || [])];
+            updated.push(taskData);
+            await authCtx.updateTasks(updated);
+            setShowAddTaskModal(false);
+          }}
+          onClose={() => setShowAddTaskModal(false)}
+        />
       )}
     </>
   );

@@ -14,12 +14,12 @@ const RECURRENCE_OPTS = [
 ];
 
 const PRIORITY_MAP = {
-  high:   { border: "border-danger/60",       text: "text-danger",     badge: "bg-danger/10 text-danger border-danger/30",       weight: 3 },
-  medium: { border: "border-amber-400/60",    text: "text-amber-400",  badge: "bg-amber-400/10 text-amber-400 border-amber-400/30", weight: 2 },
-  low:    { border: "border-success/60",      text: "text-success",    badge: "bg-success/10 text-success border-success/30",    weight: 1 },
+  high:   { border: "border-danger/60",       text: "text-danger",     badge: "bg-danger/10 text-danger border-danger/30",       weight: 3, bg: "rgba(239, 68, 68, 0.12)" },
+  medium: { border: "border-amber-400/60",    text: "text-amber-400",  badge: "bg-amber-400/10 text-amber-400 border-amber-400/30", weight: 2, bg: "rgba(245, 158, 11, 0.12)" },
+  low:    { border: "border-success/60",      text: "text-success",    badge: "bg-success/10 text-success border-success/30",    weight: 1, bg: "rgba(16, 185, 129, 0.12)" },
 };
 
-// ── Inline task form (same design language as Notes add form) ──────────────────
+// ── Inline task form ──────────────────────────────────────────────────────────
 function TaskForm({ task, activeTab, onSave, onCancel }) {
   const [name,           setName]           = useState(task.name || "");
   const [description,    setDescription]    = useState(task.description || "");
@@ -81,54 +81,47 @@ function TaskForm({ task, activeTab, onSave, onCancel }) {
         className="w-full bg-bg-main/30 border border-border-color p-3 rounded-xl text-xs text-text-primary placeholder:text-text-secondary/40 outline-none focus:border-accent transition-all"
       />
 
-      {/* Recurrence + Priority row */}
+      {/* Recurrence + Priority dropdowns as requested */}
       <div className="grid grid-cols-2 gap-3">
         <div className="space-y-1.5">
           <label className="text-[9px] font-black uppercase tracking-widest text-text-secondary block ml-0.5">Recurrence</label>
-          <div className="flex flex-col gap-1">
+          <select
+            value={recurrence}
+            onChange={(e) => setRecurrence(e.target.value)}
+            className="w-full bg-bg-main border border-border-color p-3 rounded-xl text-xs font-bold text-text-primary outline-none focus:border-accent transition-all cursor-pointer"
+          >
             {RECURRENCE_OPTS.map((r) => (
-              <button
-                key={r.id}
-                type="button"
-                onClick={() => setRecurrence(r.id)}
-                className={`py-1.5 px-3 rounded-lg text-[10px] font-bold uppercase tracking-wider border transition-all text-left ${
-                  recurrence === r.id ? "bg-accent text-bg-main border-accent" : "bg-bg-main border-border-color text-text-secondary hover:border-text-secondary hover:bg-accent-dim"
-                }`}
-              >
-                {r.label}
-              </button>
+              <option key={r.id} value={r.id}>{r.label}</option>
             ))}
-          </div>
+          </select>
         </div>
         <div className="space-y-1.5">
           <label className="text-[9px] font-black uppercase tracking-widest text-text-secondary block ml-0.5">Priority</label>
-          <div className="flex flex-col gap-1">
-            {["high", "medium", "low"].map((p) => (
-              <button
-                key={p}
-                type="button"
-                onClick={() => setPriority(p)}
-                className={`py-1.5 px-3 rounded-lg text-[10px] font-bold uppercase tracking-wider border transition-all text-left ${
-                  priority === p ? "bg-accent text-bg-main border-accent" : "bg-bg-main border-border-color text-text-secondary hover:border-text-secondary hover:bg-accent-dim"
-                }`}
-              >
-                {p}
-              </button>
-            ))}
-          </div>
+          <select
+            value={priority}
+            onChange={(e) => setPriority(e.target.value)}
+            className="w-full bg-bg-main border border-border-color p-3 rounded-xl text-xs font-bold text-text-primary outline-none focus:border-accent transition-all cursor-pointer"
+          >
+            <option value="high">🔴 High</option>
+            <option value="medium">🟡 Medium</option>
+            <option value="low">🟢 Low</option>
+          </select>
         </div>
       </div>
 
-      {/* Due date (one-time only) */}
+      {/* Due date (one-time only) labeled clearly */}
       {recurrence === "one-time" && (
-        <div className="relative animate-in fade-in duration-200">
-          <Icon name="calendar" size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-text-secondary opacity-50" />
-          <input
-            type="date"
-            value={dueDate}
-            onChange={(e) => setDueDate(e.target.value)}
-            className="w-full bg-bg-main/30 border border-border-color pl-9 pr-3 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest text-text-primary outline-none focus:border-accent"
-          />
+        <div className="space-y-1.5 animate-in fade-in duration-200">
+          <label className="text-[9px] font-black uppercase tracking-widest text-text-secondary block ml-0.5">Due Date</label>
+          <div className="relative">
+            <Icon name="calendar" size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-text-secondary opacity-50" />
+            <input
+              type="date"
+              value={dueDate}
+              onChange={(e) => setDueDate(e.target.value)}
+              className="w-full bg-bg-main border border-border-color pl-9 pr-3 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest text-text-primary outline-none focus:border-accent"
+            />
+          </div>
         </div>
       )}
 
@@ -178,7 +171,7 @@ function TaskForm({ task, activeTab, onSave, onCancel }) {
 
 // ── Main ChecklistSection ─────────────────────────────────────────────────────
 export default function ChecklistSection() {
-  const { tasks, updateTasks } = useAuth();
+  const { tasks, updateTasks, addLog, deleteLog, logDocs } = useAuth();
   const [activeTab,    setActiveTab]    = useState("daily");
   const [editingTask,  setEditingTask]  = useState(null);
   const [showAdd,      setShowAdd]      = useState(false);
@@ -203,15 +196,39 @@ export default function ChecklistSection() {
     const idx = updated.findIndex((t) => t.id === task.id);
     if (idx === -1) return;
     const t = { ...updated[idx] };
+    let nowChecking = false;
     if (t.recurrence === "one-time") {
       t.completed = !t.completed;
+      nowChecking = t.completed;
     } else {
       const c = { ...(t.completions || {}) };
       c[todayKey] = !c[todayKey];
       t.completions = c;
+      nowChecking = c[todayKey];
     }
     updated[idx] = t;
     await updateTasks(updated);
+
+    // Logs Integration
+    if (nowChecking) {
+      await addLog({
+        habitId: "task_" + task.id,
+        habitName: `[Task] ${task.name}`,
+        date: todayKey,
+        time: new Date().toLocaleTimeString([], { hour: 24, hour12: false }).slice(0, 5),
+        amount: 1,
+        unit: "task",
+        mode: "task_completion",
+        type: "Good",
+      });
+    } else {
+      const relevantLogs = (logDocs || [])
+        .filter(l => l.habitId === "task_" + task.id && l.date === todayKey)
+        .sort((a, b) => (b.createdAt || "").localeCompare(a.createdAt || ""));
+      if (relevantLogs.length > 0) {
+        await deleteLog(relevantLogs[0].id);
+      }
+    }
   };
 
   const handleProgressChange = async (task, delta) => {
@@ -331,9 +348,10 @@ export default function ChecklistSection() {
             return (
               <div
                 key={task.id}
-                className={`flex items-start gap-3 border-l-2 pl-3 py-2 pr-2 group transition-colors hover:bg-accent-dim/40 rounded-r-xl ${
+                className={`flex items-start gap-3 border-l-2 pl-3 py-2.5 pr-2 group transition-all rounded-r-xl ${
                   isDone ? "border-border-color opacity-50" : prio.border
                 }`}
+                style={{ backgroundColor: isDone ? "transparent" : prio.bg }}
               >
                 {/* Checkbox */}
                 <button
@@ -356,7 +374,7 @@ export default function ChecklistSection() {
                     </span>
                     {task.dueDate && task.recurrence === "one-time" && (
                       <span className="text-[9px] font-mono text-text-secondary bg-bg-main px-2 py-0.5 rounded-lg border border-border-color flex items-center gap-1 shrink-0">
-                        <Icon name="calendar" size={9} />{task.dueDate}
+                        <Icon name="calendar" size={9} />Due: {task.dueDate}
                       </span>
                     )}
                   </div>

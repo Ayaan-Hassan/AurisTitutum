@@ -1049,10 +1049,7 @@ const Habits = ({ habits, setHabits, logActivity }) => {
 
   return (
     <div className="page-fade space-y-12 pb-20">
-      {/* ── Top Checklist & Tasks Section ── */}
-      <ChecklistSection />
-
-      <div className="pt-4 border-t border-border-color">
+      <div className="pt-4">
         <h2 className="text-3xl font-bold tracking-tighter text-text-primary">
           Habit Registry
         </h2>
@@ -1080,10 +1077,21 @@ const Habits = ({ habits, setHabits, logActivity }) => {
           const weeklyProgress = (weeklyTotal / 7) * 100;
           const isFull = weeklyTotal === 7;
 
+          const isWhite = h.color === "admin-white" || h.adminCreated;
+          const cardBgColor = isWhite ? "var(--admin-white)" : (
+            h.color === "blue" ? "rgba(59, 130, 246, 0.2)" :
+            h.color === "emerald" ? "rgba(16, 185, 129, 0.2)" :
+            h.color === "amber" ? "rgba(245, 158, 11, 0.2)" :
+            h.color === "rose" ? "rgba(244, 63, 94, 0.2)" :
+            h.color === "purple" ? "rgba(168, 85, 247, 0.2)" :
+            "var(--card-bg)"
+          );
+
           return (
             <Card
               key={h.id}
-              className="flex flex-col justify-between relative overflow-hidden"
+              className={`flex flex-col justify-between relative overflow-hidden transition-all ${isWhite ? 'text-black border-white shadow-[0_0_15px_rgba(255,255,255,0.3)] scale-[1.01]' : 'border-border-color hover:border-accent/40'}`}
+              style={{ backgroundColor: cardBgColor }}
             >
               <div className={`absolute left-0 top-0 bottom-0 z-0 transition-[width] duration-1000 ease-out flex items-start overflow-hidden ${isGood ? "bg-success/5" : "bg-danger/5"}`} style={{ width: `${weeklyProgress}%` }}>
                   {isFull && (
@@ -1425,6 +1433,9 @@ const Habits = ({ habits, setHabits, logActivity }) => {
           </p>
         </button>
       </div>
+
+      {/* ── Checklist & Tasks Section ── */}
+      <ChecklistSection />
 
       <ConfirmModal
         open={!!deleteTarget}
