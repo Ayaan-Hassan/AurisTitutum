@@ -30,6 +30,7 @@ const Layout = ({
   const [addDropdownOpen, setAddDropdownOpen] = useState(false);
   const notifAutoCloseRef = useRef(null);
   const notifDropdownRef = useRef(null);
+  const addDropdownRef = useRef(null);
 
   const { theme, setTheme } = useTheme();
 
@@ -45,6 +46,17 @@ const Layout = ({
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [notificationsOpen]);
+
+  // Close ADD dropdown if clicked outside
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (addDropdownOpen && addDropdownRef.current && !addDropdownRef.current.contains(e.target)) {
+        setAddDropdownOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [addDropdownOpen]);
 
   useEffect(() => {
     if (aurisOpen) {
@@ -215,34 +227,31 @@ const Layout = ({
             <div className={user ? "block" : "hidden sm:block"}>
               <RealTimeClock />
             </div>
-            <div className="relative">
+            <div className="relative" ref={addDropdownRef}>
               <button
                 id="tour-add-habit"
                 onClick={() => setAddDropdownOpen(!addDropdownOpen)}
-                className="hidden sm:inline-flex px-3 sm:px-5 py-2 sm:py-2.5 bg-accent text-bg-main text-[10px] font-black rounded-lg hover:opacity-90 transition-all uppercase tracking-widest hover:scale-105 active:scale-95 h-9 sm:h-10 items-center gap-1"
+                className="hidden sm:inline-flex w-9 h-9 sm:w-10 sm:h-10 bg-accent text-bg-main rounded-xl hover:opacity-90 transition-all hover:scale-105 active:scale-95 items-center justify-center shrink-0 border border-white/10"
               >
-                <span>ADD +</span>
+                <Icon name="plus" size={18} />
               </button>
               {addDropdownOpen && (
-                <>
-                  <div className="fixed inset-0 z-40" onClick={() => setAddDropdownOpen(false)} />
-                  <div className="absolute right-0 mt-2 w-44 bg-bg-sidebar border border-border-color rounded-xl py-2 shadow-xl z-50 animate-in fade-in slide-in-from-top-2 duration-200">
-                    <button
-                      onClick={() => { onAddHabit(); setAddDropdownOpen(false); }}
-                      className="w-full text-left px-4 py-2 text-xs font-bold text-text-primary hover:bg-accent hover:text-bg-main transition-colors flex items-center gap-2"
-                    >
-                      <Icon name="activity" size={14} />
-                      New Habit
-                    </button>
-                    <button
-                      onClick={() => { onAddTask?.(); setAddDropdownOpen(false); }}
-                      className="w-full text-left px-4 py-2 text-xs font-bold text-text-primary hover:bg-accent hover:text-bg-main transition-colors flex items-center gap-2"
-                    >
-                      <Icon name="check-square" size={14} />
-                      New Task
-                    </button>
-                  </div>
-                </>
+                <div className="absolute right-0 mt-2 w-44 bg-bg-sidebar border border-border-color rounded-xl py-2 shadow-xl z-50 animate-in fade-in slide-in-from-top-2 duration-200">
+                  <button
+                    onClick={() => { onAddHabit(); setAddDropdownOpen(false); }}
+                    className="w-full text-left px-4 py-2 text-xs font-bold text-text-primary hover:bg-accent hover:text-bg-main transition-colors flex items-center gap-2"
+                  >
+                    <Icon name="activity" size={14} />
+                    New Habit
+                  </button>
+                  <button
+                    onClick={() => { onAddTask?.(); setAddDropdownOpen(false); }}
+                    className="w-full text-left px-4 py-2 text-xs font-bold text-text-primary hover:bg-accent hover:text-bg-main transition-colors flex items-center gap-2"
+                  >
+                    <Icon name="check-square" size={14} />
+                    New Task
+                  </button>
+                </div>
               )}
             </div>
             {!user && (

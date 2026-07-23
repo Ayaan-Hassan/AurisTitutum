@@ -51,6 +51,7 @@ const Logs = ({ habits, setHabits, setFeatureLockConfig }) => {
           photoData: doc.photoData,
           value: doc.amount,
           unit: doc.unit || "",
+          note: doc.note || "",
           isPhoto: !!doc.photoData
         };
       });
@@ -404,15 +405,20 @@ const Logs = ({ habits, setHabits, setFeatureLockConfig }) => {
                           Image Data
                         </span>
                       </div>
-                    ) : (
-                      <div className="flex items-center gap-2">
-                         <span className="opacity-60">{log.time}</span>
-                         {log.value != null && (
-                            <>
-                              <div className="w-1 h-1 rounded-full bg-border-color" />
-                              <span className="font-bold text-text-primary">{log.value} {log.unit || ""}</span>
-                            </>
-                         )}
+                     ) : (
+                      <div className="flex flex-col gap-1">
+                        <div className="flex items-center gap-2">
+                           <span className="opacity-60">{log.time}</span>
+                           {log.value != null && (
+                              <>
+                                <div className="w-1 h-1 rounded-full bg-border-color" />
+                                <span className="font-bold text-text-primary">{log.value} {log.unit || ""}</span>
+                              </>
+                           )}
+                        </div>
+                        {log.note && (
+                          <span className="text-[9px] text-text-secondary italic opacity-70 max-w-[200px] truncate">{log.note}</span>
+                        )}
                       </div>
                     )}
                   </td>
@@ -458,13 +464,18 @@ const Logs = ({ habits, setHabits, setFeatureLockConfig }) => {
                       <span className="text-[8px] font-bold text-accent uppercase tracking-widest bg-accent/5 border border-accent/15 px-1.5 py-0.5 rounded">Image</span>
                     </div>
                   ) : (
-                    <div className="flex items-center gap-1.5">
-                      <span>{log.time}</span>
-                      {log.value != null && (
-                        <>
-                          <div className="w-1 h-1 rounded-full bg-border-color" />
-                          <span className="font-bold text-text-primary">{log.value} {log.unit || ""}</span>
-                        </>
+                    <div className="flex flex-col gap-1">
+                      <div className="flex items-center gap-1.5">
+                        <span>{log.time}</span>
+                        {log.value != null && (
+                          <>
+                            <div className="w-1 h-1 rounded-full bg-border-color" />
+                            <span className="font-bold text-text-primary">{log.value} {log.unit || ""}</span>
+                          </>
+                        )}
+                      </div>
+                      {log.note && (
+                        <span className="text-[9px] text-text-secondary italic opacity-70 truncate">{log.note}</span>
                       )}
                     </div>
                   )}

@@ -827,10 +827,8 @@ const Dashboard = ({ habits, notes, logActivity, insights, dataLoading }) => {
               
               const { streak, target, label: streakLabel } = getStreakData(h, todayKey);
               const progress = (streak / target) * 100;
-              const isWhite = h.color === "admin-white" || h.adminCreated;
               const isFull = streak === target;
-
-              const cardBgColor = isWhite ? "var(--admin-white)" : (
+              const cardBgColor = (
                 h.color === "blue" ? "rgba(59, 130, 246, 0.2)" :
                 h.color === "emerald" ? "rgba(16, 185, 129, 0.2)" :
                 h.color === "amber" ? "rgba(245, 158, 11, 0.2)" :
@@ -840,39 +838,39 @@ const Dashboard = ({ habits, notes, logActivity, insights, dataLoading }) => {
               );
 
               return (
-                <div key={h.id} className={`relative flex flex-col justify-between border rounded-xl group transition-all overflow-hidden ${isWhite ? 'text-black border-white shadow-[0_0_15px_rgba(255,255,255,0.3)] scale-[1.02]' : 'border-border-color hover:border-text-secondary'}`} style={{ backgroundColor: cardBgColor }}>
+                <div key={h.id} className={`relative flex flex-col justify-between border rounded-xl group transition-all overflow-hidden border-border-color hover:border-text-secondary`} style={{ backgroundColor: cardBgColor }}>
                   {/* Adaptive Progress Bar */}
                   <div
-                    className={`absolute left-0 top-0 bottom-0 z-0 transition-[width] duration-1000 [transition-timing-function:cubic-bezier(0.16,1,0.3,1)] flex items-start overflow-hidden ${isWhite ? 'bg-black/10' : 'bg-white/10'}`}
+                    className={`absolute left-0 top-0 bottom-0 z-0 transition-[width] duration-1000 [transition-timing-function:cubic-bezier(0.16,1,0.3,1)] flex items-start overflow-hidden bg-white/10`}
                     style={{ width: `${progress}%` }}
                   >
-                      <div className={`absolute inset-0 bg-gradient-to-r from-transparent via-${isWhite ? 'black/10' : 'white/20'} to-transparent animate-shimmer`} style={{ width: '200%' }} />
+                      <div className={`absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent animate-shimmer`} style={{ width: '200%' }} />
                       {isFull && (
-                        <div className={`w-[200%] h-4 absolute top-[-5px] left-0 animate-wave rounded-[50%] ${isWhite ? 'bg-white/20' : 'bg-white/30'}`} />
+                        <div className={`w-[200%] h-4 absolute top-[-5px] left-0 animate-wave rounded-[50%] bg-white/30`} />
                       )}
                   </div>
 
-                  {/* MOBILE ONLY: Top row â€” icon + name + streak */}
+                  {/* MOBILE ONLY: Top row – icon + name + streak */}
                   <div className="flex items-center gap-3 min-w-0 relative z-10 p-3.5 sm:hidden">
-                    <div className={`w-7 h-7 rounded-lg shrink-0 flex items-center justify-center border ${isWhite ? "bg-black/5 border-black/10" : isGood ? "bg-accent/10 border-accent/30" : "bg-bg-main border-border-color"}`}>
+                    <div className={`w-7 h-7 rounded-lg shrink-0 flex items-center justify-center border ${isGood ? "bg-accent/10 border-accent/30" : "bg-bg-main border-border-color"}`}>
                       {h.emoji ? (
                         <span className="leading-none" style={{ filter: "grayscale(1) saturate(0) brightness(1.2)", fontSize: "0.8rem" }}>{h.emoji}</span>
                       ) : (
-                        <Icon name={isGood ? "check-circle" : "alert-circle"} size={13} className={isWhite ? "text-black" : isGood ? "text-accent" : "text-text-secondary"} />
+                        <Icon name={isGood ? "check-circle" : "alert-circle"} size={13} className={isGood ? "text-accent" : "text-text-secondary"} />
                       )}
                     </div>
                     <div className="min-w-0 flex-1">
-                      <div className={`text-sm font-bold truncate flex items-center gap-2 ${isWhite ? "text-black" : "text-text-primary"}`}>
+                      <div className={`text-sm font-bold truncate flex items-center gap-2 text-text-primary`}>
                         {h.name}
-                        {h.isPinned && <Icon name="pin" size={10} className={`${isWhite ? 'text-black/40' : 'text-accent'} rotate-45`} />}
-                        {h.adminCreated && <span className="ml-2 px-1 py-0.5 rounded bg-black text-white text-[7px] font-black uppercase tracking-tighter align-middle">Admin Stream</span>}
+                        {h.isPinned && <Icon name="pin" size={10} className={`text-accent rotate-45`} />}
+                        {h.adminCreated && <span className="ml-2 px-1 py-0.5 rounded bg-accent/20 text-accent text-[7px] font-black uppercase tracking-tighter align-middle">Admin Stream</span>}
                       </div>
-                      <div className={`text-[10px] uppercase font-mono truncate ${isWhite ? "text-black/60" : "text-text-secondary"}`}>{streakLabel} Â· {streak} / {target} DAY STREAK</div>
+                      <div className={`text-[10px] uppercase font-mono truncate text-text-secondary`}>{streakLabel} · {streak} / {target} DAY STREAK</div>
                     </div>
                   </div>
 
-                  {/* MOBILE ONLY: Bottom row â€” gradient + centered action buttons */}
-                  <div className={`sm:hidden relative z-10 px-3 pb-3 pt-2.5 border-t ${isWhite ? 'border-black/10 bg-gradient-to-b from-black/5 to-transparent' : 'border-white/10 bg-gradient-to-b from-white/5 to-transparent'}`}>
+                  {/* MOBILE ONLY: Bottom row – gradient + centered action buttons */}
+                  <div className={`sm:hidden relative z-10 px-3 pb-3 pt-2.5 border-t border-white/10 bg-gradient-to-b from-white/5 to-transparent`}>
                     <div className="flex items-center justify-center gap-2 flex-wrap">
                       <Button id={i === 0 ? "tour-habit-performance" : undefined} onClick={() => setPerformanceTarget(h.id)} size="sm" variant="outline" icon="bar-chart-2" className="bg-bg-main rounded-lg w-9 h-9 p-0" title="Habit performance" />
                       {h.mode === "timer" ? (
@@ -903,16 +901,16 @@ const Dashboard = ({ habits, notes, logActivity, insights, dataLoading }) => {
                   {/* DESKTOP sm+: Side-by-side layout */}
                   <div className="hidden sm:flex sm:items-center sm:justify-between gap-3.5 p-3.5 relative z-10">
                     <div className="flex items-center gap-3 min-w-0">
-                      <div className={`w-7 h-7 rounded-lg shrink-0 flex items-center justify-center border ${isWhite ? "bg-black/5 border-black/10" : isGood ? "bg-accent/10 border-accent/30" : "bg-bg-main border-border-color"}`}>
-                        {h.emoji ? (<span className="leading-none" style={{ filter: "grayscale(1) saturate(0) brightness(1.2)", fontSize: "0.8rem" }}>{h.emoji}</span>) : (<Icon name={isGood ? "check-circle" : "alert-circle"} size={13} className={isWhite ? "text-black" : isGood ? "text-accent" : "text-text-secondary"} />)}
+                      <div className={`w-7 h-7 rounded-lg shrink-0 flex items-center justify-center border ${isGood ? "bg-accent/10 border-accent/30" : "bg-bg-main border-border-color"}`}>
+                        {h.emoji ? (<span className="leading-none" style={{ filter: "grayscale(1) saturate(0) brightness(1.2)", fontSize: "0.8rem" }}>{h.emoji}</span>) : (<Icon name={isGood ? "check-circle" : "alert-circle"} size={13} className={isGood ? "text-accent" : "text-text-secondary"} />)}
                       </div>
                       <div className="min-w-0 flex-1">
-                        <div className={`text-sm font-bold truncate flex items-center gap-2 ${isWhite ? "text-black" : "text-text-primary"}`}>
+                        <div className={`text-sm font-bold truncate flex items-center gap-2 text-text-primary`}>
                           {h.name}
-                          {h.isPinned && <Icon name="pin" size={10} className={`${isWhite ? 'text-black/40' : 'text-accent'} rotate-45`} />}
-                          {h.adminCreated && <span className="ml-2 px-1 py-0.5 rounded bg-black text-white text-[7px] font-black uppercase tracking-tighter align-middle">Admin Stream</span>}
+                          {h.isPinned && <Icon name="pin" size={10} className={`text-accent rotate-45`} />}
+                          {h.adminCreated && <span className="ml-2 px-1 py-0.5 rounded bg-accent/20 text-accent text-[7px] font-black uppercase tracking-tighter align-middle">Admin Stream</span>}
                         </div>
-                        <div className={`text-[10px] uppercase font-mono truncate ${isWhite ? "text-black/60" : "text-text-secondary"}`}>{streakLabel} Â· {streak} / {target} DAY STREAK</div>
+                        <div className={`text-[10px] uppercase font-mono truncate text-text-secondary`}>{streakLabel} · {streak} / {target} DAY STREAK</div>
                       </div>
                     </div>
                     <div className="flex items-center gap-1.5 shrink-0">

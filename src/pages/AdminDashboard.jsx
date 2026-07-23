@@ -288,12 +288,14 @@ export default function AdminDashboard() {
             }, (err) => console.error(err));
             newSubs.push(unsub);
         };
-        setUserData({ habits: [], notes: [], reminders: [], logs: [], ai_conversations: [] });
+        setUserData({ habits: [], notes: [], reminders: [], logs: [], ai_conversations: [], tasks: [], timetable: [] });
         attachListener("habits", "habits");
         attachListener("notes", "notes");
         attachListener("reminders", "reminders");
         attachListener("logs", "logs");
         attachListener("ai_conversations", "ai_conversations");
+        attachListener("tasks", "tasks");
+        attachListener("timetable", "timetable");
         setSubUnsubscribes(newSubs);
     };
 
@@ -1085,6 +1087,79 @@ export default function AdminDashboard() {
                                                             </div>
                                                         )) : <p className="text-[10px] text-text-secondary text-center">No reminders set.</p>}
                                                     </div>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div className="grid lg:grid-cols-2 gap-8 items-start mt-8">
+                                            <div className="bg-card-bg border border-border-color rounded-2xl p-6 shadow-sm">
+                                                <div className="flex items-center justify-between border-b border-border-color pb-3 mb-4">
+                                                    <h4 className="text-[11px] font-black uppercase tracking-[0.2em] text-text-secondary">User Tasks ({userData.tasks?.length || 0})</h4>
+                                                </div>
+                                                <div className="space-y-3 max-h-[250px] overflow-y-auto custom-scrollbar pr-2">
+                                                    {userData.tasks?.length > 0 ? userData.tasks.map(t => {
+                                                        const isCompleted = t.recurrence === "one-time" ? !!t.completed : !!t.completions?.[new Date().toISOString().split('T')[0]];
+                                                        return (
+                                                            <div key={t.id} className={`p-4 bg-bg-sidebar rounded-xl border border-border-color flex items-center justify-between gap-3 ${isCompleted ? 'opacity-50' : ''}`}>
+                                                                <div className="min-w-0 flex-1">
+                                                                    <p className={`text-xs font-bold text-text-primary ${isCompleted ? 'line-through' : ''}`}>
+                                                                        {t.emoji && `${t.emoji} `}{t.name}
+                                                                    </p>
+                                                                    <div className="flex items-center gap-1.5 mt-1 flex-wrap">
+                                                                        <span className="text-[8px] font-black uppercase tracking-wider text-text-secondary bg-bg-main/50 px-1.5 py-0.5 rounded border border-border-color/60">
+                                                                            {t.recurrence}
+                                                                        </span>
+                                                                        {t.dueDate && (
+                                                                            <span className="text-[8px] font-mono text-text-secondary bg-bg-main/50 px-1.5 py-0.5 rounded border border-border-color/60">
+                                                                                Due: {t.dueDate}
+                                                                            </span>
+                                                                        )}
+                                                                    </div>
+                                                                </div>
+                                                                <span className={`text-[8px] font-black uppercase tracking-widest px-2 py-0.5 rounded border ${
+                                                                    t.priority === 'high' ? 'bg-danger/10 border-danger/20 text-danger' :
+                                                                    t.priority === 'medium' ? 'bg-amber-400/10 border-amber-400/20 text-amber-500' :
+                                                                    'bg-success/10 border-success/20 text-success'
+                                                                }`}>
+                                                                    {t.priority || "low"}
+                                                                </span>
+                                                            </div>
+                                                        );
+                                                    }) : <p className="text-[10px] text-text-secondary text-center py-6">No tasks created.</p>}
+                                                </div>
+                                            </div>
+
+                                            <div className="bg-card-bg border border-border-color rounded-2xl p-6 shadow-sm">
+                                                <div className="flex items-center justify-between border-b border-border-color pb-3 mb-4">
+                                                    <h4 className="text-[11px] font-black uppercase tracking-[0.2em] text-text-secondary">User Timetable ({userData.timetable?.length || 0})</h4>
+                                                </div>
+                                                <div className="space-y-3 max-h-[250px] overflow-y-auto custom-scrollbar pr-2">
+                                                    {userData.timetable?.length > 0 ? [...userData.timetable]
+                                                        .sort((a,b) => (a.startTime || "").localeCompare(b.startTime || ""))
+                                                        .map((slot, index) => {
+                                                            const hasColor = slot.color && slot.color !== 'default';
+                                                            const bg = hasColor ? {
+                                                                blue: "rgba(59, 130, 246, 0.1)",
+                                                                emerald: "rgba(16, 185, 129, 0.1)",
+                                                                amber: "rgba(245, 158, 11, 0.1)",
+                                                                rose: "rgba(244, 63, 94, 0.1)",
+                                                                purple: "rgba(168, 85, 247, 0.1)"
+                                                            }[slot.color] || "var(--bg-sidebar)" : "var(--bg-sidebar)";
+                                                            return (
+                                                                <div key={index} style={{ backgroundColor: bg }} className="p-4 rounded-xl border border-border-color flex items-center justify-between gap-3">
+                                                                    <div className="min-w-0 flex-1">
+                                                                        <p className="text-xs font-bold text-text-primary">{slot.activity || "Unnamed Activity"}</p>
+                                                                        {slot.notes && <p className="text-[10px] text-text-secondary truncate mt-0.5">{slot.notes}</p>}
+                                                                    </div>
+                                                                    <div className="text-right shrink-0">
+                                                                        <p className="text-[10px] font-mono font-bold text-accent">{slot.startTime} - {slot.endTime}</p>
+                                                                        <p className="text-[8px] font-black uppercase tracking-wider text-text-secondary mt-0.5">
+                                                                            {Array.isArray(slot.days) ? slot.days.map(d => d.slice(0, 3)).join(', ') : 'All Days'}
+                                                                        </p>
+                                                                    </div>
+                                                                </div>
+                                                            );
+                                                        }) : <p className="text-[10px] text-text-secondary text-center py-6">No schedule blocks added.</p>}
                                                 </div>
                                             </div>
                                         </div>

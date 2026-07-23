@@ -57,7 +57,6 @@ const COLOR_PALETTE = [
   { id: "amber",       colorClass: "rgba(245, 158, 11, 0.2)" },
   { id: "rose",        colorClass: "rgba(244, 63, 94, 0.2)" },
   { id: "purple",      colorClass: "rgba(168, 85, 247, 0.2)" },
-  { id: "admin-white", colorClass: "var(--admin-white)" },
 ];
 
 const getCardBgColor = (colorId) => {

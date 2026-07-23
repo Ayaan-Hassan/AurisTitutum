@@ -24,7 +24,6 @@ const SLOT_COLORS = [
   { id: "amber",       colorClass: "rgba(245, 158, 11, 0.2)" },
   { id: "rose",        colorClass: "rgba(244, 63, 94, 0.2)" },
   { id: "purple",      colorClass: "rgba(168, 85, 247, 0.2)" },
-  { id: "admin-white", colorClass: "var(--admin-white)" },
 ];
 
 const colorStyle = (colorId) => {
@@ -37,11 +36,9 @@ function SlotRow({ slot, onUpdate, onDelete }) {
   const [showColorPicker, setShowColorPicker] = useState(false);
 
   const update = (patch) => onUpdate({ ...slot, ...patch });
-  const isWhite = slot.color === "admin-white";
-
   return (
     <div
-      className={`group relative rounded-2xl border transition-all ${isWhite ? "text-black border-white shadow-sm" : "border-border-color/60 hover:border-text-secondary"}`}
+      className={`group relative rounded-2xl border border-border-color/60 transition-all hover:border-text-secondary`}
       style={{ backgroundColor: colorStyle(slot.color) }}
     >
       {/* Main content row */}
@@ -51,7 +48,7 @@ function SlotRow({ slot, onUpdate, onDelete }) {
           <button
             onClick={() => setShowColorPicker((v) => !v)}
             title="Change color"
-            className={`w-6 h-6 rounded-full border transition-all hover:scale-110 ${isWhite ? "border-black/20" : "border-border-color"}`}
+            className={`w-6 h-6 rounded-full border border-border-color transition-all hover:scale-110`}
             style={{ backgroundColor: colorStyle(slot.color) === "var(--card-bg)" ? "var(--border-color)" : colorStyle(slot.color) }}
           />
           {showColorPicker && (

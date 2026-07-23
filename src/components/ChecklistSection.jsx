@@ -81,31 +81,37 @@ function TaskForm({ task, activeTab, onSave, onCancel }) {
         className="w-full bg-bg-main/30 border border-border-color p-3 rounded-xl text-xs text-text-primary placeholder:text-text-secondary/40 outline-none focus:border-accent transition-all"
       />
 
-      {/* Recurrence + Priority dropdowns as requested */}
+      {/* Recurrence + Priority dropdowns */}
       <div className="grid grid-cols-2 gap-3">
         <div className="space-y-1.5">
           <label className="text-[9px] font-black uppercase tracking-widest text-text-secondary block ml-0.5">Recurrence</label>
-          <select
-            value={recurrence}
-            onChange={(e) => setRecurrence(e.target.value)}
-            className="w-full bg-bg-main border border-border-color p-3 rounded-xl text-xs font-bold text-text-primary outline-none focus:border-accent transition-all cursor-pointer"
-          >
-            {RECURRENCE_OPTS.map((r) => (
-              <option key={r.id} value={r.id}>{r.label}</option>
-            ))}
-          </select>
+          <div className="relative">
+            <select
+              value={recurrence}
+              onChange={(e) => setRecurrence(e.target.value)}
+              className="w-full appearance-none bg-bg-sidebar border border-border-color py-2.5 pl-3 pr-8 rounded-xl text-xs font-bold text-text-primary outline-none focus:border-accent transition-all cursor-pointer"
+            >
+              {RECURRENCE_OPTS.map((r) => (
+                <option key={r.id} value={r.id}>{r.label}</option>
+              ))}
+            </select>
+            <Icon name="chevron-down" size={11} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-text-secondary pointer-events-none" />
+          </div>
         </div>
         <div className="space-y-1.5">
           <label className="text-[9px] font-black uppercase tracking-widest text-text-secondary block ml-0.5">Priority</label>
-          <select
-            value={priority}
-            onChange={(e) => setPriority(e.target.value)}
-            className="w-full bg-bg-main border border-border-color p-3 rounded-xl text-xs font-bold text-text-primary outline-none focus:border-accent transition-all cursor-pointer"
-          >
-            <option value="high">🔴 High</option>
-            <option value="medium">🟡 Medium</option>
-            <option value="low">🟢 Low</option>
-          </select>
+          <div className="relative">
+            <select
+              value={priority}
+              onChange={(e) => setPriority(e.target.value)}
+              className="w-full appearance-none bg-bg-sidebar border border-border-color py-2.5 pl-3 pr-8 rounded-xl text-xs font-bold text-text-primary outline-none focus:border-accent transition-all cursor-pointer"
+            >
+              <option value="high">🔴 High</option>
+              <option value="medium">🟡 Medium</option>
+              <option value="low">🟢 Low</option>
+            </select>
+            <Icon name="chevron-down" size={11} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-text-secondary pointer-events-none" />
+          </div>
         </div>
       </div>
 
@@ -215,11 +221,12 @@ export default function ChecklistSection() {
         habitId: "task_" + task.id,
         habitName: `[Task] ${task.name}`,
         date: todayKey,
-        time: new Date().toLocaleTimeString([], { hour: 24, hour12: false }).slice(0, 5),
+        time: new Date().toLocaleTimeString([], { hour: "2-digit", hour12: false }).slice(0, 5),
         amount: 1,
         unit: "task",
         mode: "task_completion",
         type: "Good",
+        note: task.description ? task.description : `Completed task: ${task.name}`,
       });
     } else {
       const relevantLogs = (logDocs || [])

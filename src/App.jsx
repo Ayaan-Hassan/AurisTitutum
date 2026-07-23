@@ -215,7 +215,7 @@ function AppContent() {
   const [newHabit, setNewHabit] = useState({
     name: "",
     description: "",
-    color: "indigo",
+    color: "default",
     category: "General",
     type: "Good",
     mode: "quick",
@@ -752,13 +752,12 @@ function AppContent() {
                     </label>
                     <div className="flex gap-2 flex-wrap">
                       {[
-                        { id: "default",     colorClass: "var(--card-bg)" },
-                        { id: "blue",        colorClass: "rgba(59, 130, 246, 0.2)" },
-                        { id: "emerald",     colorClass: "rgba(16, 185, 129, 0.2)" },
-                        { id: "amber",       colorClass: "rgba(245, 158, 11, 0.2)" },
-                        { id: "rose",        colorClass: "rgba(244, 63, 94, 0.2)" },
-                        { id: "purple",      colorClass: "rgba(168, 85, 247, 0.2)" },
-                        { id: "admin-white", colorClass: "var(--admin-white)" },
+                        { id: "default", colorClass: "var(--card-bg)" },
+                        { id: "blue",    colorClass: "rgba(59, 130, 246, 0.2)" },
+                        { id: "emerald", colorClass: "rgba(16, 185, 129, 0.2)" },
+                        { id: "amber",   colorClass: "rgba(245, 158, 11, 0.2)" },
+                        { id: "rose",    colorClass: "rgba(244, 63, 94, 0.2)" },
+                        { id: "purple",  colorClass: "rgba(168, 85, 247, 0.2)" },
                       ].map((c) => (
                         <button
                           key={c.id}
@@ -811,7 +810,7 @@ function AppContent() {
                             id: Date.now().toString(),
                             name: newHabit.name.trim(),
                             description: newHabit.description.trim(),
-                            color: newHabit.color || "indigo",
+                            color: newHabit.color || "default",
                             category: newHabit.category || "General",
                             createdBy: "user",
                             type: newHabit.type,
@@ -831,7 +830,7 @@ function AppContent() {
                             unifiedUpdateUserConfig({ settings: { onboardingComplete: true } });
                           }
 
-                          setNewHabit({ name: "", description: "", color: "indigo", category: "General", type: "Good", mode: "quick", unit: "", emoji: "" });
+                          setNewHabit({ name: "", description: "", color: "default", category: "General", type: "Good", mode: "quick", unit: "", emoji: "" });
                           trackEvent("habit_created", { type: newHabit.type, mode: newHabit.mode });
                           setShowAddModal(false);
                           setActiveModeInfo(null);
