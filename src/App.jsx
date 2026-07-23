@@ -976,6 +976,7 @@ function AppContent() {
             </button>
           </div>
         </div>
+      )}
       {showAddTaskModal && (
         <TaskFormModal
           task={{ name: "", priority: "medium", recurrence: "daily", category: "General" }}
